@@ -19,7 +19,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       es: {
-        week: 'Week',
+        week: 'Semana',
         day: 'Día',
         addDay: 'Agregar Día',
         startDay: 'Empezar Día',
@@ -87,14 +87,14 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         startDay: 'Inizia Giorno',
         finishWorkout: 'Termina Allenamento',
         feedbackSent: 'Feedback Inviato!',
-        feedbackDesc: 'Il tuo coach riceverà i tuoi progressi. Ottimo lavoro oggi!',
+        feedbackDesc: 'Il tuo coach riceverà i tuoi progressi. Ottimo trabajo oggi!',
         closeSession: 'Chiudi Sessione',
         howWasWorkout: 'Com\'è andato l\'allenamento oggi?',
         comments: 'Commenti per il tuo Coach',
         sendSummary: 'Invia Riepilogo',
         keepEditing: 'Continua a Modificare',
         selectDay: 'Seleziona un giorno per iniziare',
-        noContent: 'Il tuo coach non ha ancora caricato contenuti',
+        noContent: 'Il tuo coach non ha ancora caricato contenidos',
         pause: 'Pausa',
         tip: 'Consiglio',
         set: 'SERIE',
@@ -107,7 +107,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         dayCompleted: 'Allenamento Completato!',
         hello: 'Ciao',
         loading: 'Caricamento...',
-        notesPlaceholder: 'Note specifiche per questo esercizio...',
+        notesPlaceholder: 'Note specifiche per este esercizio...',
         feedbackPlaceholder: 'Raccontaci come ti sei sentito, pesi, fatica...',
         warmup: 'Riscaldamento'
       }
@@ -123,6 +123,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
   const [rating, setRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -290,16 +291,67 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
   const currentWeek = routine.weeks.find(w => w.id === activeWeekId);
   const currentWorkout = currentWeek?.workouts.find(wk => wk.id === activeWorkoutId);
 
-  const handleSubmitFeedback = () => {
+  const handleSubmitFeedback = async () => {
     if (rating === 0) {
       alert(language === 'es' ? 'Por favor selecciona una puntuación con las estrellas.' : language === 'en' ? 'Please select a rating.' : 'Per favore seleziona un punteggio.');
       return;
     }
 
+    if (isSubmitting) return; // Guard against multiple clicks
+    setIsSubmitting(true);
+
     // Al usar localStorage, simplemente nos aseguramos de que todo esté guardado localmente
     saveProgress();
-    console.log("Feedback:", { rating, feedbackText, workoutId: activeWorkoutId });
-    setIsSubmitted(true);
+
+    // 1. Generar Resumen del Entrenamiento
+    const summary = currentWorkout?.exercises.map(entry => {
+      const libEx = library.find(l => l.id === entry.libraryExerciseId);
+      const exerciseSets = entry.sets.map((set, idx) => {
+        const kg = clientWeights[set.id] || set.kg;
+        const reps = clientReps[set.id] || set.reps;
+        return `Set ${idx + 1}: ${reps} reps @ ${kg}kg`;
+      }).join('\n');
+      const note = feelings[entry.id] ? `\nNota: ${feelings[entry.id]}` : '';
+      return `--- ${libEx?.name} ---\n${exerciseSets}${note}`;
+    }).join('\n\n');
+
+    const fullMessage = `
+Rutina: ${routine.name}
+Cliente: ${routine.clientName}
+Entrenamiento: ${currentWorkout?.name}
+Puntuación: ${rating}/5 estrellas
+
+DETALLES:
+${summary}
+
+COMENTARIOS FINALES:
+${feedbackText || 'Sin comentarios adicionales.'}
+    `;
+
+    // 2. Enviar vía EmailJS (Configuración del usuario)
+    const serviceId = 'service_2e0ckic';
+    const templateId = 'template_0ngfis9';
+    const publicKey = 'Y5DaMTsCcNIrtI7Ld';
+    const targetEmail = 'sortinofitnes@gmail.com';
+
+    try {
+      const emailjs = (await import('@emailjs/browser')).default;
+      await emailjs.send(serviceId, templateId, {
+        routine_name: routine.name,
+        client_name: routine.clientName,
+        workout_name: currentWorkout?.name,
+        summary: fullMessage,
+        to_email: targetEmail
+      }, publicKey);
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error("Error al enviar email:", error);
+      // Respaldo por mailto en caso de error o falta de red
+      window.location.href = `mailto:${targetEmail}?subject=Feedback Rutina: ${routine.clientName}&body=${encodeURIComponent(fullMessage)}`;
+      setIsSubmitted(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Pantalla de Feedback / Finalización
@@ -342,9 +394,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
                 </div>
                 <button
                   onClick={handleSubmitFeedback}
-                  className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest italic shadow-xl hover:bg-blue-700 transition-all active:scale-95"
+                  disabled={isSubmitting}
+                  className={`w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest italic shadow-xl transition-all active:scale-95 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
                 >
-                  {t('sendSummary')}
+                  {isSubmitting ? t('loading') : t('sendSummary')}
                 </button>
                 <button
                   onClick={() => setShowFeedbackScreen(false)}
@@ -419,35 +472,43 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         </div>
       </div>
 
-      {/* Navegación Semanas (Pestañas) */}
-      <div className="mb-6 flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide">
-        {routine.weeks.map(week => (
-          <button
-            key={week.id}
-            onClick={() => setActiveWeekId(week.id)}
-            className={`px-8 py-5 rounded-[2rem] font-black uppercase italic text-xs tracking-widest transition-all shrink-0 ${activeWeekId === week.id ? 'bg-blue-600 text-white shadow-xl scale-105' : 'bg-white dark:bg-darkCard text-slate-400 border border-slate-100 dark:border-slate-800'}`}
+      {/* Navegación Semanas y Días (Dropdowns) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="relative group">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">{t('week')}</label>
+          <select
+            value={activeWeekId || ''}
+            onChange={(e) => setActiveWeekId(e.target.value)}
+            className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none"
           >
-            {week.name}
-          </button>
-        ))}
+            {routine.weeks.map(week => (
+              <option key={week.id} value={week.id}>{week.name}</option>
+            ))}
+          </select>
+          <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+          </div>
+        </div>
+
+        <div className="relative group">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">{t('day')}</label>
+          <select
+            value={activeWorkoutId || ''}
+            onChange={(e) => setActiveWorkoutId(e.target.value)}
+            className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none"
+          >
+            {currentWeek?.workouts.map(workout => (
+              <option key={workout.id} value={workout.id}>{workout.name}</option>
+            ))}
+          </select>
+          <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+          </div>
+        </div>
       </div>
 
       {currentWeek ? (
         <div className="space-y-8 lg:space-y-10 animate-in fade-in slide-in-from-left-4 duration-300">
-          <h2 className="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white border-l-8 border-blue-600 pl-6 lg:pl-8 italic uppercase tracking-tighter">{currentWeek.name}</h2>
-
-          {/* Navegación Días (Botones al lado) */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {currentWeek.workouts.map(workout => (
-              <button
-                key={workout.id}
-                onClick={() => setActiveWorkoutId(workout.id)}
-                className={`flex-1 min-w-[130px] px-6 py-5 rounded-[2.5rem] font-black uppercase italic text-sm tracking-widest transition-all ${activeWorkoutId === workout.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-black shadow-lg scale-[1.02]' : 'bg-white dark:bg-darkCard text-slate-400 border border-slate-100 dark:border-slate-800 hover:border-blue-300'}`}
-              >
-                {workout.name}
-              </button>
-            ))}
-          </div>
 
           {currentWorkout ? (
             <div className="space-y-12">

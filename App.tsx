@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return localStorage.getItem(THEME_KEY) === 'dark';
   });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Aplicar modo oscuro al elemento raíz
   useEffect(() => {
@@ -65,6 +66,7 @@ const App: React.FC = () => {
     };
 
     const loadRoutine = async (routineId: string, targetView: 'client' | 'builder') => {
+      setIsLoading(true);
       // Cargar rutina desde Supabase
       const { data, error } = await supabase
         .from('routines')
@@ -80,6 +82,7 @@ const App: React.FC = () => {
         setCurrentRoutine({ ...data.data, id: data.id }); // Aseguramos que el ID coincida
         setView(targetView);
       }
+      setIsLoading(false);
     };
 
     handleHashChange();
@@ -171,19 +174,28 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {view === 'setup' && <RoutineSetup onRoutineCreated={handleRoutineCreated} />}
-      {view === 'builder' && currentRoutine && (
-        <RoutineBuilder
-          routine={currentRoutine}
-          library={exerciseLibrary}
-          onSave={handleSaveRoutine}
-          onAddToLibrary={addToLibrary}
-          onRemoveFromLibrary={removeFromLibrary}
-          onGoToClient={() => setView('client')}
-        />
-      )}
-      {view === 'client' && currentRoutine && (
-        <ClientView routine={currentRoutine} library={exerciseLibrary} />
+      {isLoading ? (
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 animate-in fade-in duration-500">
+          <div className="w-20 h-20 border-8 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mb-8 shadow-2xl shadow-blue-500/20"></div>
+          <h2 className="text-2xl font-black uppercase italic tracking-tighter animate-pulse text-blue-600">PREPARANDO RUTINA...</h2>
+        </div>
+      ) : (
+        <>
+          {view === 'setup' && <RoutineSetup onRoutineCreated={handleRoutineCreated} />}
+          {view === 'builder' && currentRoutine && (
+            <RoutineBuilder
+              routine={currentRoutine}
+              library={exerciseLibrary}
+              onSave={handleSaveRoutine}
+              onAddToLibrary={addToLibrary}
+              onRemoveFromLibrary={removeFromLibrary}
+              onGoToClient={() => setView('client')}
+            />
+          )}
+          {view === 'client' && currentRoutine && (
+            <ClientView routine={currentRoutine} library={exerciseLibrary} />
+          )}
+        </>
       )}
     </div>
   );
