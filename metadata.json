@@ -1,0 +1,7 @@
+{
+  "name": "Fitness Routine Builder Pro",
+  "description": "A high-end application for fitness coaches to create, manage, and share personalized training routines with clients. Features a robust workout builder, exercise library, and metric tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
