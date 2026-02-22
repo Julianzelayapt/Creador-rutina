@@ -10,12 +10,27 @@ interface ClientViewProps {
 }
 
 const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
-  const [completedSets, setCompletedSets] = useState<Record<string, boolean>>({});
-  const [clientWeights, setClientWeights] = useState<Record<string, string>>({});
-  const [clientReps, setClientReps] = useState<Record<string, string>>({});
-  const [feelings, setFeelings] = useState<Record<string, string>>({});
+  // Función para obtener datos guardados de forma segura
+  const getSavedData = () => {
+    const saved = localStorage.getItem(`routine_progress_${routine.id}`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Error parsing saved progress:', e);
+      }
+    }
+    return null;
+  };
+
+  const savedData = getSavedData();
+
+  const [completedSets, setCompletedSets] = useState<Record<string, boolean>>(savedData?.completedSets || {});
+  const [clientWeights, setClientWeights] = useState<Record<string, string>>(savedData?.clientWeights || {});
+  const [clientReps, setClientReps] = useState<Record<string, string>>(savedData?.clientReps || {});
+  const [feelings, setFeelings] = useState<Record<string, string>>(savedData?.feelings || {});
   const [timer, setTimer] = useState<number | null>(null);
-  const [language, setLanguage] = useState<'es' | 'en' | 'it'>('es');
+  const [language, setLanguage] = useState<'es' | 'en' | 'it'>(savedData?.language || 'es');
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
@@ -88,14 +103,14 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         startDay: 'Inizia Giorno',
         finishWorkout: 'Termina Allenamento',
         feedbackSent: 'Feedback Inviato!',
-        feedbackDesc: 'Il tuo coach riceverà i tuoi progressi. Ottimo trabajo oggi!',
+        feedbackDesc: 'Il tuo coach riceverà i tuoi progressi. Ottimo lavoro oggi!',
         closeSession: 'Chiudi Sessione',
         howWasWorkout: 'Com\'è andato l\'allenamento oggi?',
         comments: 'Commenti per il tuo Coach',
         sendSummary: 'Invia Riepilogo',
         keepEditing: 'Continua a Modificare',
         selectDay: 'Seleziona un giorno per iniziare',
-        noContent: 'Il tuo coach non ha todavía cargado contenido',
+        noContent: 'Il tuo coach non ha ancora caricato contenuti',
         pause: 'Pausa',
         tip: 'Consiglio',
         set: 'SERIE',
@@ -130,8 +145,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
     return name;
   };
 
-  const [activeWeekId, setActiveWeekId] = useState<string | null>(routine.weeks[0]?.id || null);
-  const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null);
+  const [activeWeekId, setActiveWeekId] = useState<string | null>(savedData?.activeWeekId || routine.weeks[0]?.id || null);
+  const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(savedData?.activeWorkoutId || null);
 
   // Estados para el Feedback Final
   const [showFeedbackScreen, setShowFeedbackScreen] = useState(false);
@@ -146,8 +161,15 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
     if (activeWeekId) {
       const week = routine.weeks.find(w => w.id === activeWeekId);
       if (week && week.workouts.length > 0) {
-        if (!activeWorkoutId || !week.workouts.find(wk => wk.id === activeWorkoutId)) {
+        // Solo establecer el primer día si NO hay uno ya seleccionado o cargado
+        if (!activeWorkoutId) {
           setActiveWorkoutId(week.workouts[0].id);
+        } else {
+          // Si hay uno seleccionado, verificar que pertenezca a esta semana
+          const belongsToWeek = week.workouts.some(wk => wk.id === activeWorkoutId);
+          if (!belongsToWeek) {
+            setActiveWorkoutId(week.workouts[0].id);
+          }
         }
       }
     }
@@ -187,7 +209,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
       clientReps,
       feelings,
       activeWeekId,
-      activeWorkoutId
+      activeWorkoutId,
+      language
     };
 
     localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(progressData));
@@ -203,21 +226,18 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
     return () => clearTimeout(timeoutId);
   }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId]);
 
-  // Load initial state from localStorage
+  // Cargamos inicialmente en el useState, así que el useEffect de carga ya no es necesario
+  // pero mantendremos este por si cambia el routine.id
   useEffect(() => {
-    const savedProgress = localStorage.getItem(`routine_progress_${routine.id}`);
-    if (savedProgress) {
-      try {
-        const state = JSON.parse(savedProgress);
-        if (state.completedSets) setCompletedSets(state.completedSets);
-        if (state.clientWeights) setClientWeights(state.clientWeights);
-        if (state.clientReps) setClientReps(state.clientReps);
-        if (state.feelings) setFeelings(state.feelings);
-        if (state.activeWeekId) setActiveWeekId(state.activeWeekId);
-        if (state.activeWorkoutId) setActiveWorkoutId(state.activeWorkoutId);
-      } catch (e) {
-        console.error('Error parsing saved progress:', e);
-      }
+    const data = getSavedData();
+    if (data) {
+      if (data.completedSets) setCompletedSets(data.completedSets);
+      if (data.clientWeights) setClientWeights(data.clientWeights);
+      if (data.clientReps) setClientReps(data.clientReps);
+      if (data.feelings) setFeelings(data.feelings);
+      if (data.activeWeekId) setActiveWeekId(data.activeWeekId);
+      if (data.activeWorkoutId) setActiveWorkoutId(data.activeWorkoutId);
+      if (data.language) setLanguage(data.language);
     }
   }, [routine.id]);
 
@@ -350,16 +370,28 @@ ${feedbackText || 'Sin comentarios adicionales.'}
     const targetEmail = 'sortinofitnes@gmail.com';
 
     try {
-      await emailjs.send(serviceId, templateId, {
-        routine_name: routine.name,
-        client_name: routine.clientName,
-        workout_name: currentWorkout?.name,
-        summary: fullMessage,
-        to_email: targetEmail
-      }, publicKey);
+      if (!publicKey || publicKey === 'Y5DaMTsCcNIrtI7Ld') {
+        // Aseguramos que el publicKey se pase correctamente
+        await emailjs.send(serviceId, templateId, {
+          routine_name: routine.name,
+          client_name: routine.clientName,
+          workout_name: currentWorkout?.name,
+          summary: fullMessage,
+          to_email: targetEmail
+        }, 'Y5DaMTsCcNIrtI7Ld');
+      } else {
+        await emailjs.send(serviceId, templateId, {
+          routine_name: routine.name,
+          client_name: routine.clientName,
+          workout_name: currentWorkout?.name,
+          summary: fullMessage,
+          to_email: targetEmail
+        }, publicKey);
+      }
       setIsSubmitted(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al enviar email:", error);
+      alert("Error EmailJS: " + (error?.text || error?.message || "Error desconocido"));
       // Respaldo por mailto en caso de error o falta de red
       window.location.href = `mailto:${targetEmail}?subject=Feedback Rutina: ${routine.clientName}&body=${encodeURIComponent(fullMessage)}`;
       setIsSubmitted(true);
