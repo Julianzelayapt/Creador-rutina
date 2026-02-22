@@ -369,32 +369,20 @@ ${feedbackText || 'Sin comentarios adicionales.'}
     const publicKey = 'Y5DaMTsCcNIrtI7Ld';
     const targetEmail = 'sortinofitnes@gmail.com';
 
+    emailjs.init(publicKey);
+
     try {
-      if (!publicKey || publicKey === 'Y5DaMTsCcNIrtI7Ld') {
-        // Aseguramos que el publicKey se pase correctamente
-        await emailjs.send(serviceId, templateId, {
-          routine_name: routine.name,
-          client_name: routine.clientName,
-          workout_name: currentWorkout?.name,
-          summary: fullMessage,
-          to_email: targetEmail
-        }, 'Y5DaMTsCcNIrtI7Ld');
-      } else {
-        await emailjs.send(serviceId, templateId, {
-          routine_name: routine.name,
-          client_name: routine.clientName,
-          workout_name: currentWorkout?.name,
-          summary: fullMessage,
-          to_email: targetEmail
-        }, publicKey);
-      }
+      await emailjs.send(serviceId, templateId, {
+        routine_name: routine.name,
+        client_name: routine.clientName,
+        workout_name: currentWorkout?.name,
+        summary: fullMessage,
+        to_email: targetEmail
+      });
       setIsSubmitted(true);
     } catch (error: any) {
       console.error("Error al enviar email:", error);
-      alert("Error EmailJS: " + (error?.text || error?.message || "Error desconocido"));
-      // Respaldo por mailto en caso de error o falta de red
-      window.location.href = `mailto:${targetEmail}?subject=Feedback Rutina: ${routine.clientName}&body=${encodeURIComponent(fullMessage)}`;
-      setIsSubmitted(true);
+      alert("⚠️ Error al enviar mail automático: " + (error?.text || error?.message || "Error en el servidor de EmailJS"));
     } finally {
       setIsSubmitting(false);
     }
@@ -559,7 +547,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
           {currentWorkout ? (
             <div className="space-y-12">
               <div className="bg-white dark:bg-darkCard rounded-[2.5rem] lg:rounded-[3.5rem] p-5 lg:p-10 shadow-lg border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-                <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 mb-6 lg:mb-10 border-b-2 border-slate-50 dark:border-slate-800 pb-4 tracking-tight uppercase italic">{currentWorkout.name}</h3>
+                <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 mb-6 lg:mb-10 border-b-2 border-slate-50 dark:border-slate-800 pb-4 tracking-tight uppercase italic">{getTranslatedName(currentWorkout.name, 'day')}</h3>
 
                 {currentWorkout.warmup && (
                   <div className="mb-10 bg-orange-50 dark:bg-orange-900/10 rounded-[2.5rem] p-8 border border-orange-100/30 dark:border-orange-500/10 flex gap-6 items-start italic">
