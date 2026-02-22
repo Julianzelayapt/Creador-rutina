@@ -384,7 +384,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
       setIsSubmitted(true);
     } catch (error: any) {
       console.error("Error al enviar email:", error);
-      alert("⚠️ Error al enviar mail automático: " + (error?.text || error?.message || "Error en el servidor de EmailJS"));
+      alert(`⚠️ Error EmailJS: ${error?.text || error?.message}\n\nDEBUG INFO:\nTemplate: ${templateId}\nService: ${serviceId}\nPublic Key: ${publicKey}`);
     } finally {
       setIsSubmitting(false);
     }
