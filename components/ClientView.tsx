@@ -365,7 +365,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
 
     // 2. Enviar vía EmailJS (Configuración del usuario)
     const serviceId = 'service_2e0ckic';
-    const templateId = 'template_0ngfis9';
+    const templateId = 'template_0r9pqlp';
     const publicKey = 'Y5DaMTsCcNIrtI7Ld';
     const targetEmail = 'sortinofitnes@gmail.com';
 
