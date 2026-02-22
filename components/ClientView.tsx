@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import emailjs from '@emailjs/browser';
 import { Routine, Exercise } from '../types';
 import { supabase } from '../supabase';
 
@@ -94,7 +95,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         sendSummary: 'Invia Riepilogo',
         keepEditing: 'Continua a Modificare',
         selectDay: 'Seleziona un giorno per iniziare',
-        noContent: 'Il tuo coach non ha ancora caricato contenidos',
+        noContent: 'Il tuo coach non ha todavía cargado contenido',
         pause: 'Pausa',
         tip: 'Consiglio',
         set: 'SERIE',
@@ -107,12 +108,26 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         dayCompleted: 'Allenamento Completato!',
         hello: 'Ciao',
         loading: 'Caricamento...',
-        notesPlaceholder: 'Note specifiche per este esercizio...',
+        notesPlaceholder: 'Note specifiche per questo esercizio...',
         feedbackPlaceholder: 'Raccontaci come ti sei sentito, pesi, fatica...',
         warmup: 'Riscaldamento'
       }
     };
     return translations[language][key] || key;
+  };
+
+  const getTranslatedName = (name: string, type: 'week' | 'day') => {
+    // Si el nombre es el default (Week X o Día X), lo traducimos dinámicamente
+    const numMatch = name.match(/\d+/);
+    if (numMatch) {
+      if (type === 'week' && name.toLowerCase().includes('week')) {
+        return `${t('week')} ${numMatch[0]}`;
+      }
+      if (type === 'day' && (name.toLowerCase().includes('día') || name.toLowerCase().includes('dia') || name.toLowerCase().includes('day'))) {
+        return `${t('day')} ${numMatch[0]}`;
+      }
+    }
+    return name;
   };
 
   const [activeWeekId, setActiveWeekId] = useState<string | null>(routine.weeks[0]?.id || null);
@@ -335,7 +350,6 @@ ${feedbackText || 'Sin comentarios adicionales.'}
     const targetEmail = 'sortinofitnes@gmail.com';
 
     try {
-      const emailjs = (await import('@emailjs/browser')).default;
       await emailjs.send(serviceId, templateId, {
         routine_name: routine.name,
         client_name: routine.clientName,
@@ -482,7 +496,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
             className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none"
           >
             {routine.weeks.map(week => (
-              <option key={week.id} value={week.id}>{week.name}</option>
+              <option key={week.id} value={week.id}>{getTranslatedName(week.name, 'week')}</option>
             ))}
           </select>
           <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
@@ -498,7 +512,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
             className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none"
           >
             {currentWeek?.workouts.map(workout => (
-              <option key={workout.id} value={workout.id}>{workout.name}</option>
+              <option key={workout.id} value={workout.id}>{getTranslatedName(workout.name, 'day')}</option>
             ))}
           </select>
           <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
