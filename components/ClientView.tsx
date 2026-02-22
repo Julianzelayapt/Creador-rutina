@@ -372,13 +372,15 @@ ${feedbackText || 'Sin comentarios adicionales.'}
     emailjs.init(publicKey);
 
     try {
+      console.log("Intentando enviar mail directo con EmailJS...");
       await emailjs.send(serviceId, templateId, {
         routine_name: routine.name,
         client_name: routine.clientName,
         workout_name: currentWorkout?.name,
         summary: fullMessage,
         to_email: targetEmail
-      });
+      }, publicKey);
+      console.log("Envío de mail exitoso.");
       setIsSubmitted(true);
     } catch (error: any) {
       console.error("Error al enviar email:", error);
