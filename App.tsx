@@ -96,6 +96,18 @@ const App: React.FC = () => {
   };
 
   const handleSaveRoutine = async (updatedRoutine: Routine) => {
+    // Para evitar sobreescribir el progreso del cliente si el coach guarda cambios 
+    // mientras el cliente está entrenando, obtenemos el progreso más reciente primero.
+    const { data: currentDbData } = await supabase
+      .from('routines')
+      .select('data')
+      .eq('id', updatedRoutine.id)
+      .single();
+
+    if (currentDbData?.data?.clientProgress) {
+      updatedRoutine.clientProgress = currentDbData.data.clientProgress;
+    }
+
     setCurrentRoutine(updatedRoutine);
 
     // Guardar en Supabase

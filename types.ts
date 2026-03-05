@@ -35,12 +35,23 @@ export interface Week {
   workouts: Workout[];
 }
 
+export interface ClientProgress {
+  completedSets: Record<string, boolean>;
+  clientWeights: Record<string, string>;
+  clientReps: Record<string, string>;
+  feelings: Record<string, string>;
+  activeWeekId: string | null;
+  activeWorkoutId: string | null;
+  language: 'es' | 'en' | 'it';
+}
+
 export interface Routine {
   id: string;
   name: string;
   description: string;
   clientName: string;
   image: string;
+  clientProgress?: ClientProgress;
   weeks: Week[];
   enabledMetrics: {
     reps: boolean;
