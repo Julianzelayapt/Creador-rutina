@@ -12,6 +12,13 @@ interface ClientViewProps {
 const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
   // Función para obtener datos guardados de forma segura
   const getSavedData = () => {
+    // Si la rutina cargada desde Supabase ya incluye progreso (desde otro celular, etc), lo priorizamos
+    if (routine.clientProgress && Object.keys(routine.clientProgress).length > 0) {
+      // Sincronizamos con localStorage para tenerlo también ahí
+      localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(routine.clientProgress));
+      return routine.clientProgress;
+    }
+
     const saved = localStorage.getItem(`routine_progress_${routine.id}`);
     if (saved) {
       try {
@@ -200,7 +207,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
   }, [timer]);
 
   // Persistence Logic
-  const saveProgress = () => {
+  const saveProgress = async () => {
     if (!activeWorkoutId) return;
 
     const progressData = {
@@ -214,6 +221,16 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
     };
 
     localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(progressData));
+
+    // Guardado en la nube: Sincronizar el progreso real con Supabase
+    try {
+      await supabase
+        .from('routines')
+        .update({ data: { ...routine, clientProgress: progressData } })
+        .eq('id', routine.id);
+    } catch (err) {
+      console.error('Error synchronizing progress to Supabase:', err);
+    }
   };
 
   // Debounced Autosave
