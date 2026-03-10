@@ -43,6 +43,7 @@ export interface ClientProgress {
   activeWeekId: string | null;
   activeWorkoutId: string | null;
   language: 'es' | 'en' | 'it';
+  weeklySnapshots?: Record<string, Record<string, number>>; // { weekId: { exerciseId: avgKg } }
 }
 
 export interface Routine {
