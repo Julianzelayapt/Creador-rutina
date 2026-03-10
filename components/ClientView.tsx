@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import emailjs from '@emailjs/browser';
 import { Routine, Exercise } from '../types';
 import { supabase } from '../supabase';
+import ProgressiveOverloadTab from './ProgressiveOverloadTab';
 
 interface ClientViewProps {
   routine: Routine;
@@ -38,6 +39,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
   const [feelings, setFeelings] = useState<Record<string, string>>(savedData?.feelings || {});
   const [timer, setTimer] = useState<number | null>(null);
   const [language, setLanguage] = useState<'es' | 'en' | 'it'>(savedData?.language || 'es');
+  const [weeklySnapshots, setWeeklySnapshots] = useState<Record<string, Record<string, number>>>(savedData?.weeklySnapshots || routine.clientProgress?.weeklySnapshots || {});
+
+  // Tabs: 'training' o 'overload'
+  const [activeTab, setActiveTab] = useState<'training' | 'overload'>('training');
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
@@ -206,9 +211,47 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Persistence Logic
   const saveProgress = async () => {
     if (!activeWorkoutId) return;
+
+    // Calcular el snapshot de la semana actual
+    const currentWeekSnapshot: Record<string, number> = {};
+    const week = routine.weeks.find(w => w.id === activeWeekId);
+    if (week) {
+      week.workouts.forEach(workout => {
+        workout.exercises.forEach(entry => {
+          let maxKg = 0;
+          let hasSets = false;
+          entry.sets.forEach(set => {
+            if (completedSets[set.id]) {
+              const kg = parseFloat(clientWeights[set.id] || set.kg);
+              if (!isNaN(kg)) {
+                if (kg > maxKg) maxKg = kg;
+                hasSets = true;
+              }
+            }
+          });
+          if (hasSets) {
+            // Si hay varios del mismo ejercicio en la misma semana, guardamos el máximo global de la semana
+            if (currentWeekSnapshot[entry.libraryExerciseId]) {
+              currentWeekSnapshot[entry.libraryExerciseId] = Math.max(currentWeekSnapshot[entry.libraryExerciseId], maxKg);
+            } else {
+              currentWeekSnapshot[entry.libraryExerciseId] = maxKg;
+            }
+          }
+        });
+      });
+    }
+
+    const newSnapshots = {
+      ...weeklySnapshots,
+      ...(activeWeekId && Object.keys(currentWeekSnapshot).length > 0 ? { [activeWeekId]: currentWeekSnapshot } : {})
+    };
+
+    // Update local state lightly
+    if (activeWeekId && Object.keys(currentWeekSnapshot).length > 0) {
+      setWeeklySnapshots(newSnapshots);
+    }
 
     const progressData = {
       completedSets,
@@ -217,7 +260,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
       feelings,
       activeWeekId,
       activeWorkoutId,
-      language
+      language,
+      weeklySnapshots: newSnapshots
     };
 
     localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(progressData));
@@ -525,191 +569,209 @@ ${feedbackText || 'Sin comentarios adicionales.'}
         </div>
       </div>
 
-      {/* Navegación Semanas y Días (Dropdowns) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div className="relative group">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">{t('week')}</label>
-          <select
-            value={activeWeekId || ''}
-            onChange={(e) => setActiveWeekId(e.target.value)}
-            className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none"
-          >
-            {routine.weeks.map(week => (
-              <option key={week.id} value={week.id}>{getTranslatedName(week.name, 'week')}</option>
-            ))}
-          </select>
-          <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
-          </div>
-        </div>
-
-        <div className="relative group">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">{t('day')}</label>
-          <select
-            value={activeWorkoutId || ''}
-            onChange={(e) => setActiveWorkoutId(e.target.value)}
-            className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none"
-          >
-            {currentWeek?.workouts.map(workout => (
-              <option key={workout.id} value={workout.id}>{getTranslatedName(workout.name, 'day')}</option>
-            ))}
-          </select>
-          <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
-          </div>
-        </div>
+      {/* Tabs Navigation */}
+      <div className="flex gap-4 mb-8 bg-slate-200/50 dark:bg-slate-800/50 p-2 rounded-[2rem] overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('training')}
+          className={`flex-1 min-w-[150px] py-4 px-6 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all ${activeTab === 'training' ? 'bg-white dark:bg-black text-blue-600 shadow-lg scale-100' : 'text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-black/50 scale-95'}`}
+        >
+          🏋️ {language === 'es' ? 'Entrenamiento' : language === 'en' ? 'Training' : 'Allenamento'}
+        </button>
+        <button
+          onClick={() => setActiveTab('overload')}
+          className={`flex-1 min-w-[150px] py-4 px-6 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all ${activeTab === 'overload' ? 'bg-white dark:bg-black text-green-500 shadow-lg scale-100' : 'text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-black/50 scale-95'}`}
+        >
+          📈 {language === 'es' ? 'Sobrecarga Progresiva' : language === 'en' ? 'Progressive Overload' : 'Sovraccarico Progressivo'}
+        </button>
       </div>
 
-      {currentWeek ? (
-        <div className="space-y-8 lg:space-y-10 animate-in fade-in slide-in-from-left-4 duration-300">
+      {activeTab === 'training' ? (
+        <>
+          {/* Navegación Semanas y Días (Dropdowns) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="relative group">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">{t('week')}</label>
+              <select
+                value={activeWeekId || ''}
+                onChange={(e) => setActiveWeekId(e.target.value)}
+                className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none"
+              >
+                {routine.weeks.map(week => (
+                  <option key={week.id} value={week.id}>{getTranslatedName(week.name, 'week')}</option>
+                ))}
+              </select>
+              <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+              </div>
+            </div>
 
-          {currentWorkout ? (
-            <div className="space-y-12">
-              <div className="bg-white dark:bg-darkCard rounded-[2.5rem] lg:rounded-[3.5rem] p-5 lg:p-10 shadow-lg border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-                <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 mb-6 lg:mb-10 border-b-2 border-slate-50 dark:border-slate-800 pb-4 tracking-tight uppercase italic">{getTranslatedName(currentWorkout.name, 'day')}</h3>
+            <div className="relative group">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">{t('day')}</label>
+              <select
+                value={activeWorkoutId || ''}
+                onChange={(e) => setActiveWorkoutId(e.target.value)}
+                className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none"
+              >
+                {currentWeek?.workouts.map(workout => (
+                  <option key={workout.id} value={workout.id}>{getTranslatedName(workout.name, 'day')}</option>
+                ))}
+              </select>
+              <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+              </div>
+            </div>
+          </div>
 
-                {currentWorkout.warmup && (
-                  <div className="mb-10 bg-orange-50 dark:bg-orange-900/10 rounded-[2.5rem] p-8 border border-orange-100/30 dark:border-orange-500/10 flex gap-6 items-start italic">
-                    <div className="w-12 h-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
-                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
-                    </div>
-                    <p className="text-slate-600 dark:text-slate-400 font-bold leading-relaxed">{currentWorkout.warmup}</p>
-                  </div>
-                )}
+          {currentWeek ? (
+            <div className="space-y-8 lg:space-y-10 animate-in fade-in slide-in-from-left-4 duration-300">
 
-                <div className="space-y-20">
-                  {currentWorkout.exercises.map(entry => {
-                    const libEx = library.find(l => l.id === entry.libraryExerciseId);
-                    return (
-                      <div key={entry.id} className="relative">
-                        <div className="flex flex-col gap-6 lg:gap-8">
-                          <div>
-                            <div className="flex items-center gap-5 mb-5 flex-wrap">
-                              {libEx?.videoUrl ? (
-                                <a
-                                  href={libEx.videoUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-lg transition-all active:scale-90"
-                                  title="Ver Video"
-                                >
-                                  <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                                </a>
-                              ) : null}
-                              <h4 className="text-xl lg:text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic pr-4">{libEx?.name}</h4>
-                              {libEx?.muscleImage && (
-                                <div className="h-10 w-auto rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-white p-1">
-                                  <img
-                                    src={libEx.muscleImage}
-                                    alt="Muscle"
-                                    className="h-full w-auto object-contain"
+              {currentWorkout ? (
+                <div className="space-y-12">
+                  <div className="bg-white dark:bg-darkCard rounded-[2.5rem] lg:rounded-[3.5rem] p-5 lg:p-10 shadow-lg border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                    <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 mb-6 lg:mb-10 border-b-2 border-slate-50 dark:border-slate-800 pb-4 tracking-tight uppercase italic">{getTranslatedName(currentWorkout.name, 'day')}</h3>
+
+                    {currentWorkout.warmup && (
+                      <div className="mb-10 bg-orange-50 dark:bg-orange-900/10 rounded-[2.5rem] p-8 border border-orange-100/30 dark:border-orange-500/10 flex gap-6 items-start italic">
+                        <div className="w-12 h-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-400 font-bold leading-relaxed">{currentWorkout.warmup}</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-20">
+                      {currentWorkout.exercises.map(entry => {
+                        const libEx = library.find(l => l.id === entry.libraryExerciseId);
+                        return (
+                          <div key={entry.id} className="relative">
+                            <div className="flex flex-col gap-6 lg:gap-8">
+                              <div>
+                                <div className="flex items-center gap-5 mb-5 flex-wrap">
+                                  {libEx?.videoUrl ? (
+                                    <a
+                                      href={libEx.videoUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-lg transition-all active:scale-90"
+                                      title="Ver Video"
+                                    >
+                                      <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                    </a>
+                                  ) : null}
+                                  <h4 className="text-xl lg:text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic pr-4">{libEx?.name}</h4>
+                                </div>
+
+                                <div className="mb-8 p-6 bg-slate-50 dark:bg-black/30 rounded-[2.5rem] border-l-[8px] border-blue-500">
+                                  <p className="text-slate-600 dark:text-slate-400 font-bold italic text-base">💡 {t('tip')}: {libEx?.tip || '...'}</p>
+                                </div>
+
+                                <div className="overflow-x-auto mb-8">
+                                  <table className="w-full text-center">
+                                    <thead>
+                                      <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                                        <th className="py-4 w-16">{t('set')}</th>
+                                        {routine.enabledMetrics.reps && <th className="py-4">{t('reps')}</th>}
+                                        {routine.enabledMetrics.kg && <th className="py-4">{t('kg')}</th>}
+                                        {routine.enabledMetrics.rir && <th className="py-4">{t('rir')}</th>}
+                                        {routine.enabledMetrics.rmPercentage && <th className="py-2 lg:py-4">{t('rm')}</th>}
+                                        <th className="py-2 lg:py-4 w-12 lg:w-20">{t('ok')}</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {entry.sets.map((set, idx) => (
+                                        <tr key={set.id} className={`transition-all border-b border-slate-50 dark:border-slate-900 last:border-0 ${completedSets[set.id] ? 'bg-green-500/10 dark:bg-green-500/5' : ''}`}>
+                                          <td className="py-4 lg:py-6">
+                                            <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center text-xs lg:text-sm font-black mx-auto transition-all ${completedSets[set.id] ? 'bg-green-600 text-white shadow-xl' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                                              {idx + 1}
+                                            </div>
+                                          </td>
+                                          {routine.enabledMetrics.reps && (
+                                            <td className="py-4 lg:py-6">
+                                              <input
+                                                type="text"
+                                                className="w-16 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-blue-600 transition-all text-lg lg:text-xl"
+                                                value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
+                                                onChange={(e) => setClientReps(prev => ({ ...prev, [set.id]: e.target.value }))}
+                                              />
+                                            </td>
+                                          )}
+                                          {routine.enabledMetrics.kg && (
+                                            <td className="py-4 lg:py-6">
+                                              <input
+                                                type="text"
+                                                className="w-16 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-blue-600 transition-all text-lg lg:text-xl"
+                                                value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
+                                                onChange={(e) => setClientWeights(prev => ({ ...prev, [set.id]: e.target.value }))}
+                                              />
+                                            </td>
+                                          )}
+                                          {routine.enabledMetrics.rir && <td className="py-4 lg:py-6 font-black text-slate-400 dark:text-slate-600 italic text-lg">{set.rir}</td>}
+                                          {routine.enabledMetrics.rmPercentage && <td className="py-4 lg:py-6 font-black text-slate-400 dark:text-slate-600 text-lg">{set.rmPercentage}%</td>}
+                                          <td className="py-4 lg:py-6">
+                                            <button
+                                              onClick={() => handleSetToggle(set.id, set.rest)}
+                                              className={`w-10 h-10 lg:w-16 lg:h-16 rounded-xl lg:rounded-[1.8rem] border-[3px] lg:border-4 flex items-center justify-center transition-all active:scale-90 ${completedSets[set.id] ? 'bg-green-500 border-green-500 text-white shadow-2xl scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-transparent hover:border-green-400'}`}
+                                            >
+                                              <svg className="w-5 h-5 lg:w-10 lg:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" d="M5 13l4 4L19 7" /></svg>
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+
+                                <div className="p-8 bg-slate-50 dark:bg-black/40 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
+                                  <textarea
+                                    placeholder={t('notesPlaceholder')}
+                                    className="w-full bg-white dark:bg-darkCard p-6 rounded-[1.5rem] border-2 border-transparent focus:border-blue-500 outline-none transition-all h-28 text-slate-800 dark:text-slate-200 font-medium italic shadow-inner"
+                                    value={feelings[entry.id] || ''}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setFeelings(prev => ({ ...prev, [entry.id]: val }));
+                                    }}
                                   />
                                 </div>
-                              )}
-                            </div>
-
-                            <div className="mb-8 p-6 bg-slate-50 dark:bg-black/30 rounded-[2.5rem] border-l-[8px] border-blue-500">
-                              <p className="text-slate-600 dark:text-slate-400 font-bold italic text-base">💡 {t('tip')}: {libEx?.tip || '...'}</p>
-                            </div>
-
-                            <div className="overflow-x-auto mb-8">
-                              <table className="w-full text-center">
-                                <thead>
-                                  <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                                    <th className="py-4 w-16">{t('set')}</th>
-                                    {routine.enabledMetrics.reps && <th className="py-4">{t('reps')}</th>}
-                                    {routine.enabledMetrics.kg && <th className="py-4">{t('kg')}</th>}
-                                    {routine.enabledMetrics.rir && <th className="py-4">{t('rir')}</th>}
-                                    {routine.enabledMetrics.rmPercentage && <th className="py-2 lg:py-4">{t('rm')}</th>}
-                                    <th className="py-2 lg:py-4 w-12 lg:w-20">{t('ok')}</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {entry.sets.map((set, idx) => (
-                                    <tr key={set.id} className={`transition-all border-b border-slate-50 dark:border-slate-900 last:border-0 ${completedSets[set.id] ? 'bg-green-500/10 dark:bg-green-500/5' : ''}`}>
-                                      <td className="py-4 lg:py-6">
-                                        <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center text-xs lg:text-sm font-black mx-auto transition-all ${completedSets[set.id] ? 'bg-green-600 text-white shadow-xl' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
-                                          {idx + 1}
-                                        </div>
-                                      </td>
-                                      {routine.enabledMetrics.reps && (
-                                        <td className="py-4 lg:py-6">
-                                          <input
-                                            type="text"
-                                            className="w-16 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-blue-600 transition-all text-lg lg:text-xl"
-                                            value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
-                                            onChange={(e) => setClientReps(prev => ({ ...prev, [set.id]: e.target.value }))}
-                                          />
-                                        </td>
-                                      )}
-                                      {routine.enabledMetrics.kg && (
-                                        <td className="py-4 lg:py-6">
-                                          <input
-                                            type="text"
-                                            className="w-16 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-blue-600 transition-all text-lg lg:text-xl"
-                                            value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
-                                            onChange={(e) => setClientWeights(prev => ({ ...prev, [set.id]: e.target.value }))}
-                                          />
-                                        </td>
-                                      )}
-                                      {routine.enabledMetrics.rir && <td className="py-4 lg:py-6 font-black text-slate-400 dark:text-slate-600 italic text-lg">{set.rir}</td>}
-                                      {routine.enabledMetrics.rmPercentage && <td className="py-4 lg:py-6 font-black text-slate-400 dark:text-slate-600 text-lg">{set.rmPercentage}%</td>}
-                                      <td className="py-4 lg:py-6">
-                                        <button
-                                          onClick={() => handleSetToggle(set.id, set.rest)}
-                                          className={`w-10 h-10 lg:w-16 lg:h-16 rounded-xl lg:rounded-[1.8rem] border-[3px] lg:border-4 flex items-center justify-center transition-all active:scale-90 ${completedSets[set.id] ? 'bg-green-500 border-green-500 text-white shadow-2xl scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-transparent hover:border-green-400'}`}
-                                        >
-                                          <svg className="w-5 h-5 lg:w-10 lg:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" d="M5 13l4 4L19 7" /></svg>
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-
-                            <div className="p-8 bg-slate-50 dark:bg-black/40 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
-                              <textarea
-                                placeholder={t('notesPlaceholder')}
-                                className="w-full bg-white dark:bg-darkCard p-6 rounded-[1.5rem] border-2 border-transparent focus:border-blue-500 outline-none transition-all h-28 text-slate-800 dark:text-slate-200 font-medium italic shadow-inner"
-                                value={feelings[entry.id] || ''}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  setFeelings(prev => ({ ...prev, [entry.id]: val }));
-                                }}
-                              />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-              {/* Botón Finalizar Entrenamiento */}
-              <div className="pt-10 flex justify-center">
-                <button
-                  onClick={() => {
-                    initAudio();
-                    setShowFeedbackScreen(true);
-                  }}
-                  className="w-full max-w-md py-8 bg-slate-900 dark:bg-white text-white dark:text-black rounded-[2.5rem] font-black uppercase tracking-[0.2em] italic text-xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(255,255,255,0.05)] hover:scale-105 active:scale-95 transition-all animate-bounce-slow"
-                >
-                  {t('finishWorkout')}
-                </button>
-              </div>
+                  {/* Botón Finalizar Entrenamiento */}
+                  <div className="pt-10 flex justify-center">
+                    <button
+                      onClick={() => {
+                        initAudio();
+                        setShowFeedbackScreen(true);
+                      }}
+                      className="w-full max-w-md py-8 bg-slate-900 dark:bg-white text-white dark:text-black rounded-[2.5rem] font-black uppercase tracking-[0.2em] italic text-xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(255,255,255,0.05)] hover:scale-105 active:scale-95 transition-all animate-bounce-slow"
+                    >
+                      {t('finishWorkout')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-24 bg-white dark:bg-darkCard rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800 italic">
+                  <p className="font-bold text-slate-400 uppercase tracking-widest text-sm">{t('selectDay')}</p>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="text-center py-24 bg-white dark:bg-darkCard rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800 italic">
-              <p className="font-bold text-slate-400 uppercase tracking-widest text-sm">{t('selectDay')}</p>
+            <div className="text-center py-20 italic">
+              <p className="font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest text-xl">{t('noContent')}</p>
             </div>
           )}
-        </div>
+        </>
       ) : (
-        <div className="text-center py-20 italic">
-          <p className="font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest text-xl">{t('noContent')}</p>
-        </div>
+        <ProgressiveOverloadTab
+          routine={routine}
+          library={library}
+          weeklySnapshots={weeklySnapshots}
+          language={language}
+        />
       )}
 
       <style>{`
