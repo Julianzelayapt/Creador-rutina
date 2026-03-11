@@ -165,6 +165,25 @@ const App: React.FC = () => {
     }
   };
 
+  const editInLibrary = async (exercise: Exercise) => {
+    // Optimistic update
+    const updated = exerciseLibrary.map(ex => ex.id === exercise.id ? exercise : ex);
+    setExerciseLibrary(updated);
+
+    // Update in Supabase
+    const { error } = await supabase.from('exercises').update({
+      name: exercise.name,
+      video_url: exercise.videoUrl,
+      muscle_image: exercise.muscleImage,
+      tip: exercise.tip
+    }).eq('id', exercise.id);
+
+    if (error) {
+      console.error('Error updating library:', error);
+      alert('Error al actualizar ejercicio en la nube');
+    }
+  };
+
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   return (
@@ -201,6 +220,7 @@ const App: React.FC = () => {
               onSave={handleSaveRoutine}
               onAddToLibrary={addToLibrary}
               onRemoveFromLibrary={removeFromLibrary}
+              onEditLibrary={editInLibrary}
               onGoToClient={() => setView('client')}
             />
           )}
