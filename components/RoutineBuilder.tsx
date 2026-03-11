@@ -8,13 +8,14 @@ interface RoutineBuilderProps {
   onSave: (routine: Routine) => Promise<string>;
   onAddToLibrary: (exercise: Exercise) => void;
   onRemoveFromLibrary: (id: string) => void;
+  onEditLibrary: (exercise: Exercise) => void;
   onGoToClient: () => void;
 }
 
-const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSave, onAddToLibrary, onRemoveFromLibrary, onGoToClient }) => {
+const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSave, onAddToLibrary, onRemoveFromLibrary, onEditLibrary, onGoToClient }) => {
   const [currentRoutine, setCurrentRoutine] = useState<Routine>(routine);
   const [showLibraryForm, setShowLibraryForm] = useState(false);
-  const [newExercise, setNewExercise] = useState<{ name: string, videoUrl: string, muscleImage: string, tip: string }>({ name: '', videoUrl: '', muscleImage: '', tip: '' });
+  const [newExercise, setNewExercise] = useState<{ id?: string, name: string, videoUrl: string, muscleImage: string, tip: string }>({ name: '', videoUrl: '', muscleImage: '', tip: '' });
   const [shareLinks, setShareLinks] = useState<{ client: string, builder: string } | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [libraryQuery, setLibraryQuery] = useState('');
@@ -294,7 +295,10 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Biblioteca</h2>
             <button
-              onClick={() => setShowLibraryForm(!showLibraryForm)}
+              onClick={() => {
+                setNewExercise({ name: '', videoUrl: '', muscleImage: '', tip: '' });
+                setShowLibraryForm(!showLibraryForm);
+              }}
               className="p-2.5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-md transition-all active:scale-90"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
@@ -331,14 +335,18 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 onClick={(e) => {
                   e.preventDefault();
                   if (newExercise.name) {
-                    onAddToLibrary({ id: Math.random().toString(36).substr(2, 9), ...newExercise });
+                    if (newExercise.id) {
+                      onEditLibrary(newExercise as Exercise);
+                    } else {
+                      onAddToLibrary({ id: Math.random().toString(36).substr(2, 9), ...newExercise });
+                    }
                     setNewExercise({ name: '', videoUrl: '', muscleImage: '', tip: '' });
                     setShowLibraryForm(false);
                   }
                 }}
-                className="w-full py-3 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-colors"
+                className={`w-full py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-colors ${newExercise.id ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
               >
-                Guardar
+                {newExercise.id ? 'Actualizar Ejercicio' : 'Guardar Nuevo'}
               </button>
             </div>
           )}
@@ -360,12 +368,26 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{ex.name}</div>
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); onRemoveFromLibrary(ex.id); }}
-                className="p-2 text-slate-300 hover:text-red-500 transition-all shrink-0"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              </button>
+              <div className="flex shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNewExercise({ id: ex.id, name: ex.name, videoUrl: ex.videoUrl || '', muscleImage: ex.muscleImage || '', tip: ex.tip || '' });
+                    setShowLibraryForm(true);
+                  }}
+                  className="p-2 text-slate-300 hover:text-blue-500 transition-all shrink-0"
+                  title="Editar ejercicio"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRemoveFromLibrary(ex.id); }}
+                  className="p-2 text-slate-300 hover:text-red-500 transition-all shrink-0"
+                  title="Eliminar de la biblioteca"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
             </div>
           ))}
         </div>
