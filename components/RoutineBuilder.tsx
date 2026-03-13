@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Routine, Exercise, Week, Workout, ExerciseEntry, TrainingSet } from '../types';
 
 interface RoutineBuilderProps {
@@ -38,6 +39,33 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
       }
     }
   }, [activeWeekId, currentRoutine.weeks]);
+
+  const onDragEnd = (result: any) => {
+    if (!result.destination) return;
+    if (result.source.index === result.destination.index) return;
+    if (!activeWeekId || !activeWorkoutId) return;
+
+    setCurrentRoutine({
+      ...currentRoutine,
+      weeks: currentRoutine.weeks.map(w => {
+        if (w.id === activeWeekId) {
+          return {
+            ...w,
+            workouts: w.workouts.map(wk => {
+              if (wk.id === activeWorkoutId) {
+                const newExercises = Array.from(wk.exercises);
+                const [reorderedItem] = newExercises.splice(result.source.index, 1);
+                newExercises.splice(result.destination.index, 0, reorderedItem);
+                return { ...wk, exercises: newExercises };
+              }
+              return wk;
+            })
+          };
+        }
+        return w;
+      })
+    });
+  };
 
   const handleSave = async () => {
     const routineId = await onSave(currentRoutine);
@@ -565,74 +593,109 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     />
                   </div>
 
-                  <div className="space-y-16">
-                    {currentWorkout.exercises.map(entry => {
-                      const libEx = library.find(l => l.id === entry.libraryExerciseId);
-                      return (
-                        <div key={entry.id} className="relative group/ex">
-                          <div className="flex justify-between items-center mb-6 border-b-2 border-slate-50 dark:border-slate-800 pb-4">
-                            <div className="flex items-center gap-4">
-                              <span className="font-black text-xl text-slate-900 dark:text-white uppercase italic tracking-tighter">{libEx?.name || 'Cargando...'}</span>
-                            </div>
-                            <button onClick={() => deleteExercise(currentWeek.id, currentWorkout.id, entry.id)} className="text-slate-300 hover:text-red-500 transition-all">
-                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                          </div>
-
-                          <div className="overflow-x-auto mb-6">
-                            <table className="w-full text-center">
-                              <thead>
-                                <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                                  <th className="py-2 w-10">SET</th>
-                                  {currentRoutine.enabledMetrics.reps && <th className="py-2">REPS</th>}
-                                  {currentRoutine.enabledMetrics.kg && <th className="py-2">KG</th>}
-                                  {currentRoutine.enabledMetrics.rir && <th className="py-2">RIR</th>}
-                                  {currentRoutine.enabledMetrics.rmPercentage && <th className="py-2">% RM</th>}
-                                  {currentRoutine.enabledMetrics.rest && <th className="py-2">DESC.</th>}
-                                  <th className="w-10"></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {entry.sets.map((set, idx) => (
-                                  <tr key={set.id}>
-                                    <td className="py-4">
-                                      <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-500 mx-auto">{idx + 1}</div>
-                                    </td>
-                                    {currentRoutine.enabledMetrics.reps && (
-                                      <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.reps} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'reps', e.target.value)} /></td>
-                                    )}
-                                    {currentRoutine.enabledMetrics.kg && (
-                                      <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.kg} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'kg', e.target.value)} /></td>
-                                    )}
-                                    {currentRoutine.enabledMetrics.rir && (
-                                      <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.rir} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rir', e.target.value)} /></td>
-                                    )}
-                                    {currentRoutine.enabledMetrics.rmPercentage && (
-                                      <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.rmPercentage} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rmPercentage', e.target.value)} /></td>
-                                    )}
-                                    {currentRoutine.enabledMetrics.rest && (
-                                      <td><input className="w-16 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.rest} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rest', e.target.value)} /></td>
-                                    )}
-                                    <td>
-                                      <button onClick={() => deleteSet(currentWeek.id, currentWorkout.id, entry.id, set.id)} className="text-slate-200 hover:text-red-500 transition-all">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                  <DragDropContext onDragEnd={onDragEnd}>
+                    <Droppable droppableId="exercises-list">
+                      {(provided) => (
+                        <div 
+                          className="space-y-16"
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                        >
+                          {currentWorkout.exercises.map((entry, index) => {
+                            const libEx = library.find(l => l.id === entry.libraryExerciseId);
+                            return (
+                              <Draggable key={entry.id} draggableId={entry.id} index={index}>
+                                {(provided) => (
+                                  <div 
+                                    className="relative group/ex"
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                  >
+                                    <div className="flex justify-between items-center mb-6 border-b-2 border-slate-50 dark:border-slate-800 pb-4">
+                                      <div className="flex items-center gap-4">
+                                        <div 
+                                          {...provided.dragHandleProps} 
+                                          className="text-slate-300 hover:text-blue-500 cursor-grab active:cursor-grabbing transition-colors"
+                                        >
+                                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M8 6C8 7.10457 7.10457 8 6 8C4.89543 8 4 7.10457 4 6C4 4.89543 4.89543 4 6 4C7.10457 4 8 4.89543 8 6Z" fill="currentColor"/>
+                                            <path d="M8 12C8 13.1046 7.10457 14 6 14C4.89543 14 4 13.1046 4 12C4 10.8954 4.89543 10 6 10C7.10457 10 8 10.8954 8 12Z" fill="currentColor"/>
+                                            <path d="M8 18C8 19.1046 7.10457 20 6 20C4.89543 20 4 19.1046 4 18C4 16.8954 4.89543 16 6 16C7.10457 16 8 16.8954 8 18Z" fill="currentColor"/>
+                                            <path d="M14 6C14 7.10457 13.1046 8 12 8C10.8954 8 10 7.10457 10 6C10 4.89543 10.8954 4 12 4C13.1046 4 14 4.89543 14 6Z" fill="currentColor"/>
+                                            <path d="M14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10C13.1046 10 14 10.8954 14 12Z" fill="currentColor"/>
+                                            <path d="M14 18C14 19.1046 13.1046 20 12 20C10.8954 20 10 19.1046 10 18C10 16.8954 10.8954 16 12 16C13.1046 16 14 16.8954 14 18Z" fill="currentColor"/>
+                                            <path d="M20 6C20 7.10457 19.1046 8 18 8C16.8954 8 16 7.10457 16 6C16 4.89543 16.8954 4 18 4C19.1046 4 20 4.89543 20 6Z" fill="currentColor"/>
+                                            <path d="M20 12C20 13.1046 19.1046 14 18 14C16.8954 14 16 13.1046 16 12C16 10.8954 16.8954 10 18 10C19.1046 10 20 10.8954 20 12Z" fill="currentColor"/>
+                                            <path d="M20 18C20 19.1046 19.1046 20 18 20C16.8954 20 16 19.1046 16 18C16 16.8954 16.8954 16 18 16C19.1046 16 20 16.8954 20 18Z" fill="currentColor"/>
+                                          </svg>
+                                        </div>
+                                        <span className="font-black text-xl text-slate-900 dark:text-white uppercase italic tracking-tighter">{libEx?.name || 'Cargando...'}</span>
+                                      </div>
+                                      <button onClick={() => deleteExercise(currentWeek.id, currentWorkout.id, entry.id)} className="text-slate-300 hover:text-red-500 transition-all">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
                                       </button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                          <button
-                            onClick={() => addSet(currentWeek.id, currentWorkout.id, entry.id)}
-                            className="w-full py-4 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-blue-500 hover:text-blue-500 transition-all active:scale-[0.98]"
-                          >
-                            + Agregar Serie
-                          </button>
+                                    </div>
+
+                                    <div className="overflow-x-auto mb-6">
+                                      <table className="w-full text-center">
+                                        <thead>
+                                          <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                                            <th className="py-2 w-10">SET</th>
+                                            {currentRoutine.enabledMetrics.reps && <th className="py-2">REPS</th>}
+                                            {currentRoutine.enabledMetrics.kg && <th className="py-2">KG</th>}
+                                            {currentRoutine.enabledMetrics.rir && <th className="py-2">RIR</th>}
+                                            {currentRoutine.enabledMetrics.rmPercentage && <th className="py-2">% RM</th>}
+                                            {currentRoutine.enabledMetrics.rest && <th className="py-2">DESC.</th>}
+                                            <th className="w-10"></th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {entry.sets.map((set, idx) => (
+                                            <tr key={set.id}>
+                                              <td className="py-4">
+                                                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-500 mx-auto">{idx + 1}</div>
+                                              </td>
+                                              {currentRoutine.enabledMetrics.reps && (
+                                                <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.reps} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'reps', e.target.value)} /></td>
+                                              )}
+                                              {currentRoutine.enabledMetrics.kg && (
+                                                <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.kg} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'kg', e.target.value)} /></td>
+                                              )}
+                                              {currentRoutine.enabledMetrics.rir && (
+                                                <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.rir} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rir', e.target.value)} /></td>
+                                              )}
+                                              {currentRoutine.enabledMetrics.rmPercentage && (
+                                                <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.rmPercentage} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rmPercentage', e.target.value)} /></td>
+                                              )}
+                                              {currentRoutine.enabledMetrics.rest && (
+                                                <td><input className="w-16 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.rest} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rest', e.target.value)} /></td>
+                                              )}
+                                              <td>
+                                                <button onClick={() => deleteSet(currentWeek.id, currentWorkout.id, entry.id, set.id)} className="text-slate-200 hover:text-red-500 transition-all">
+                                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                    <button
+                                      onClick={() => addSet(currentWeek.id, currentWorkout.id, entry.id)}
+                                      className="w-full py-4 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-blue-500 hover:text-blue-500 transition-all active:scale-[0.98]"
+                                    >
+                                      + Agregar Serie
+                                    </button>
+                                  </div>
+                                )}
+                              </Draggable>
+                            );
+                          })}
+                          {provided.placeholder}
                         </div>
-                      );
-                    })}
-                  </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
 
                   <div className="mt-16">
                     <ExerciseSearch library={library} onSelect={(id) => addExerciseToWorkout(currentWeek.id, currentWorkout.id, id)} />
