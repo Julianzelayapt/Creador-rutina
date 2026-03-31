@@ -638,16 +638,51 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
             </div>
           )}
 
-          {/* Routine Header */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10 bg-white dark:bg-darkCard p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-6">
-              <img src={currentRoutine.image} className="w-16 h-16 lg:w-20 lg:h-20 rounded-[1.5rem] object-cover shadow-lg" alt="" />
-              <div>
-                <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{currentRoutine.name}</h1>
-                <p className="text-yellow-600 font-black text-[10px] lg:text-xs uppercase tracking-widest mt-1">Para: {currentRoutine.clientName}</p>
+          {/* Routine Header (Editables: Nombre, Alumno, Descripción) */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10 bg-white dark:bg-darkCard p-6 lg:p-10 rounded-[3rem] shadow-xl border border-slate-100 dark:border-slate-800 transition-all focus-within:ring-2 focus-within:ring-yellow-500/20">
+            <div className="flex items-center gap-8 w-full lg:flex-1">
+              <div className="relative group/img cursor-pointer">
+                <img src={currentRoutine.image} className="w-20 h-20 lg:w-24 lg:h-24 rounded-[1.5rem] object-cover shadow-lg border-2 border-slate-100 dark:border-slate-800" alt="" />
+                <div className="absolute inset-0 bg-black/40 rounded-[1.5rem] flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </div>
+              </div>
+              
+              <div className="flex-1 space-y-3">
+                <input
+                  className="w-full bg-transparent text-2xl lg:text-3xl font-black text-slate-950 dark:text-white focus:outline-none uppercase tracking-tighter"
+                  value={currentRoutine.name}
+                  onChange={e => setCurrentRoutine({ ...currentRoutine, name: e.target.value })}
+                  placeholder="NOMBRE DE LA RUTINA"
+                />
+                <div className="flex items-center gap-3">
+                  <span className="text-yellow-600 font-black text-[10px] uppercase tracking-widest bg-yellow-500/10 px-3 py-1 rounded-lg">PARA</span>
+                  <input
+                    className="flex-1 bg-transparent text-yellow-600 font-black text-xs lg:text-sm uppercase tracking-widest focus:outline-none border-b border-transparent focus:border-yellow-500/30 pb-0.5"
+                    value={currentRoutine.clientName}
+                    onChange={e => setCurrentRoutine({ ...currentRoutine, clientName: e.target.value })}
+                    placeholder="NOMBRE DEL ASESORADO"
+                  />
+                </div>
+                <textarea
+                  className="w-full bg-transparent text-slate-500 dark:text-slate-400 font-medium text-xs lg:text-sm focus:outline-none border-l-2 border-slate-100 dark:border-slate-800 pl-4 py-1 h-auto resize-none overflow-hidden"
+                  rows={2}
+                  value={currentRoutine.description || ''}
+                  onChange={e => {
+                    setCurrentRoutine({ ...currentRoutine, description: e.target.value });
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
+                  placeholder="Descripción de la rutina (objetivos, duración, frecuencia...)"
+                />
               </div>
             </div>
-            <button onClick={handleSave} className="w-full lg:w-auto px-8 py-4 bg-yellow-400 text-black rounded-2xl font-black text-xs lg:text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
+            
+            <button 
+              onClick={handleSave} 
+              className="w-full lg:w-auto px-10 py-5 bg-yellow-400 text-black rounded-[1.5rem] font-black text-xs lg:text-sm uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-yellow-500/20 active:shadow-inner flex items-center justify-center gap-3"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
               Guardar Cambios
             </button>
           </div>

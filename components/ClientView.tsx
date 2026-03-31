@@ -769,7 +769,6 @@ ${feedbackText || 'Sin comentarios adicionales.'}
 
           {currentWeek ? (
             <div className="space-y-8 lg:space-y-10 animate-in fade-in slide-in-from-left-4 duration-300">
-
               {currentWorkout ? (
                 <div className="space-y-12">
                   <div className="bg-white dark:bg-darkCard rounded-[2.5rem] lg:rounded-[3.5rem] p-5 lg:p-10 shadow-lg border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
@@ -784,26 +783,24 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                       </div>
                     )}
 
-                    <div className="space-y-20">
                       {(() => {
-                        const groups: any[] = [];
-                        let currentGroup: any = null;
+                        const processedExercises: { type: 'single' | 'superset', label?: string, entries: any[], id: string }[] = [];
+                        const processedIds = new Set<string>();
 
-                        currentWorkout.exercises.forEach(entry => {
-                          if (entry.supersetLabel) {
-                            if (currentGroup && currentGroup.type === 'superset' && currentGroup.label === entry.supersetLabel) {
-                              currentGroup.entries.push(entry);
-                            } else {
-                              currentGroup = { type: 'superset', label: entry.supersetLabel, entries: [entry] };
-                              groups.push(currentGroup);
-                            }
+                        currentWorkout.exercises.forEach(ex => {
+                          if (processedIds.has(ex.id)) return;
+                          
+                          if (ex.supersetLabel) {
+                            const group = currentWorkout.exercises.filter(e => e.supersetLabel === ex.supersetLabel);
+                            processedExercises.push({ type: 'superset', label: ex.supersetLabel, entries: group, id: `group-${ex.supersetLabel}` });
+                            group.forEach(ge => processedIds.add(ge.id));
                           } else {
-                            currentGroup = { type: 'single', entry };
-                            groups.push(currentGroup);
+                            processedExercises.push({ type: 'single', entries: [ex], id: ex.id });
+                            processedIds.add(ex.id);
                           }
                         });
 
-                        return groups.map((group, gIdx) => {
+                        return processedExercises.map((group, gIdx) => {
                           if (group.type === 'superset') {
                             const isInteracting = activeSupersetInteraction?.label === group.label;
                             
@@ -975,8 +972,8 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                           }
                           return (
                             <ExerciseBlock 
-                              key={group.entry.id} 
-                              entry={group.entry} 
+                              key={group.entries[0].id} 
+                              entry={group.entries[0]} 
                               library={library} 
                               t={t} 
                               routine={routine} 
@@ -992,7 +989,6 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                           );
                         });
                       })()}
-                    </div>
                   </div>
 
                   {/* Botón Finalizar Entrenamiento */}
@@ -1041,6 +1037,5 @@ ${feedbackText || 'Sin comentarios adicionales.'}
     </div>
   );
 };
-
 
 export default ClientView;
