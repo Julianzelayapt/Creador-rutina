@@ -27,8 +27,8 @@ const ExerciseBlock: React.FC<{
 }> = ({ entry, library, t, routine, completedSets, clientReps, clientWeights, setClientReps, setClientWeights, handleSetToggle, feelings, setFeelings, isSuperset }) => {
   const libEx = library.find(l => l.id === entry.libraryExerciseId);
   return (
-    <div key={entry.id} className="relative">
-      <div className="flex flex-col gap-6 lg:gap-8">
+    <div key={entry.id} className="relative mb-20 lg:mb-32">
+      <div className="flex flex-col gap-10 lg:gap-14">
         <div>
           <div className="flex items-center gap-5 mb-5 flex-wrap">
             {libEx?.videoUrl ? (
@@ -768,7 +768,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
           </div>
 
           {currentWeek ? (
-            <div className="space-y-8 lg:space-y-10 animate-in fade-in slide-in-from-left-4 duration-300">
+            <div className="space-y-16 lg:space-y-20 animate-in fade-in slide-in-from-left-4 duration-300">
               {currentWorkout ? (
                 <div className="space-y-12">
                   <div className="bg-white dark:bg-darkCard rounded-[2.5rem] lg:rounded-[3.5rem] p-5 lg:p-10 shadow-lg border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
@@ -860,7 +860,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                     <div className="bg-slate-100 dark:bg-black p-8 rounded-2xl border-2 border-transparent focus-within:border-yellow-500 transition-all">
                                       <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest mb-3 block">Reps</span>
                                       <input 
-                                        type="tel" 
+                                        type="text"
                                         className="bg-transparent border-none w-full text-5xl lg:text-6xl font-['Oswald'] font-black text-center text-slate-900 dark:text-white outline-none"
                                         value={clientReps[currentSet.id] !== undefined ? clientReps[currentSet.id] : currentSet.reps}
                                         onChange={(e) => setClientReps(prev => ({ ...prev, [currentSet.id]: e.target.value }))}
@@ -914,13 +914,13 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                             }
 
                             return (
-                              <div key={`group-${group.label}`} className="bg-slate-100/50 dark:bg-white/5 rounded-2xl p-8 lg:p-12 border border-slate-200 dark:border-slate-800 space-y-12 shadow-sm">
+                              <div key={`group-${group.label}`} className="bg-slate-100/30 dark:bg-white/5 rounded-xl p-6 lg:p-8 border border-slate-200 dark:border-slate-800 space-y-8 shadow-sm">
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                                   <div className="flex items-center gap-6">
-                                    <div className="w-16 h-16 bg-yellow-500 text-black rounded-[2rem] flex items-center justify-center shadow-xl shadow-yellow-500/30 ring-4 ring-yellow-500/10">
+                                    <div className="w-12 h-12 bg-yellow-500 text-black rounded-2xl flex items-center justify-center shadow-lg shadow-yellow-500/20 ring-4 ring-yellow-500/5 shrink-0">
                                       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                     </div>
-                                    <div>
+                                    <div className="space-y-6">
                                       <h3 className="text-2xl lg:text-4xl font-['Oswald'] font-black text-slate-900 dark:text-white uppercase tracking-tighter whitespace-nowrap">SUPERSERIE {group.label}</h3>
                                       <div className="flex items-center gap-2 mt-1">
                                         <div className="flex -space-x-4">
@@ -939,20 +939,20 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                   </div>
                                   <button 
                                     onClick={() => setActiveSupersetInteraction({ label: group.label, exerciseIndex: 0, setIndex: 0 })}
-                                    className="w-full sm:w-auto px-10 py-6 bg-yellow-500 text-black rounded-xl font-['Oswald'] font-black uppercase text-sm tracking-[0.2em] hover:scale-105 transition-all shadow-xl shadow-yellow-500/20"
+                                    className="w-full sm:w-auto px-6 py-4 bg-yellow-500 text-black rounded-lg font-['Oswald'] font-black uppercase text-xs tracking-[0.2em] hover:scale-105 transition-all shadow-lg shadow-yellow-500/10"
                                   >
                                     EMPEZAR SUPERSERIE
                                   </button>
                                 </div>
 
-                                <div className="space-y-6 relative ml-8 border-l-2 border-dashed border-yellow-200 dark:border-yellow-900/40 pl-10 py-2">
+                                <div className="space-y-4 relative ml-5 border-l-2 border-dashed border-yellow-200 dark:border-yellow-900/40 pl-8 py-1">
                                   {group.entries.sort((a: any, b: any) => (a.supersetOrder || 0) - (b.supersetOrder || 0)).map((ent: any, idx: number) => {
                                     const ex = library.find(l => l.id === ent.libraryExerciseId);
                                     return (
                                       <div key={ent.id} className="relative group/item">
                                         <div className="absolute -left-[49px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-500 ring-4 ring-white dark:ring-black"></div>
-                                        <div className="flex items-center gap-4 lg:gap-6 p-4 lg:p-6 bg-white dark:bg-black/30 rounded-[2rem] border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-md transition-all">
-                                          <div className="w-16 h-16 rounded-[1.2rem] bg-slate-100 dark:bg-slate-800 overflow-hidden p-1 flex items-center justify-center">
+                                        <div className="flex items-center gap-3 lg:gap-4 p-3 lg:p-4 bg-white dark:bg-black/30 rounded-2xl border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-md transition-all">
+                                          <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden p-1 flex items-center justify-center shrink-0">
                                             <img 
                                               src={ex?.muscleImage || ex?.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(ex?.name || 'EX')}&background=0D0D0D&color=fff&bold=true`} 
                                               className="w-full h-full object-contain"
@@ -962,6 +962,11 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                           <div className="flex-1">
                                             <span className="text-[8px] font-black text-yellow-500 uppercase tracking-widest mb-1 block">Ejercicio {idx + 1}</span>
                                             <span className="block font-black text-sm lg:text-lg text-slate-800 dark:text-slate-200 uppercase tracking-tighter leading-[1.1]">{ex?.name}</span>
+                                            <div className="flex items-center gap-2 mt-2">
+                                              <span className="text-[10px] font-black text-yellow-600 dark:text-yellow-500 uppercase tracking-widest bg-yellow-500/10 px-2 py-0.5 rounded-md">{ent.sets[0]?.reps} REPS</span>
+                                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">•</span>
+                                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{ent.sets[0]?.kg} KG</span>
+                                            </div>
                                           </div>
                                           <div className="shrink-0 ml-auto pl-4">
                                             <span className="inline-block bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-1 rounded-lg text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{ent.sets.length} SETS</span>

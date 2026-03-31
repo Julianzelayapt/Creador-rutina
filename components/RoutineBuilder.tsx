@@ -843,155 +843,157 @@ onChange={(e) => setCurrentRoutine({
                           >
                             {processedExercises.map((group, groupIndex) => (
                               <Draggable key={group.id} draggableId={group.id} index={groupIndex}>
-                                {(provided) => (
-                                  <div 
-                                    className={`relative group/ex p-8 rounded-2xl border-2 transition-all ${
-                                      group.type === 'superset' 
-                                        ? 'bg-yellow-50/30 dark:bg-yellow-900/5 border-yellow-100 dark:border-yellow-900/30 shadow-lg shadow-yellow-500/5' 
-                                        : 'bg-white dark:bg-darkCard border-slate-100 dark:border-slate-800 shadow-sm'
-                                    }`}
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                  >
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover/ex:opacity-100 transition-opacity">
-                                      <div {...provided.dragHandleProps} className="p-2 text-slate-950 dark:text-white hover:text-yellow-500 cursor-grab active:cursor-grabbing">
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 8h16M4 16h16" /></svg>
+                                {(provided) => {
+                                  return (
+                                    <div 
+                                      className={`relative group/ex p-8 rounded-2xl border-2 transition-all ${
+                                        group.type === 'superset' 
+                                          ? 'bg-yellow-50/30 dark:bg-yellow-900/5 border-yellow-100 dark:border-yellow-900/30 shadow-lg shadow-yellow-500/5' 
+                                          : 'bg-white dark:bg-darkCard border-slate-100 dark:border-slate-800 shadow-sm'
+                                      }`}
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                    >
+                                      <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover/ex:opacity-100 transition-opacity">
+                                        <div {...provided.dragHandleProps} className="p-2 text-slate-950 dark:text-white hover:text-yellow-500 cursor-grab active:cursor-grabbing">
+                                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 8h16M4 16h16" /></svg>
+                                        </div>
                                       </div>
-                                    </div>
 
-                                    {group.type === 'superset' && (
-                                      <div className="flex items-center gap-2 mb-8 ml-6">
-                                        <div className="px-4 py-1.5 bg-yellow-400 text-black rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">SUPERSERIE {group.exercises[0].supersetLabel}</div>
-                                        <div className="h-[2px] flex-1 bg-gradient-to-r from-yellow-500 to-transparent dark:from-blue-900/50"></div>
-                                      </div>
-                                    )}
+                                      {group.type === 'superset' && (
+                                        <div className="flex items-center gap-2 mb-8 ml-6">
+                                          <div className="px-4 py-1.5 bg-yellow-400 text-black rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">SUPERSERIE {group.exercises[0].supersetLabel}</div>
+                                          <div className="h-[2px] flex-1 bg-gradient-to-r from-yellow-500 to-transparent dark:from-blue-900/50"></div>
+                                        </div>
+                                      )}
 
-                                    <div className="space-y-10 ml-6">
-                                      {group.exercises.map((entry, entryIdx) => {
-                                        const libEx = library.find(l => l.id === entry.libraryExerciseId);
-                                        return (
-                                          <div key={entry.id} className={`${entryIdx > 0 ? 'pt-10 border-t border-blue-100/50 dark:border-blue-900/20' : ''}`}>
-                                            <div className="flex justify-between items-center mb-6">
-                                              <div className="flex items-center gap-4">
-                                                {group.type === 'superset' && (
-                                                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-[10px] font-black text-yellow-400 text-black">
-                                                    {entryIdx + 1}
-                                                  </div>
-                                                )}
-                                                <span className="font-black text-xl text-slate-900 dark:text-white uppercase tracking-tighter">
-                                                  {libEx?.name || 'Cargando...'}
-                                                </span>
+                                      <div className="space-y-10 ml-6">
+                                        {group.exercises.map((entry, entryIdx) => {
+                                          const libEx = library.find(l => l.id === entry.libraryExerciseId);
+                                          return (
+                                            <div key={entry.id} className={`${entryIdx > 0 ? 'pt-10 border-t border-blue-100/50 dark:border-blue-900/20' : ''}`}>
+                                              <div className="flex justify-between items-center mb-6">
+                                                <div className="flex items-center gap-4">
+                                                  {group.type === 'superset' && (
+                                                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-[10px] font-black text-yellow-400 text-black">
+                                                      {entryIdx + 1}
+                                                    </div>
+                                                  )}
+                                                  <span className="font-black text-xl text-slate-900 dark:text-white uppercase tracking-tighter">
+                                                    {libEx?.name || 'Cargando...'}
+                                                  </span>
+                                                </div>
+                                                <button 
+                                                  onClick={() => deleteExercise(currentWeek.id, currentWorkout.id, entry.id)} 
+                                                  className="text-slate-950 dark:text-white hover:text-red-500 transition-all"
+                                                >
+                                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
                                               </div>
-                                              <button 
-                                                onClick={() => deleteExercise(currentWeek.id, currentWorkout.id, entry.id)} 
-                                                className="text-slate-950 dark:text-white hover:text-red-500 transition-all"
-                                              >
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                                              </button>
-                                            </div>
 
-                                            <div className="overflow-x-auto mb-6">
-                                              <table className="w-full text-center">
-                                                <thead>
-                                                  <tr className="text-[9px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                                                    <th className="py-2 w-10">SET</th>
-                                                    {currentRoutine.enabledMetrics.reps && <th className="py-2">REPS</th>}
-                                                    {currentRoutine.enabledMetrics.kg && <th className="py-2">KG</th>}
-                                                    {currentRoutine.enabledMetrics.rir && <th className="py-2">RIR</th>}
-                                                    {currentRoutine.enabledMetrics.rmPercentage && <th className="py-2">% RM</th>}
-                                                    {currentRoutine.enabledMetrics.rest && (
-                                                      <th className="py-2">
-                                                        {group.type === 'superset' ? (entryIdx === 0 ? '' : 'DESC.') : 'DESC.'}
-                                                      </th>
-                                                    )}
-                                                    <th className="py-2">DROP</th>
-                                                    <th className="w-10"></th>
-                                                  </tr>
-                                                </thead>
-                                                <tbody>
-                                                  {entry.sets.map((set, idx) => (
-                                                    <React.Fragment key={set.id}>
-                                                      <tr>
-                                                        <td className="py-4">
-                                                          <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-950 dark:text-slate-100 mx-auto">{idx + 1}</div>
-                                                        </td>
-                                                        {currentRoutine.enabledMetrics.reps && (
-                                                          <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.reps} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'reps', e.target.value)} /></td>
-                                                        )}
-                                                        {currentRoutine.enabledMetrics.kg && (
-                                                          <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.kg} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'kg', e.target.value)} /></td>
-                                                        )}
-                                                        {currentRoutine.enabledMetrics.rir && (
-                                                          <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rir} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rir', e.target.value)} /></td>
-                                                        )}
-                                                        {currentRoutine.enabledMetrics.rmPercentage && (
-                                                          <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rmPercentage} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rmPercentage', e.target.value)} /></td>
-                                                        )}
-                                                        {currentRoutine.enabledMetrics.rest && (
-                                                          <td>
-                                                            {group.type === 'superset' && entryIdx === 0 ? (
-                                                              <span className="text-[9px] font-black text-slate-950 dark:text-white">0:10</span>
-                                                            ) : (
-                                                              <input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rest} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rest', e.target.value)} />
-                                                            )}
-                                                          </td>
-                                                        )}
-                                                        <td>
-                                                          <button 
-                                                            onClick={() => addDropset(currentWeek.id, currentWorkout.id, entry.id, set.id)}
-                                                            className="p-2 text-orange-400 hover:text-orange-600 transition-all"
-                                                          >
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-                                                          </button>
-                                                        </td>
-                                                        <td>
-                                                          <button onClick={() => deleteSet(currentWeek.id, currentWorkout.id, entry.id, set.id)} className="text-slate-200 hover:text-red-500 transition-all">
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                                                          </button>
-                                                        </td>
-                                                      </tr>
-                                                      {set.dropsets?.map((ds, dsIdx) => (
-                                                        <tr key={ds.id} className="bg-orange-50/20 dark:bg-orange-900/5">
-                                                          <td className="py-2">
-                                                            <div className="flex items-center justify-center gap-1">
-                                                              <div className="w-4 h-4 border-l-2 border-b-2 border-slate-300 dark:border-slate-700 rounded-bl-lg mb-2"></div>
-                                                              <span className="text-[8px] font-black text-orange-400">DS {dsIdx + 1}</span>
-                                                            </div>
+                                              <div className="overflow-x-auto mb-6">
+                                                <table className="w-full text-center">
+                                                  <thead>
+                                                    <tr className="text-[9px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                                                      <th className="py-2 w-10">SET</th>
+                                                      {currentRoutine.enabledMetrics.reps && <th className="py-2">REPS</th>}
+                                                      {currentRoutine.enabledMetrics.kg && <th className="py-2">KG</th>}
+                                                      {currentRoutine.enabledMetrics.rir && <th className="py-2">RIR</th>}
+                                                      {currentRoutine.enabledMetrics.rmPercentage && <th className="py-2">% RM</th>}
+                                                      {currentRoutine.enabledMetrics.rest && (
+                                                        <th className="py-2">
+                                                          {group.type === 'superset' ? (entryIdx === 0 ? '' : 'DESC.') : 'DESC.'}
+                                                        </th>
+                                                      )}
+                                                      <th className="py-2">DROP</th>
+                                                      <th className="w-10"></th>
+                                                    </tr>
+                                                  </thead>
+                                                  <tbody>
+                                                    {entry.sets.map((set, idx) => (
+                                                      <React.Fragment key={set.id}>
+                                                        <tr>
+                                                          <td className="py-4">
+                                                            <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-950 dark:text-slate-100 mx-auto">{idx + 1}</div>
                                                           </td>
                                                           {currentRoutine.enabledMetrics.reps && (
-                                                            <td><input className="w-12 py-2 text-center bg-transparent border-b border-orange-200 dark:border-orange-800 outline-none text-xs font-bold dark:text-white" value={ds.reps} onChange={e => updateDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id, 'reps', e.target.value)} /></td>
+                                                            <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.reps} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'reps', e.target.value)} /></td>
                                                           )}
                                                           {currentRoutine.enabledMetrics.kg && (
-                                                            <td><input className="w-12 py-2 text-center bg-transparent border-b border-orange-200 dark:border-orange-800 outline-none text-xs font-bold dark:text-white" value={ds.kg} onChange={e => updateDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id, 'kg', e.target.value)} /></td>
+                                                            <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.kg} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'kg', e.target.value)} /></td>
                                                           )}
-                                                          {currentRoutine.enabledMetrics.rir && <td></td>}
-                                                          {currentRoutine.enabledMetrics.rmPercentage && <td></td>}
-                                                          {currentRoutine.enabledMetrics.rest && <td></td>}
-                                                          <td></td>
+                                                          {currentRoutine.enabledMetrics.rir && (
+                                                            <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rir} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rir', e.target.value)} /></td>
+                                                          )}
+                                                          {currentRoutine.enabledMetrics.rmPercentage && (
+                                                            <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rmPercentage} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rmPercentage', e.target.value)} /></td>
+                                                          )}
+                                                          {currentRoutine.enabledMetrics.rest && (
+                                                            <td>
+                                                              {group.type === 'superset' && entryIdx === 0 ? (
+                                                                <span className="text-[9px] font-black text-slate-950 dark:text-white">0:10</span>
+                                                              ) : (
+                                                                <input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rest} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rest', e.target.value)} />
+                                                              )}
+                                                            </td>
+                                                          )}
                                                           <td>
-                                                            <button onClick={() => deleteDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id)} className="text-slate-950 dark:text-white hover:text-red-500 transition-all">
-                                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                            <button 
+                                                              onClick={() => addDropset(currentWeek.id, currentWorkout.id, entry.id, set.id)}
+                                                              className="p-2 text-orange-400 hover:text-orange-600 transition-all"
+                                                            >
+                                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                                                            </button>
+                                                          </td>
+                                                          <td>
+                                                            <button onClick={() => deleteSet(currentWeek.id, currentWorkout.id, entry.id, set.id)} className="text-slate-200 hover:text-red-500 transition-all">
+                                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
                                                             </button>
                                                           </td>
                                                         </tr>
-                                                      ))}
-                                                    </React.Fragment>
-                                                  ))}
-                                                </tbody>
-                                              </table>
+                                                        {set.dropsets?.map((ds, dsIdx) => (
+                                                          <tr key={ds.id} className="bg-orange-50/20 dark:bg-orange-900/5">
+                                                            <td className="py-2">
+                                                              <div className="flex items-center justify-center gap-1">
+                                                                <div className="w-4 h-4 border-l-2 border-b-2 border-slate-300 dark:border-slate-700 rounded-bl-lg mb-2"></div>
+                                                                <span className="text-[8px] font-black text-orange-400">DS {dsIdx + 1}</span>
+                                                              </div>
+                                                            </td>
+                                                            {currentRoutine.enabledMetrics.reps && (
+                                                              <td><input className="w-12 py-2 text-center bg-transparent border-b border-orange-200 dark:border-orange-800 outline-none text-xs font-bold dark:text-white" value={ds.reps} onChange={e => updateDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id, 'reps', e.target.value)} /></td>
+                                                            )}
+                                                            {currentRoutine.enabledMetrics.kg && (
+                                                              <td><input className="w-12 py-2 text-center bg-transparent border-b border-orange-200 dark:border-orange-800 outline-none text-xs font-bold dark:text-white" value={ds.kg} onChange={e => updateDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id, 'kg', e.target.value)} /></td>
+                                                            )}
+                                                            {currentRoutine.enabledMetrics.rir && <td></td>}
+                                                            {currentRoutine.enabledMetrics.rmPercentage && <td></td>}
+                                                            {currentRoutine.enabledMetrics.rest && <td></td>}
+                                                            <td></td>
+                                                            <td>
+                                                              <button onClick={() => deleteDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id)} className="text-slate-950 dark:text-white hover:text-red-500 transition-all">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                              </button>
+                                                            </td>
+                                                          </tr>
+                                                        ))}
+                                                      </React.Fragment>
+                                                    ))}
+                                                  </tbody>
+                                                </table>
+                                              </div>
+                                              <button
+                                                onClick={() => addSet(currentWeek.id, currentWorkout.id, entry.id)}
+                                                className="w-full py-4 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-950 dark:text-white hover:border-yellow-600 hover:text-yellow-600 transition-all active:scale-[0.98]"
+                                              >
+                                                + Agregar Serie
+                                              </button>
                                             </div>
-                                            <button
-                                              onClick={() => addSet(currentWeek.id, currentWorkout.id, entry.id)}
-                                              className="w-full py-4 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-950 dark:text-white hover:border-yellow-600 hover:text-yellow-600 transition-all active:scale-[0.98]"
-                                            >
-                                              + Agregar Serie
-                                            </button>
-                                          </div>
-                                        );
-                                      })}
+                                          );
+                                        })}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  );
+                                }}
                               </Draggable>
                             ))}
                             {provided.placeholder}
