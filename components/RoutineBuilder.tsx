@@ -670,7 +670,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
               className="px-8 py-5 bg-white dark:bg-slate-800 text-slate-950 dark:text-white border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] hover:border-yellow-600 hover:text-yellow-600 transition-all font-black uppercase text-[10px] tracking-widest h-[66px] flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
-              + Nueva Semana
+              NUEVA SEMANA
             </button>
           </div>
 
@@ -724,7 +724,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                   className="px-8 py-5 border-2 border-dashed border-slate-300 dark:border-slate-800 text-slate-950 dark:text-white rounded-[2rem] font-black text-[10px] uppercase hover:border-yellow-600 hover:text-yellow-600 transition-all flex items-center justify-center gap-2 h-[66px]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
-                  + Agregar Día
+                  AGREGAR DÍA
                 </button>
               </div>
 
