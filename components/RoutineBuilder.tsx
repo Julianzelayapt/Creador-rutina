@@ -648,22 +648,29 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
             ))}
           </div>
 
-          {/* TABS DE SEMANAS */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide">
-            {currentRoutine.weeks.map((week, idx) => (
-              <button
-                key={week.id}
-                onClick={() => setActiveWeekId(week.id)}
-                className={`px-8 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest transition-all shrink-0 ${activeWeekId === week.id ? 'bg-yellow-400 text-black shadow-xl scale-105' : 'bg-white dark:bg-darkCard text-slate-950 dark:text-white border border-slate-100 dark:border-slate-800'}`}
+          {/* TABS DE SEMANAS (AHORA DROPBOX) */}
+          <div className="flex flex-col md:flex-row gap-4 mb-8">
+            <div className="relative group flex-1">
+              <label className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest ml-4 mb-2 block">Seleccionar Semana</label>
+              <select
+                value={activeWeekId || ''}
+                onChange={(e) => setActiveWeekId(e.target.value)}
+                className="w-full bg-white dark:bg-darkCard px-8 py-5 rounded-[2rem] font-black uppercase text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-xl appearance-none cursor-pointer focus:border-yellow-600 transition-all outline-none text-slate-950 dark:text-white"
               >
-                {week.name}
-              </button>
-            ))}
+                {currentRoutine.weeks.map((week) => (
+                  <option key={week.id} value={week.id}>{week.name}</option>
+                ))}
+              </select>
+              <div className="absolute right-6 bottom-5 pointer-events-none text-yellow-600">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+              </div>
+            </div>
             <button
               onClick={addWeek}
-              className="px-6 py-5 bg-slate-200 dark:bg-slate-800 text-slate-900 rounded-[2rem] hover:bg-yellow-600 hover:text-white transition-all shrink-0"
+              className="px-8 py-5 bg-white dark:bg-slate-800 text-slate-950 dark:text-white border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] hover:border-yellow-600 hover:text-yellow-600 transition-all font-black uppercase text-[10px] tracking-widest h-[66px] flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
+              + Nueva Semana
             </button>
           </div>
 
@@ -695,21 +702,28 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 </button>
               </div>
 
-              {/* TABS DE DÍAS (HORIZONTALES) */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-8 scrollbar-hide">
-                {currentWeek.workouts.map(workout => (
-                  <button
-                    key={workout.id}
-                    onClick={() => setActiveWorkoutId(workout.id)}
-                    className={`px-6 py-4 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest transition-all shrink-0 ${activeWorkoutId === workout.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-black shadow-lg' : 'bg-slate-100 dark:bg-slate-900 text-slate-950 dark:text-white'}`}
+              {/* TABS DE DÍAS (AHORA DROPBOX) */}
+              <div className="flex flex-col md:flex-row gap-4 mb-10">
+                <div className="relative group flex-1">
+                  <label className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest ml-4 mb-2 block">Seleccionar Día</label>
+                  <select
+                    value={activeWorkoutId || ''}
+                    onChange={(e) => setActiveWorkoutId(e.target.value)}
+                    className="w-full bg-slate-100 dark:bg-slate-900/50 px-8 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest border border-transparent focus:border-yellow-600 transition-all outline-none text-slate-950 dark:text-white appearance-none cursor-pointer shadow-inner"
                   >
-                    {workout.name}
-                  </button>
-                ))}
+                    {currentWeek.workouts.map(workout => (
+                      <option key={workout.id} value={workout.id}>{workout.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-6 bottom-5 pointer-events-none text-yellow-600">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+                  </div>
+                </div>
                 <button
                   onClick={() => addWorkout(currentWeek.id)}
-                  className="px-6 py-4 border-2 border-dashed border-slate-300 dark:border-slate-800 text-slate-950 dark:text-white rounded-[1.5rem] font-black text-[10px] uppercase hover:border-yellow-600 hover:text-yellow-600 transition-all shrink-0"
+                  className="px-8 py-5 border-2 border-dashed border-slate-300 dark:border-slate-800 text-slate-950 dark:text-white rounded-[2rem] font-black text-[10px] uppercase hover:border-yellow-600 hover:text-yellow-600 transition-all flex items-center justify-center gap-2 h-[66px]"
                 >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
                   + Agregar Día
                 </button>
               </div>
