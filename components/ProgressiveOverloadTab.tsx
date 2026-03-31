@@ -17,7 +17,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                 delta: 'Δ KG',
                 change: '% CAMBIO',
                 progress: 'PROGRESO',
-                noData: 'Completá sets con peso para ver el progreso',
+                noData: 'Completá las series con peso para ver el progreso',
                 selectExercise: 'Seleccioná un ejercicio para ver su historia',
             },
             en: {
@@ -72,11 +72,11 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
 
             {/* Selector de Ejercicio */}
             <div className="relative group max-w-md mx-auto mb-10">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">{t('selectExercise')}</label>
+                <label className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest ml-4 mb-2 block">{t('selectExercise')}</label>
                 <select
                     value={selectedExId}
                     onChange={(e) => setSelectedExId(e.target.value)}
-                    className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none text-slate-900 dark:text-white"
+                    className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-yellow-600 transition-all outline-none text-slate-950 dark:text-slate-200"
                 >
                     {uniqueExerciseIds.map(exId => {
                         const libEx = library.find(l => l.id === exId);
@@ -85,7 +85,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                         );
                     })}
                 </select>
-                <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
+                <div className="absolute right-6 bottom-5 pointer-events-none text-yellow-600">
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
                 </div>
             </div>
@@ -104,7 +104,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                         <div className="flex flex-col md:flex-row md:items-center gap-8 mb-10 bg-[#0F1115] dark:bg-[#0F1115] p-6 lg:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
                             {libEx.muscleImage && (
                                 <div className="h-40 w-40 lg:h-48 lg:w-48 shrink-0 rounded-[1.5rem] border-2 border-slate-700 bg-[#0F1115] flex items-center justify-center p-2 relative overflow-hidden group">
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-yellow-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                                     <img
                                         src={libEx.muscleImage}
                                         alt="Muscle"
@@ -113,15 +113,15 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                                 </div>
                             )}
                             <div className="flex flex-col justify-center">
-                                <h4 className="text-3xl lg:text-5xl font-black text-white tracking-tighter uppercase italic drop-shadow-md">{libEx.name}</h4>
-                                <p className="text-blue-500 font-black text-sm uppercase tracking-[0.3em] mt-3 opacity-80">{t('avgKg')}</p>
+                                <h4 className="text-3xl lg:text-5xl font-black text-white tracking-tighter uppercase drop-shadow-md">{libEx.name}</h4>
+                                <p className="text-yellow-600 font-black text-sm uppercase tracking-[0.3em] mt-3 opacity-80">{t('avgKg')}</p>
                             </div>
                         </div>
 
                         <div className="overflow-x-auto">
                             <table className="w-full text-center">
                                 <thead>
-                                    <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
+                                    <tr className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                                         <th className="py-4 text-left pl-4">{t('week')}</th>
                                         <th className="py-4">{t('avgKg')}</th>
                                         <th className="py-4">{t('delta')}</th>
@@ -145,7 +145,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                                         const radius = 16;
                                         const circumference = 2 * Math.PI * radius;
                                         let strokeDashoffset = circumference;
-                                        let colorClass = 'text-slate-300 dark:text-slate-700';
+                                        let colorClass = 'text-slate-950 dark:text-slate-200';
 
                                         if (percentChange !== null) {
                                             // Cap percentage between 0 and 100 for the circle fill
@@ -155,23 +155,23 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                                         }
 
                                         return (
-                                            <tr key={week.id} className="border-b border-slate-50 dark:border-slate-900 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                                                <td className="py-6 text-left pl-4 font-bold text-slate-700 dark:text-slate-300">
+                                            <tr key={week.id} className="border-b border-slate-100 dark:border-slate-900 last:border-0 hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors">
+                                                <td className="py-6 text-left pl-4 font-bold text-slate-950 dark:text-white">
                                                     {getTranslatedWeekName(week.name)}
                                                 </td>
-                                                <td className="py-6 font-black text-xl text-slate-900 dark:text-white">
-                                                    {avgKg} <span className="text-xs text-slate-400">kg</span>
+                                                <td className="py-6 font-black text-xl text-slate-950 dark:text-slate-200">
+                                                    {avgKg} <span className="text-xs text-slate-950 dark:text-white">kg</span>
                                                 </td>
                                                 <td className="py-6">
                                                     {delta !== null ? (
-                                                        <span className={`font-black text-sm px-3 py-1 rounded-full ${delta > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : delta < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                                        <span className={`font-black text-sm px-3 py-1 rounded-full ${delta > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : delta < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-slate-100 text-slate-950 dark:text-white dark:bg-slate-800'}`}>
                                                             {delta > 0 ? '+' : ''}{delta}
                                                         </span>
                                                     ) : (
-                                                        <span className="text-slate-300 dark:text-slate-700">—</span>
+                                                        <span className="text-slate-950 dark:text-slate-200">—</span>
                                                     )}
                                                 </td>
-                                                <td className="py-6 font-bold text-slate-600 dark:text-slate-400">
+                                                <td className="py-6 font-bold text-slate-950 dark:text-white dark:text-slate-950 dark:text-white">
                                                     {percentChange !== null ? (
                                                         <span className={percentChange > 0 ? 'text-green-500' : percentChange < 0 ? 'text-red-500' : ''}>
                                                             {percentChange > 0 ? '+' : ''}{percentChange}%
@@ -220,7 +220,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-slate-300 dark:text-slate-700 font-bold">—</span>
+                                                        <span className="text-slate-950 dark:text-slate-200 font-bold">—</span>
                                                     )}
                                                 </td>
                                             </tr>
@@ -230,7 +230,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                             </table>
                             {!hasData && (
                                 <div className="text-center py-6">
-                                    <p className="text-slate-400 text-sm font-bold italic">{t('noData')}</p>
+                                    <p className="text-slate-950 dark:text-white text-sm font-bold">{t('noData')}</p>
                                 </div>
                             )}
                         </div>

@@ -7,6 +7,12 @@ export interface Exercise {
   tip: string;
 }
 
+export interface DropSet {
+  id: string;
+  reps: string;
+  kg: string;
+}
+
 export interface TrainingSet {
   id: string;
   reps: string;
@@ -14,12 +20,18 @@ export interface TrainingSet {
   rir: string;
   rmPercentage: string;
   rest: string;
+  dropsets?: DropSet[];
 }
 
 export interface ExerciseEntry {
   id: string;
   libraryExerciseId: string;
   sets: TrainingSet[];
+  supersetGroupId?: string;
+  supersetLabel?: string;
+  supersetOrder?: number;
+  supersetRest?: string;
+  supersetFinalRest?: string;
 }
 
 export interface Workout {

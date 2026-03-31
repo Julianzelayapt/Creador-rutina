@@ -10,6 +10,141 @@ interface ClientViewProps {
   library: Exercise[];
 }
 
+const ExerciseBlock: React.FC<{
+  entry: any;
+  library: any[];
+  t: (k: string) => string;
+  routine: any;
+  completedSets: Record<string, boolean>;
+  clientReps: Record<string, string>;
+  clientWeights: Record<string, string>;
+  setClientReps: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setClientWeights: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  handleSetToggle: (id: string, rest: string) => void;
+  feelings: Record<string, string>;
+  setFeelings: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  isSuperset?: boolean;
+}> = ({ entry, library, t, routine, completedSets, clientReps, clientWeights, setClientReps, setClientWeights, handleSetToggle, feelings, setFeelings, isSuperset }) => {
+  const libEx = library.find(l => l.id === entry.libraryExerciseId);
+  return (
+    <div key={entry.id} className="relative">
+      <div className="flex flex-col gap-6 lg:gap-8">
+        <div>
+          <div className="flex items-center gap-5 mb-5 flex-wrap">
+            {libEx?.videoUrl ? (
+              <a
+                href={libEx.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-lg transition-all active:scale-90"
+                title="Ver Video"
+              >
+                <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+              </a>
+            ) : null}
+            <h4 className="text-2xl lg:text-4xl font-['Oswald'] font-black text-slate-800 dark:text-white tracking-tighter uppercase pr-4">
+              {isSuperset && entry.supersetLabel && entry.supersetOrder ? `[${entry.supersetLabel}${entry.supersetOrder}] ` : ''}
+              {libEx?.name}
+            </h4>
+          </div>
+
+          <div className="mb-8 p-6 bg-slate-100 dark:bg-black/30 rounded-xl border-l-[8px] border-yellow-500">
+            <p className="text-slate-950 dark:text-white font-bold text-base">💡 {t('tip')}: {libEx?.tip || '...'}</p>
+          </div>
+
+          <div className="overflow-x-auto mb-8">
+            <table className="w-full text-center">
+              <thead>
+                <tr className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                  <th className="py-4 w-16">{t('set')}</th>
+                  {routine.enabledMetrics.reps && <th className="py-4">{t('reps')}</th>}
+                  {routine.enabledMetrics.kg && <th className="py-4">{t('kg')}</th>}
+                  {routine.enabledMetrics.rir && <th className="py-4">{t('rir')}</th>}
+                  {routine.enabledMetrics.rmPercentage && <th className="py-2 lg:py-4">{t('rm')}</th>}
+                  <th className="py-2 lg:py-4 w-12 lg:w-20">{t('ok')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entry.sets.map((set: any, idx: number) => (
+                  <React.Fragment key={set.id}>
+                    <tr className={`transition-all border-b border-slate-100 dark:border-slate-900 last:border-0 ${completedSets[set.id] ? 'bg-green-500/10 dark:bg-green-500/5' : ''}`}>
+                      <td className="py-4 lg:py-6">
+                        <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center text-xs lg:text-sm font-black mx-auto transition-all ${completedSets[set.id] ? 'bg-green-600 text-white shadow-xl' : 'bg-slate-900 dark:bg-slate-700 text-white'}`}>
+                          {idx + 1}
+                        </div>
+                      </td>
+                      {routine.enabledMetrics.reps && (
+                        <td className="py-4 lg:py-6">
+                          <input
+                            type="text"
+                            className="w-16 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-yellow-500 transition-all text-lg lg:text-xl"
+                            value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
+                            onChange={(e) => setClientReps(prev => ({ ...prev, [set.id]: e.target.value }))}
+                          />
+                        </td>
+                      )}
+                      {routine.enabledMetrics.kg && (
+                        <td className="py-4 lg:py-6">
+                          <input
+                            type="text"
+                            className="w-16 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-yellow-500 transition-all text-lg lg:text-xl"
+                            value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
+                            onChange={(e) => setClientWeights(prev => ({ ...prev, [set.id]: e.target.value }))}
+                          />
+                        </td>
+                      )}
+                      {routine.enabledMetrics.rir && <td className="py-4 lg:py-6 font-black text-slate-950 dark:text-white text-lg">{set.rir}</td>}
+                      {routine.enabledMetrics.rmPercentage && <td className="py-4 lg:py-6 font-black text-slate-950 dark:text-white text-lg">{set.rmPercentage}%</td>}
+                      <td className="py-4 lg:py-6">
+                        <button
+                          onClick={() => handleSetToggle(set.id, set.rest)}
+                          className={`w-10 h-10 lg:w-16 lg:h-16 rounded-lg lg:rounded-xl border-[3px] lg:border-4 flex items-center justify-center transition-all active:scale-90 ${completedSets[set.id] ? 'bg-green-500 border-green-500 text-white shadow-2xl scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-transparent hover:border-green-400'}`}
+                        >
+                          <svg className="w-5 h-5 lg:w-10 lg:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" d="M5 13l4 4L19 7" /></svg>
+                        </button>
+                      </td>
+                    </tr>
+                    {set.dropsets?.map((ds: any, dsIdx: number) => (
+                      <tr key={ds.id} className="bg-orange-50/10 dark:bg-orange-900/5">
+                        <td className="py-2">
+                          <div className="flex items-center justify-center gap-1">
+                            <div className="w-4 h-4 border-l-2 border-b-2 border-slate-300 dark:border-slate-700 rounded-bl-lg mb-2"></div>
+                            <span className="text-[10px] font-black text-orange-500">DS {dsIdx + 1}</span>
+                          </div>
+                        </td>
+                        <td colSpan={2} className="py-2">
+                          <div className="flex items-center justify-center gap-4">
+                            <span className="text-lg font-black text-slate-700 dark:text-slate-300">{ds.kg}kg</span>
+                            <span className="text-slate-950 dark:text-slate-200 font-bold">x</span>
+                            <span className="text-lg font-black text-slate-700 dark:text-slate-300">{ds.reps} reps</span>
+                          </div>
+                        </td>
+                        <td colSpan={3}></td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-8 bg-slate-100 dark:bg-black/40 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+            <textarea
+              placeholder={t('notesPlaceholder')}
+              className="w-full bg-white dark:bg-darkCard p-6 rounded-lg border-2 border-transparent focus:border-yellow-500 outline-none transition-all h-28 text-slate-800 dark:text-slate-200 font-medium shadow-inner"
+              value={feelings[entry.id] || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFeelings(prev => ({ ...prev, [entry.id]: val }));
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
   // Función para obtener datos guardados de forma segura
   const getSavedData = () => {
@@ -43,6 +178,11 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
 
   // Tabs: 'training' o 'overload'
   const [activeTab, setActiveTab] = useState<'training' | 'overload'>('training');
+  const [activeSupersetInteraction, setActiveSupersetInteraction] = useState<{
+    label: string;
+    exerciseIndex: number;
+    setIndex: number;
+  } | null>(null);
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
@@ -63,7 +203,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         noContent: 'Tu coach aún no ha cargado contenido',
         pause: 'Pausa',
         tip: 'Tip',
-        set: 'SET',
+        set: 'SERIE',
         reps: 'REPS',
         kg: 'KG',
         rir: 'RIR',
@@ -361,6 +501,11 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
     setCompletedSets(prev => ({ ...prev, [setId]: isNowCompleted }));
 
     if (isNowCompleted && routine.enabledMetrics.rest) {
+      // If we are in interactive mode, we might want to auto-advance
+      if (activeSupersetInteraction) {
+        // Logic for auto-advancing will be handled in the interactive UI component
+      }
+
       const parts = restTime.split(':');
       let seconds = 0;
       if (parts.length === 2) {
@@ -458,11 +603,11 @@ ${feedbackText || 'Sin comentarios adicionales.'}
         <div className="bg-white dark:bg-darkCard rounded-[3rem] p-10 shadow-2xl border border-slate-100 dark:border-slate-800 text-center">
           {!isSubmitted ? (
             <>
-              <div className="w-20 h-20 bg-blue-600 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-500/30">
+              <div className="w-20 h-20 bg-yellow-500 text-black rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-yellow-500/30">
                 <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
               </div>
-              <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter uppercase italic">{t('dayCompleted')}</h2>
-              <p className="text-slate-500 dark:text-slate-400 font-bold mb-10">{t('howWasWorkout')}</p>
+              <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter uppercase">{t('dayCompleted')}</h2>
+              <p className="text-slate-950 dark:text-white font-bold mb-10">{t('howWasWorkout')}</p>
 
               {/* Estrellas */}
               <div className="flex justify-center gap-3 mb-12">
@@ -470,7 +615,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                   <button
                     key={star}
                     onClick={() => setRating(star)}
-                    className={`transition-all transform hover:scale-110 active:scale-90 ${rating >= star ? 'text-yellow-400' : 'text-slate-200 dark:text-slate-700'}`}
+                    className={`transition-all transform hover:scale-110 active:scale-90 ${rating >= star ? 'text-yellow-500' : 'text-slate-200 dark:text-slate-700'}`}
                   >
                     <svg className="w-12 h-12 fill-current" viewBox="0 0 24 24">
                       <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
@@ -481,10 +626,10 @@ ${feedbackText || 'Sin comentarios adicionales.'}
 
               <div className="space-y-6">
                 <div className="text-left space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">{t('comments')}</label>
+                  <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-4">{t('comments')}</label>
                   <textarea
                     placeholder={t('feedbackPlaceholder')}
-                    className="w-full bg-slate-50 dark:bg-black p-6 rounded-[2rem] border-2 border-transparent focus:border-blue-500 outline-none transition-all h-36 text-slate-800 dark:text-slate-200 font-medium italic shadow-inner"
+                    className="w-full bg-slate-100 dark:bg-black p-6 rounded-[2rem] border-2 border-transparent focus:border-yellow-600 outline-none transition-all h-36 text-slate-800 dark:text-slate-200 font-medium shadow-inner"
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
                   />
@@ -492,13 +637,13 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                 <button
                   onClick={handleSubmitFeedback}
                   disabled={isSubmitting}
-                  className={`w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest italic shadow-xl transition-all active:scale-95 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+                  className={`w-full py-6 bg-yellow-500 text-black rounded-[2rem] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-yellow-500'}`}
                 >
                   {isSubmitting ? t('loading') : t('sendSummary')}
                 </button>
                 <button
                   onClick={() => setShowFeedbackScreen(false)}
-                  className="w-full py-2 text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] hover:text-slate-600 transition-all"
+                  className="w-full py-2 text-slate-900 font-black uppercase text-[10px] tracking-[0.2em] hover:text-slate-900 transition-all"
                 >
                   {t('keepEditing')}
                 </button>
@@ -509,8 +654,8 @@ ${feedbackText || 'Sin comentarios adicionales.'}
               <div className="w-24 h-24 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
                 <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
               </div>
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase italic tracking-tighter">{t('feedbackSent')}</h2>
-              <p className="text-slate-500 dark:text-slate-400 font-bold mb-10 leading-relaxed italic">{t('feedbackDesc')}</p>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tighter">{t('feedbackSent')}</h2>
+              <p className="text-slate-950 dark:text-white font-bold mb-10 leading-relaxed">{t('feedbackDesc')}</p>
               <button
                 onClick={() => {
                   setShowFeedbackScreen(false);
@@ -518,7 +663,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                   setRating(0);
                   setFeedbackText('');
                 }}
-                className="px-12 py-5 bg-slate-900 dark:bg-white dark:text-black text-white rounded-2xl font-black uppercase tracking-widest italic shadow-lg hover:scale-105 transition-all"
+                className="px-12 py-5 bg-slate-900 dark:bg-white dark:text-black text-white rounded-2xl font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-all"
               >
                 {t('closeSession')}
               </button>
@@ -534,7 +679,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
 
       {/* Timer flotante estilo iOS */}
       {timer !== null && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-8 py-5 rounded-[3rem] shadow-[0_20px_50px_rgba(59,130,246,0.6)] z-[150] flex items-center gap-8 border border-white/20 backdrop-blur-md animate-in slide-in-from-bottom-12 duration-500">
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 bg-yellow-500 text-black px-8 py-5 rounded-[3rem] shadow-[0_20px_50px_rgba(250,204,21,0.4)] z-[150] flex items-center gap-8 border border-white/20 backdrop-blur-md animate-in slide-in-from-bottom-12 duration-500">
           <div className="flex flex-col">
             <span className="text-[10px] font-black uppercase opacity-80 tracking-widest mb-0.5">{t('pause')}</span>
             <span className="text-4xl font-black tabular-nums tracking-tighter leading-none">{formatTime(timer)}</span>
@@ -555,17 +700,17 @@ ${feedbackText || 'Sin comentarios adicionales.'}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent flex flex-col justify-end p-6 lg:p-10">
             {/* Language Selector */}
             <div className="absolute top-6 right-6 flex gap-2">
-              <button onClick={() => setLanguage('es')} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'es' ? 'bg-white text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>ES</button>
-              <button onClick={() => setLanguage('en')} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'en' ? 'bg-white text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>EN</button>
-              <button onClick={() => setLanguage('it')} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'it' ? 'bg-white text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>IT</button>
+              <button onClick={() => setLanguage('es')} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'es' ? 'bg-yellow-500 text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>ES</button>
+              <button onClick={() => setLanguage('en')} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'en' ? 'bg-yellow-500 text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>EN</button>
+              <button onClick={() => setLanguage('it')} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'it' ? 'bg-yellow-500 text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>IT</button>
             </div>
 
-            <h1 className="text-3xl lg:text-5xl font-black text-white mb-2 tracking-tighter uppercase italic">{routine.name}</h1>
-            <p className="text-blue-400 font-black text-[10px] lg:text-xs uppercase tracking-widest italic">{t('hello')}, {routine.clientName}</p>
+            <h1 className="text-3xl lg:text-5xl font-black text-white mb-2 tracking-tighter uppercase">{routine.name}</h1>
+            <p className="text-yellow-600 font-black text-[10px] lg:text-xs uppercase tracking-widest">{t('hello')}, {routine.clientName}</p>
           </div>
         </div>
         <div className="p-6 lg:p-8">
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-base lg:text-lg italic leading-relaxed">"{routine.description}"</p>
+          <p className="text-slate-950 dark:text-white font-bold text-base lg:text-lg leading-relaxed">"{routine.description}"</p>
         </div>
       </div>
 
@@ -573,13 +718,13 @@ ${feedbackText || 'Sin comentarios adicionales.'}
       <div className="flex gap-4 mb-8 bg-slate-200/50 dark:bg-slate-800/50 p-2 rounded-[2rem] overflow-x-auto">
         <button
           onClick={() => setActiveTab('training')}
-          className={`flex-1 min-w-[150px] py-4 px-6 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all ${activeTab === 'training' ? 'bg-white dark:bg-black text-blue-600 shadow-lg scale-100' : 'text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-black/50 scale-95'}`}
+          className={`flex-1 min-w-[150px] py-4 px-6 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all ${activeTab === 'training' ? 'bg-slate-900 dark:bg-yellow-400 text-yellow-500 dark:text-black shadow-lg scale-100' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-black/50 scale-95'}`}
         >
           🏋️ {language === 'es' ? 'Entrenamiento' : language === 'en' ? 'Training' : 'Allenamento'}
         </button>
         <button
           onClick={() => setActiveTab('overload')}
-          className={`flex-1 min-w-[150px] py-4 px-6 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all ${activeTab === 'overload' ? 'bg-white dark:bg-black text-green-500 shadow-lg scale-100' : 'text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-black/50 scale-95'}`}
+          className={`flex-1 min-w-[150px] py-4 px-6 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all ${activeTab === 'overload' ? 'bg-slate-900 dark:bg-yellow-400 text-yellow-500 dark:text-black shadow-lg scale-100' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-black/50 scale-95'}`}
         >
           📈 {language === 'es' ? 'Sobrecarga Progresiva' : language === 'en' ? 'Progressive Overload' : 'Sovraccarico Progressivo'}
         </button>
@@ -590,33 +735,33 @@ ${feedbackText || 'Sin comentarios adicionales.'}
           {/* Navegación Semanas y Días (Dropdowns) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <div className="relative group">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">{t('week')}</label>
+              <label className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest ml-4 mb-2 block">{t('week')}</label>
               <select
                 value={activeWeekId || ''}
                 onChange={(e) => setActiveWeekId(e.target.value)}
-                className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none"
+                className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-yellow-500 transition-all outline-none"
               >
                 {routine.weeks.map(week => (
                   <option key={week.id} value={week.id}>{getTranslatedName(week.name, 'week')}</option>
                 ))}
               </select>
-              <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
+              <div className="absolute right-6 bottom-5 pointer-events-none text-yellow-500">
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
               </div>
             </div>
 
             <div className="relative group">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">{t('day')}</label>
+              <label className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest ml-4 mb-2 block">{t('day')}</label>
               <select
                 value={activeWorkoutId || ''}
                 onChange={(e) => setActiveWorkoutId(e.target.value)}
-                className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase italic text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-blue-500 transition-all outline-none"
+                className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-yellow-600 transition-all outline-none"
               >
                 {currentWeek?.workouts.map(workout => (
                   <option key={workout.id} value={workout.id}>{getTranslatedName(workout.name, 'day')}</option>
                 ))}
               </select>
-              <div className="absolute right-6 bottom-5 pointer-events-none text-blue-600">
+              <div className="absolute right-6 bottom-5 pointer-events-none text-yellow-600">
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
               </div>
             </div>
@@ -628,115 +773,225 @@ ${feedbackText || 'Sin comentarios adicionales.'}
               {currentWorkout ? (
                 <div className="space-y-12">
                   <div className="bg-white dark:bg-darkCard rounded-[2.5rem] lg:rounded-[3.5rem] p-5 lg:p-10 shadow-lg border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-                    <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 mb-6 lg:mb-10 border-b-2 border-slate-50 dark:border-slate-800 pb-4 tracking-tight uppercase italic">{getTranslatedName(currentWorkout.name, 'day')}</h3>
+                    <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 mb-6 lg:mb-10 border-b-2 border-slate-100 dark:border-slate-800 pb-4 tracking-tight uppercase">{getTranslatedName(currentWorkout.name, 'day')}</h3>
 
                     {currentWorkout.warmup && (
-                      <div className="mb-10 bg-orange-50 dark:bg-orange-900/10 rounded-[2.5rem] p-8 border border-orange-100/30 dark:border-orange-500/10 flex gap-6 items-start italic">
+                      <div className="mb-10 bg-orange-50 dark:bg-orange-900/10 rounded-[2.5rem] p-8 border border-orange-100/30 dark:border-orange-500/10 flex gap-6 items-start">
                         <div className="w-12 h-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg">
                           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
                         </div>
-                        <p className="text-slate-600 dark:text-slate-400 font-bold leading-relaxed">{currentWorkout.warmup}</p>
+                        <p className="text-slate-950 dark:text-white font-bold leading-relaxed">{currentWorkout.warmup}</p>
                       </div>
                     )}
 
                     <div className="space-y-20">
-                      {currentWorkout.exercises.map(entry => {
-                        const libEx = library.find(l => l.id === entry.libraryExerciseId);
-                        return (
-                          <div key={entry.id} className="relative">
-                            <div className="flex flex-col gap-6 lg:gap-8">
-                              <div>
-                                <div className="flex items-center gap-5 mb-5 flex-wrap">
-                                  {libEx?.videoUrl ? (
-                                    <a
-                                      href={libEx.videoUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-lg transition-all active:scale-90"
-                                      title="Ver Video"
-                                    >
-                                      <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                                    </a>
-                                  ) : null}
-                                  <h4 className="text-xl lg:text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic pr-4">{libEx?.name}</h4>
-                                </div>
+                      {(() => {
+                        const groups: any[] = [];
+                        let currentGroup: any = null;
 
-                                <div className="mb-8 p-6 bg-slate-50 dark:bg-black/30 rounded-[2.5rem] border-l-[8px] border-blue-500">
-                                  <p className="text-slate-600 dark:text-slate-400 font-bold italic text-base">💡 {t('tip')}: {libEx?.tip || '...'}</p>
-                                </div>
+                        currentWorkout.exercises.forEach(entry => {
+                          if (entry.supersetLabel) {
+                            if (currentGroup && currentGroup.type === 'superset' && currentGroup.label === entry.supersetLabel) {
+                              currentGroup.entries.push(entry);
+                            } else {
+                              currentGroup = { type: 'superset', label: entry.supersetLabel, entries: [entry] };
+                              groups.push(currentGroup);
+                            }
+                          } else {
+                            currentGroup = { type: 'single', entry };
+                            groups.push(currentGroup);
+                          }
+                        });
 
-                                <div className="overflow-x-auto mb-8">
-                                  <table className="w-full text-center">
-                                    <thead>
-                                      <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                                        <th className="py-4 w-16">{t('set')}</th>
-                                        {routine.enabledMetrics.reps && <th className="py-4">{t('reps')}</th>}
-                                        {routine.enabledMetrics.kg && <th className="py-4">{t('kg')}</th>}
-                                        {routine.enabledMetrics.rir && <th className="py-4">{t('rir')}</th>}
-                                        {routine.enabledMetrics.rmPercentage && <th className="py-2 lg:py-4">{t('rm')}</th>}
-                                        <th className="py-2 lg:py-4 w-12 lg:w-20">{t('ok')}</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {entry.sets.map((set, idx) => (
-                                        <tr key={set.id} className={`transition-all border-b border-slate-50 dark:border-slate-900 last:border-0 ${completedSets[set.id] ? 'bg-green-500/10 dark:bg-green-500/5' : ''}`}>
-                                          <td className="py-4 lg:py-6">
-                                            <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center text-xs lg:text-sm font-black mx-auto transition-all ${completedSets[set.id] ? 'bg-green-600 text-white shadow-xl' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
-                                              {idx + 1}
-                                            </div>
-                                          </td>
-                                          {routine.enabledMetrics.reps && (
-                                            <td className="py-4 lg:py-6">
-                                              <input
-                                                type="text"
-                                                className="w-16 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-blue-600 transition-all text-lg lg:text-xl"
-                                                value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
-                                                onChange={(e) => setClientReps(prev => ({ ...prev, [set.id]: e.target.value }))}
-                                              />
-                                            </td>
-                                          )}
-                                          {routine.enabledMetrics.kg && (
-                                            <td className="py-4 lg:py-6">
-                                              <input
-                                                type="text"
-                                                className="w-16 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-blue-600 transition-all text-lg lg:text-xl"
-                                                value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
-                                                onChange={(e) => setClientWeights(prev => ({ ...prev, [set.id]: e.target.value }))}
-                                              />
-                                            </td>
-                                          )}
-                                          {routine.enabledMetrics.rir && <td className="py-4 lg:py-6 font-black text-slate-400 dark:text-slate-600 italic text-lg">{set.rir}</td>}
-                                          {routine.enabledMetrics.rmPercentage && <td className="py-4 lg:py-6 font-black text-slate-400 dark:text-slate-600 text-lg">{set.rmPercentage}%</td>}
-                                          <td className="py-4 lg:py-6">
-                                            <button
-                                              onClick={() => handleSetToggle(set.id, set.rest)}
-                                              className={`w-10 h-10 lg:w-16 lg:h-16 rounded-xl lg:rounded-[1.8rem] border-[3px] lg:border-4 flex items-center justify-center transition-all active:scale-90 ${completedSets[set.id] ? 'bg-green-500 border-green-500 text-white shadow-2xl scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-transparent hover:border-green-400'}`}
-                                            >
-                                              <svg className="w-5 h-5 lg:w-10 lg:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" d="M5 13l4 4L19 7" /></svg>
-                                            </button>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
+                        return groups.map((group, gIdx) => {
+                          if (group.type === 'superset') {
+                            const isInteracting = activeSupersetInteraction?.label === group.label;
+                            
+                            if (isInteracting && activeSupersetInteraction) {
+                              const currentExIdx = activeSupersetInteraction.exerciseIndex;
+                              const currentSetIdx = activeSupersetInteraction.setIndex;
+                              const currentEntry = group.entries[currentExIdx];
+                              const currentSet = currentEntry.sets[currentSetIdx];
+                              const libEx = library.find(l => l.id === currentEntry.libraryExerciseId);
+                              return (
+                                <div key={`interact-${group.label}`} className="bg-white dark:bg-darkCard rounded-2xl p-8 border-2 border-yellow-500 shadow-2xl animate-in zoom-in-95 duration-300">
+                                  {/* Progress Tabs */}
+                                  <div className="flex gap-2 mb-10 overflow-x-auto pb-2 scrollbar-hide">
+                                    {group.entries.map((ent: any, i: number) => {
+                                      const isDone = ent.sets[currentSetIdx] && completedSets[ent.sets[currentSetIdx].id];
+                                      const isActive = i === currentExIdx;
+                                      return (
+                                        <button 
+                                          key={ent.id}
+                                          onClick={() => setActiveSupersetInteraction(prev => prev ? { ...prev, exerciseIndex: i } : null)}
+                                          className={`flex-1 min-w-[110px] p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-1 ${
+                                            isActive ? 'bg-yellow-500 border-yellow-500 text-black shadow-lg' : 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-950 dark:text-slate-100'
+                                          }`}
+                                        >
+                                          <span className={`text-[7px] font-black uppercase tracking-widest ${isActive ? 'opacity-80' : 'text-slate-950 dark:text-white'}`}>Ejercicio {i + 1}</span>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black uppercase">EX {i + 1}</span>
+                                            {isDone && <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
 
-                                <div className="p-8 bg-slate-50 dark:bg-black/40 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
-                                  <textarea
-                                    placeholder={t('notesPlaceholder')}
-                                    className="w-full bg-white dark:bg-darkCard p-6 rounded-[1.5rem] border-2 border-transparent focus:border-blue-500 outline-none transition-all h-28 text-slate-800 dark:text-slate-200 font-medium italic shadow-inner"
-                                    value={feelings[entry.id] || ''}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setFeelings(prev => ({ ...prev, [entry.id]: val }));
+                                  {/* Focused Exercise Info */}
+                                  <div className="flex flex-col items-center text-center mb-10">
+                                    <div className="relative mb-6">
+                                      <div className="w-40 h-40 rounded-full border-4 border-yellow-500 overflow-hidden shadow-2xl bg-[#0F1115] flex items-center justify-center p-2">
+                                        <img 
+                                          src={libEx?.muscleImage || libEx?.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(libEx?.name || 'EX')}&background=0D0D0D&color=fff&bold=true`} 
+                                          className="w-full h-full object-contain"
+                                          alt={libEx?.name}
+                                        />
+                                      </div>
+                                      {libEx?.videoUrl && (
+                                        <a href={libEx.videoUrl} target="_blank" className="absolute bottom-2 right-2 w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all">
+                                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                        </a>
+                                      )}
+                                    </div>
+                                    <h4 className="text-4xl font-['Oswald'] font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-tight max-w-xs">{libEx?.name}</h4>
+                                    <div className="mt-2 px-6 py-2 bg-yellow-500 text-black rounded-full text-[10px] font-black uppercase tracking-widest">{t('set')} {currentSetIdx + 1} de {currentEntry.sets.length}</div>
+                                  </div>
+
+                                  {/* Interactive Metrics */}
+                                  <div className="grid grid-cols-2 gap-4 mb-8">
+                                    <div className="bg-slate-100 dark:bg-black p-8 rounded-2xl border-2 border-transparent focus-within:border-yellow-500 transition-all">
+                                      <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest mb-3 block">Reps</span>
+                                      <input 
+                                        type="tel" 
+                                        className="bg-transparent border-none w-full text-5xl font-black text-center text-slate-900 dark:text-white outline-none"
+                                        value={clientReps[currentSet.id] !== undefined ? clientReps[currentSet.id] : currentSet.reps}
+                                        onChange={(e) => setClientReps(prev => ({ ...prev, [currentSet.id]: e.target.value }))}
+                                      />
+                                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-[9px] font-bold text-slate-950 dark:text-slate-200 uppercase">Objetivo: <span className="text-yellow-600">{currentSet.reps}</span></div>
+                                    </div>
+                                    <div className="bg-slate-100 dark:bg-black p-8 rounded-2xl border-2 border-transparent focus-within:border-yellow-500 transition-all">
+                                      <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest mb-3 block">Kg</span>
+                                      <input 
+                                        type="tel" 
+                                        className="bg-transparent border-none w-full text-5xl font-black text-center text-slate-900 dark:text-white outline-none"
+                                        value={clientWeights[currentSet.id] !== undefined ? clientWeights[currentSet.id] : currentSet.kg}
+                                        onChange={(e) => setClientWeights(prev => ({ ...prev, [currentSet.id]: e.target.value }))}
+                                      />
+                                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-[9px] font-bold text-slate-950 dark:text-slate-200 uppercase">Objetivo: <span className="text-yellow-600">{currentSet.kg}kg</span></div>
+                                    </div>
+                                  </div>
+
+                                  <button 
+                                    onClick={() => {
+                                      handleSetToggle(currentSet.id, currentSet.rest);
+                                      if (currentExIdx < group.entries.length - 1) {
+                                        setActiveSupersetInteraction(prev => prev ? { ...prev, exerciseIndex: currentExIdx + 1 } : null);
+                                      } else {
+                                        const maxSets = Math.max(...group.entries.map((e: any) => e.sets.length));
+                                        if (currentSetIdx < maxSets - 1) {
+                                          setActiveSupersetInteraction(prev => prev ? { ...prev, exerciseIndex: 0, setIndex: currentSetIdx + 1 } : null);
+                                        } else {
+                                          setActiveSupersetInteraction(null);
+                                        }
+                                      }
                                     }}
-                                  />
+                                    className={`w-full py-8 rounded-2xl font-['Oswald'] font-black uppercase text-2xl tracking-widest flex items-center justify-center gap-4 transition-all active:scale-95 shadow-2xl shadow-slate-900/10 dark:shadow-none ${
+                                      completedSets[currentSet.id] ? 'bg-green-500 text-white' : 'bg-yellow-500 text-black'
+                                    }`}
+                                  >
+                                    {completedSets[currentSet.id] ? (
+                                      <><svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg> {t('set').toUpperCase()} LISTO</>
+                                    ) : (
+                                      `MARCAR ${t('set').toUpperCase()}`
+                                    )}
+                                  </button>
+
+                                  <button onClick={() => setActiveSupersetInteraction(null)} className="w-full mt-6 text-[9px] font-bold text-slate-950 dark:text-slate-200 uppercase tracking-widest hover:text-red-500 transition-all">TERMINAR MODO ENFOCADO</button>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div key={`group-${group.label}`} className="bg-slate-100/50 dark:bg-white/5 rounded-2xl p-8 lg:p-12 border border-slate-200 dark:border-slate-800 space-y-12 shadow-sm">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                                  <div className="flex items-center gap-6">
+                                    <div className="w-16 h-16 bg-yellow-500 text-black rounded-[2rem] flex items-center justify-center shadow-xl shadow-yellow-500/30 ring-4 ring-yellow-500/10">
+                                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    </div>
+                                    <div>
+                                      <h3 className="text-4xl font-['Oswald'] font-black text-slate-900 dark:text-white uppercase tracking-tighter">SUPERSERIE {group.label}</h3>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <div className="flex -space-x-4">
+                                          {group.entries.slice(0, 3).map((e: any, i: number) => {
+                                            const ex = library.find(l => l.id === e.libraryExerciseId);
+                                            return (
+                                              <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-darkCard bg-slate-200 dark:bg-slate-800 overflow-hidden p-0.5">
+                                                <img src={ex?.muscleImage || ex?.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(ex?.name || 'EX')}&background=0D0D0D&color=fff&bold=true`} className="w-full h-full object-contain rounded-full" alt="EX" />
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                        <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest ml-2">{group.entries.length} EJERCICIOS</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <button 
+                                    onClick={() => setActiveSupersetInteraction({ label: group.label, exerciseIndex: 0, setIndex: 0 })}
+                                    className="w-full sm:w-auto px-10 py-6 bg-yellow-500 text-black rounded-xl font-['Oswald'] font-black uppercase text-sm tracking-[0.2em] hover:scale-105 transition-all shadow-xl shadow-yellow-500/20"
+                                  >
+                                    EMPEZAR SUPERSERIE
+                                  </button>
+                                </div>
+
+                                <div className="space-y-6 relative ml-8 border-l-2 border-dashed border-yellow-200 dark:border-yellow-900/40 pl-10 py-2">
+                                  {group.entries.sort((a: any, b: any) => (a.supersetOrder || 0) - (b.supersetOrder || 0)).map((ent: any, idx: number) => {
+                                    const ex = library.find(l => l.id === ent.libraryExerciseId);
+                                    return (
+                                      <div key={ent.id} className="relative group/item">
+                                        <div className="absolute -left-[49px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-500 ring-4 ring-white dark:ring-black"></div>
+                                        <div className="flex items-center gap-5 p-6 bg-white dark:bg-black/30 rounded-[2rem] border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-md transition-all">
+                                          <div className="w-16 h-16 rounded-[1.2rem] bg-slate-100 dark:bg-slate-800 overflow-hidden p-1 flex items-center justify-center">
+                                            <img 
+                                              src={ex?.muscleImage || ex?.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(ex?.name || 'EX')}&background=0D0D0D&color=fff&bold=true`} 
+                                              className="w-full h-full object-contain"
+                                              alt={ex?.name}
+                                            />
+                                          </div>
+                                          <div className="flex-1">
+                                            <span className="text-[8px] font-black text-yellow-500 uppercase tracking-widest mb-1 block">Ejercicio {idx + 1}</span>
+                                            <span className="font-black text-lg text-slate-800 dark:text-slate-200 uppercase px-3 tracking-tighter">{ex?.name}</span>
+                                          </div>
+                                          <div className="text-right">
+                                            <span className="text-xs font-black text-slate-300 dark:text-slate-700">{ent.sets.length} SETS</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            );
+                          }
+                          return (
+                            <ExerciseBlock 
+                              key={group.entry.id} 
+                              entry={group.entry} 
+                              library={library} 
+                              t={t} 
+                              routine={routine} 
+                              completedSets={completedSets} 
+                              clientReps={clientReps} 
+                              clientWeights={clientWeights} 
+                              setClientReps={setClientReps} 
+                              setClientWeights={setClientWeights} 
+                              handleSetToggle={handleSetToggle} 
+                              feelings={feelings} 
+                              setFeelings={setFeelings}
+                            />
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
 
@@ -747,20 +1002,20 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                         initAudio();
                         setShowFeedbackScreen(true);
                       }}
-                      className="w-full max-w-md py-8 bg-slate-900 dark:bg-white text-white dark:text-black rounded-[2.5rem] font-black uppercase tracking-[0.2em] italic text-xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(255,255,255,0.05)] hover:scale-105 active:scale-95 transition-all animate-bounce-slow"
+                      className="w-full max-w-md py-8 bg-slate-900 dark:bg-white text-white dark:text-black rounded-[2.5rem] font-black uppercase tracking-[0.2em] text-xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(255,255,255,0.05)] hover:scale-105 active:scale-95 transition-all animate-bounce-slow"
                     >
                       {t('finishWorkout')}
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-24 bg-white dark:bg-darkCard rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800 italic">
-                  <p className="font-bold text-slate-400 uppercase tracking-widest text-sm">{t('selectDay')}</p>
+                <div className="text-center py-24 bg-white dark:bg-darkCard rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
+                  <p className="font-bold text-slate-900 uppercase tracking-widest text-sm">{t('selectDay')}</p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="text-center py-20 italic">
+            <div className="text-center py-20">
               <p className="font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest text-xl">{t('noContent')}</p>
             </div>
           )}
@@ -786,5 +1041,6 @@ ${feedbackText || 'Sin comentarios adicionales.'}
     </div>
   );
 };
+
 
 export default ClientView;

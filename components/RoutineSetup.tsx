@@ -62,14 +62,14 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-xl bg-white dark:bg-darkCard rounded-[2.5rem] shadow-2xl p-8 md:p-12 border border-slate-100 dark:border-slate-800">
+      <div className="w-full max-w-xl bg-white dark:bg-darkCard rounded-2xl shadow-2xl p-8 md:p-12 border border-slate-100 dark:border-slate-800">
         <div className="text-center mb-10">
-          <div className="inline-block p-4 bg-blue-600 text-white rounded-[1.5rem] mb-4 shadow-lg shadow-blue-500/20">
+          <div className="inline-block p-4 bg-yellow-500 text-black shadow-lg shadow-yellow-500/20">
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">Generador de Rutinas</h1>
+          <h1 className="text-3xl font-['Oswald'] font-black text-slate-900 dark:text-white tracking-tighter uppercase">Generador de Rutinas</h1>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-2">Completa los campos para empezar</p>
         </div>
 
@@ -79,7 +79,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
             <input
               type="text"
               placeholder="Ej: Hipertrofia Full Body"
-              className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-blue-600 outline-none transition-all font-bold text-slate-800 dark:text-white"
+              className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-yellow-600 outline-none transition-all font-bold text-slate-800 dark:text-white"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
@@ -90,7 +90,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
             <textarea
               placeholder="Escribe los objetivos o detalles..."
               rows={2}
-              className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-blue-600 outline-none transition-all font-medium text-slate-600 dark:text-slate-400 resize-none"
+              className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-yellow-600 outline-none transition-all font-medium text-slate-600 dark:text-slate-400 resize-none"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
@@ -101,7 +101,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
             <input
               type="text"
               placeholder="¿A quién va dirigida?"
-              className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-blue-600 outline-none transition-all font-bold text-slate-800 dark:text-white"
+              className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-yellow-600 outline-none transition-all font-bold text-slate-800 dark:text-white"
               value={formData.clientName}
               onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
             />
@@ -113,7 +113,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
               {SAMPLE_IMAGES.map((img, idx) => (
                 <div
                   key={idx}
-                  className={`relative cursor-pointer rounded-2xl overflow-hidden h-16 border-4 transition-all ${formData.image === img ? 'border-blue-600 scale-105 shadow-xl' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  className={`relative cursor-pointer rounded-2xl overflow-hidden h-16 border-4 transition-all ${formData.image === img ? 'border-yellow-500 scale-105 shadow-xl' : 'border-transparent opacity-60 hover:opacity-100'}`}
                   onClick={() => setFormData({ ...formData, image: img })}
                 >
                   <img src={img} alt="Preview" className="w-full h-full object-cover" />
@@ -127,7 +127,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
                 <input
                   type="text"
                   placeholder="Pegar URL de imagen..."
-                  className="flex-1 px-4 py-3 bg-slate-50 dark:bg-black border-2 border-transparent rounded-xl focus:border-blue-600 outline-none text-xs font-medium text-slate-800 dark:text-white"
+                  className="flex-1 px-4 py-3 bg-slate-50 dark:bg-black border-2 border-transparent rounded-xl focus:border-yellow-600 outline-none text-xs font-medium text-slate-800 dark:text-white"
                   value={customImageUrl}
                   onChange={(e) => {
                     setCustomImageUrl(e.target.value);
@@ -145,7 +145,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
 
           <button
             type="submit"
-            className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase italic tracking-widest hover:bg-blue-700 active:scale-95 transition-all shadow-2xl shadow-blue-500/20 mt-4"
+            className="w-full py-6 bg-yellow-400 text-black rounded-2xl font-['Oswald'] font-black text-lg uppercase tracking-widest hover:bg-yellow-500 active:scale-95 transition-all shadow-2xl shadow-yellow-500/20 mt-4"
           >
             Crear Rutina
           </button>

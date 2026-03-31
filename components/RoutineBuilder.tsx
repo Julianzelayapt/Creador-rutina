@@ -25,6 +25,10 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   const [activeWeekId, setActiveWeekId] = useState<string | null>(routine.weeks[0]?.id || null);
   const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null);
 
+  // Superset Creator Modal
+  const [showSupersetModal, setShowSupersetModal] = useState(false);
+  const [supersetForm, setSupersetForm] = useState<{ ex1Id: string | null, ex2Id: string | null, rest: string }>({ ex1Id: null, ex2Id: null, rest: '2:00' });
+
   // Asegurar selección al cambiar semana o cargar
   useEffect(() => {
     if (activeWeekId) {
@@ -302,13 +306,153 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
     });
   };
 
+  const updateExerciseSuperset = (weekId: string, workoutId: string, entryId: string, fields: Partial<ExerciseEntry>) => {
+    setCurrentRoutine({
+      ...currentRoutine,
+      weeks: currentRoutine.weeks.map(w => {
+        if (w.id === weekId) {
+          return {
+            ...w,
+            workouts: w.workouts.map(wk => {
+              if (wk.id === workoutId) {
+                return {
+                  ...wk,
+                  exercises: wk.exercises.map(ex => {
+                    if (ex.id === entryId) {
+                      return { ...ex, ...fields };
+                    }
+                    return ex;
+                  })
+                };
+              }
+              return wk;
+            })
+          };
+        }
+        return w;
+      })
+    });
+  };
+
+  const addDropset = (weekId: string, workoutId: string, entryId: string, setId: string) => {
+    setCurrentRoutine({
+      ...currentRoutine,
+      weeks: currentRoutine.weeks.map(w => {
+        if (w.id === weekId) {
+          return {
+            ...w,
+            workouts: w.workouts.map(wk => {
+              if (wk.id === workoutId) {
+                return {
+                  ...wk,
+                  exercises: wk.exercises.map(ex => {
+                    if (ex.id === entryId) {
+                      return {
+                        ...ex,
+                        sets: ex.sets.map(s => {
+                          if (s.id === setId) {
+                            const newDropset = { id: Math.random().toString(36).substr(2, 9), reps: '10', kg: '0' };
+                            return { ...s, dropsets: [...(s.dropsets || []), newDropset] };
+                          }
+                          return s;
+                        })
+                      };
+                    }
+                    return ex;
+                  })
+                };
+              }
+              return wk;
+            })
+          };
+        }
+        return w;
+      })
+    });
+  };
+
+  const updateDropset = (weekId: string, workoutId: string, entryId: string, setId: string, dropsetId: string, field: 'reps' | 'kg', value: string) => {
+    setCurrentRoutine({
+      ...currentRoutine,
+      weeks: currentRoutine.weeks.map(w => {
+        if (w.id === weekId) {
+          return {
+            ...w,
+            workouts: w.workouts.map(wk => {
+              if (wk.id === workoutId) {
+                return {
+                  ...wk,
+                  exercises: wk.exercises.map(ex => {
+                    if (ex.id === entryId) {
+                      return {
+                        ...ex,
+                        sets: ex.sets.map(s => {
+                          if (s.id === setId) {
+                            return {
+                              ...s,
+                              dropsets: s.dropsets?.map(ds => ds.id === dropsetId ? { ...ds, [field]: value } : ds)
+                            };
+                          }
+                          return s;
+                        })
+                      };
+                    }
+                    return ex;
+                  })
+                };
+              }
+              return wk;
+            })
+          };
+        }
+        return w;
+      })
+    });
+  };
+
+  const deleteDropset = (weekId: string, workoutId: string, entryId: string, setId: string, dropsetId: string) => {
+    setCurrentRoutine({
+      ...currentRoutine,
+      weeks: currentRoutine.weeks.map(w => {
+        if (w.id === weekId) {
+          return {
+            ...w,
+            workouts: w.workouts.map(wk => {
+              if (wk.id === workoutId) {
+                return {
+                  ...wk,
+                  exercises: wk.exercises.map(ex => {
+                    if (ex.id === entryId) {
+                      return {
+                        ...ex,
+                        sets: ex.sets.map(s => {
+                          if (s.id === setId) {
+                            return { ...s, dropsets: s.dropsets?.filter(ds => ds.id !== dropsetId) };
+                          }
+                          return s;
+                        })
+                      };
+                    }
+                    return ex;
+                  })
+                };
+              }
+              return wk;
+            })
+          };
+        }
+        return w;
+      })
+    });
+  };
+
   const currentWeek = currentRoutine.weeks.find(w => w.id === activeWeekId);
   const currentWorkout = currentWeek?.workouts.find(wk => wk.id === activeWorkoutId);
 
   const metricOrder = ['reps', 'kg', 'rir', 'rmPercentage', 'rest'] as const;
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-black transition-colors relative">
+    <div className="flex min-h-screen bg-slate-100 dark:bg-black transition-colors relative">
       {/* Overlay Móvil */}
       {isSidebarOpen && (
         <div
@@ -321,41 +465,41 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
       <div className={`w-80 bg-white dark:bg-darkCard border-r border-slate-200 dark:border-slate-800 flex flex-col fixed h-full z-30 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Biblioteca</h2>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Biblioteca</h2>
             <button
               onClick={() => {
                 setNewExercise({ name: '', videoUrl: '', muscleImage: '', tip: '' });
                 setShowLibraryForm(!showLibraryForm);
               }}
-              className="p-2.5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-md transition-all active:scale-90"
+              className="p-2.5 bg-yellow-400 text-black rounded-2xl hover:bg-yellow-500 shadow-md transition-all active:scale-90"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
             </button>
           </div>
 
           {showLibraryForm && (
-            <div className="space-y-3 mb-6 bg-slate-50 dark:bg-slate-900 p-5 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 animate-in slide-in-from-top-4 duration-200">
+            <div className="space-y-3 mb-6 bg-slate-100 dark:bg-slate-900 p-5 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 animate-in slide-in-from-top-4 duration-200">
               <input
                 placeholder="Nombre ejercicio"
-                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-white"
+                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none font-bold text-slate-800 dark:text-white"
                 value={newExercise.name}
                 onChange={e => setNewExercise({ ...newExercise, name: e.target.value })}
               />
               <input
                 placeholder="URL Video"
-                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-blue-500 outline-none font-medium text-slate-800 dark:text-white"
+                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none font-medium text-slate-800 dark:text-white"
                 value={newExercise.videoUrl}
                 onChange={e => setNewExercise({ ...newExercise, videoUrl: e.target.value })}
               />
               <input
                 placeholder="URL Foto Músculo (Opcional)"
-                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-blue-500 outline-none font-medium text-slate-800 dark:text-white"
+                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none font-medium text-slate-800 dark:text-white"
                 value={newExercise.muscleImage}
                 onChange={e => setNewExercise({ ...newExercise, muscleImage: e.target.value })}
               />
               <textarea
                 placeholder="Tip (opcional)"
-                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-blue-500 outline-none h-20 resize-none font-medium"
+                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none h-20 resize-none font-medium"
                 value={newExercise.tip}
                 onChange={e => setNewExercise({ ...newExercise, tip: e.target.value })}
               />
@@ -372,7 +516,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     setShowLibraryForm(false);
                   }
                 }}
-                className={`w-full py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-colors ${newExercise.id ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                className={`w-full py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-colors ${newExercise.id ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-400 text-black hover:bg-yellow-500'}`}
               >
                 {newExercise.id ? 'Actualizar Ejercicio' : 'Guardar Nuevo'}
               </button>
@@ -385,16 +529,24 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
               placeholder="Buscar ejercicio..."
               value={libraryQuery}
               onChange={(e) => setLibraryQuery(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-900 border-2 border-transparent focus:border-blue-500 outline-none text-sm font-bold text-slate-800 dark:text-white"
+              className="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-900 border-2 border-transparent focus:border-yellow-600 outline-none text-sm font-bold text-slate-800 dark:text-white"
             />
           </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+               <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {library.filter(ex => ex.name.toLowerCase().includes(libraryQuery.toLowerCase())).map(ex => (
-            <div key={ex.id} className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent hover:border-blue-500 transition-all cursor-default group relative flex justify-between items-center">
+            <div 
+              key={ex.id}
+              className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent hover:border-yellow-600 transition-all cursor-pointer group relative flex justify-between items-center text-slate-800 dark:text-slate-100"
+              onClick={() => {
+                if (!activeWeekId || !activeWorkoutId) {
+                  alert('Primero selecciona una semana y un día');
+                  return;
+                }
+                addExerciseToWorkout(activeWeekId, activeWorkoutId, ex.id);
+              }}
+            >
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{ex.name}</div>
+                <div className="font-bold text-sm truncate">{ex.name}</div>
               </div>
               <div className="flex shrink-0">
                 <button
@@ -403,22 +555,23 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     setNewExercise({ id: ex.id, name: ex.name, videoUrl: ex.videoUrl || '', muscleImage: ex.muscleImage || '', tip: ex.tip || '' });
                     setShowLibraryForm(true);
                   }}
-                  className="p-2 text-slate-300 hover:text-blue-500 transition-all shrink-0"
+                  className="p-2 text-slate-950 dark:text-white hover:text-yellow-600 transition-all shrink-0"
                   title="Editar ejercicio"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onRemoveFromLibrary(ex.id); }}
-                  className="p-2 text-slate-300 hover:text-red-500 transition-all shrink-0"
+                  className="p-2 text-slate-950 dark:text-white hover:text-red-500 transition-all shrink-0"
                   title="Eliminar de la biblioteca"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
               </div>
             </div>
           ))}
         </div>
+   </div>
       </div>
 
       {/* Main Builder Area */}
@@ -429,11 +582,11 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
           <div className="lg:hidden mb-6 flex items-center justify-between">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-md text-slate-600 dark:text-white"
+              className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-md text-slate-950 dark:text-white dark:text-white"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <h1 className="text-lg font-black uppercase italic tracking-tighter dark:text-white">Constructor</h1>
+            <h1 className="text-lg font-black uppercase tracking-tighter dark:text-white">Constructor</h1>
             <div className="w-10"></div> {/* Spacer */}
           </div>
 
@@ -442,7 +595,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
               {/* Client Link */}
               <div className="p-8 bg-green-500 text-white rounded-[2.5rem] shadow-2xl">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-black uppercase tracking-widest italic">Link Cliente (Solo Ver)</h3>
+                  <h3 className="text-xl font-black uppercase tracking-widest">Link Cliente (Solo Ver)</h3>
                   <button onClick={() => { window.location.hash = `routine/${routine.id}`; onGoToClient(); }} className="px-6 py-3 bg-white text-green-600 rounded-2xl font-black uppercase text-xs">Ir</button>
                 </div>
                 <div className="bg-white/10 p-4 rounded-2xl flex items-center justify-between gap-4">
@@ -454,7 +607,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
               {/* Builder Link */}
               <div className="p-8 bg-slate-800 text-white rounded-[2.5rem] shadow-2xl">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-black uppercase tracking-widest italic">Link Coach (Editar)</h3>
+                  <h3 className="text-xl font-black uppercase tracking-widest">Link Coach (Editar)</h3>
                 </div>
                 <div className="bg-white/10 p-4 rounded-2xl flex items-center justify-between gap-4">
                   <p className="text-xs font-bold truncate">{shareLinks.builder}</p>
@@ -469,18 +622,18 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
             <div className="flex items-center gap-6">
               <img src={currentRoutine.image} className="w-16 h-16 lg:w-20 lg:h-20 rounded-[1.5rem] object-cover shadow-lg" alt="" />
               <div>
-                <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic">{currentRoutine.name}</h1>
-                <p className="text-blue-500 font-black text-[10px] lg:text-xs uppercase tracking-widest mt-1">Para: {currentRoutine.clientName}</p>
+                <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{currentRoutine.name}</h1>
+                <p className="text-yellow-600 font-black text-[10px] lg:text-xs uppercase tracking-widest mt-1">Para: {currentRoutine.clientName}</p>
               </div>
             </div>
-            <button onClick={handleSave} className="w-full lg:w-auto px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs lg:text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
+            <button onClick={handleSave} className="w-full lg:w-auto px-8 py-4 bg-yellow-400 text-black rounded-2xl font-black text-xs lg:text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
               Guardar Cambios
             </button>
           </div>
 
           {/* Metric Selector */}
           <div className="mb-12 flex flex-wrap gap-2 items-center bg-slate-200/50 dark:bg-slate-900 p-3 rounded-[1.5rem] w-fit border border-slate-200 dark:border-slate-800">
-            <span className="text-[10px] font-black text-slate-500 uppercase px-3 italic tracking-tighter">Métricas:</span>
+            <span className="text-[10px] font-black text-slate-900 uppercase px-3 tracking-tighter">Métricas:</span>
             {metricOrder.map(metric => (
               <button
                 key={metric}
@@ -488,7 +641,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                   ...currentRoutine,
                   enabledMetrics: { ...currentRoutine.enabledMetrics, [metric]: !currentRoutine.enabledMetrics[metric] }
                 })}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${currentRoutine.enabledMetrics[metric] ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${currentRoutine.enabledMetrics[metric] ? 'bg-yellow-400 text-black shadow-md' : 'text-slate-950 dark:text-white hover:text-slate-950 dark:text-white dark:hover:text-slate-200'}`}
               >
                 {metric === 'rmPercentage' ? '% RM' : metric === 'rest' ? 'Descanso' : metric}
               </button>
@@ -501,14 +654,14 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
               <button
                 key={week.id}
                 onClick={() => setActiveWeekId(week.id)}
-                className={`px-8 py-5 rounded-[2rem] font-black uppercase italic text-xs tracking-widest transition-all shrink-0 ${activeWeekId === week.id ? 'bg-blue-600 text-white shadow-xl scale-105' : 'bg-white dark:bg-darkCard text-slate-400 border border-slate-100 dark:border-slate-800'}`}
+                className={`px-8 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest transition-all shrink-0 ${activeWeekId === week.id ? 'bg-yellow-400 text-black shadow-xl scale-105' : 'bg-white dark:bg-darkCard text-slate-950 dark:text-white border border-slate-100 dark:border-slate-800'}`}
               >
                 {week.name}
               </button>
             ))}
             <button
               onClick={addWeek}
-              className="px-6 py-5 bg-slate-200 dark:bg-slate-800 text-slate-500 rounded-[2rem] hover:bg-blue-500 hover:text-white transition-all shrink-0"
+              className="px-6 py-5 bg-slate-200 dark:bg-slate-800 text-slate-900 rounded-[2rem] hover:bg-yellow-600 hover:text-white transition-all shrink-0"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
             </button>
@@ -519,7 +672,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
               {/* Header Semana con Borrar */}
               <div className="flex items-center justify-between">
                 <input
-                  className="bg-transparent text-4xl font-black text-slate-900 dark:text-white focus:outline-none uppercase italic tracking-tighter"
+                  className="bg-transparent text-4xl font-black text-slate-900 dark:text-white focus:outline-none uppercase tracking-tighter"
                   value={currentWeek.name}
                   onChange={e => setCurrentRoutine({
                     ...currentRoutine,
@@ -528,14 +681,14 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 />
                 <button
                   onClick={() => deleteWeek(currentWeek.id)}
-                  className="p-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-[1.5rem] transition-all flex items-center gap-2 font-black text-[10px] uppercase italic"
+                  className="p-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-[1.5rem] transition-all flex items-center gap-2 font-black text-[10px] uppercase"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   Borrar Semana
                 </button>
                 <button
                   onClick={() => duplicateWeek(currentWeek.id)}
-                  className="p-4 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-[1.5rem] transition-all flex items-center gap-2 font-black text-[10px] uppercase italic"
+                  className="p-4 text-yellow-600 hover:bg-yellow-500 dark:hover:bg-blue-900/10 rounded-[1.5rem] transition-all flex items-center gap-2 font-black text-[10px] uppercase"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
                   Duplicar Semana
@@ -548,14 +701,14 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                   <button
                     key={workout.id}
                     onClick={() => setActiveWorkoutId(workout.id)}
-                    className={`px-6 py-4 rounded-[1.5rem] font-black uppercase italic text-[10px] tracking-widest transition-all shrink-0 ${activeWorkoutId === workout.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-black shadow-lg' : 'bg-slate-100 dark:bg-slate-900 text-slate-400'}`}
+                    className={`px-6 py-4 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest transition-all shrink-0 ${activeWorkoutId === workout.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-black shadow-lg' : 'bg-slate-100 dark:bg-slate-900 text-slate-950 dark:text-white'}`}
                   >
                     {workout.name}
                   </button>
                 ))}
                 <button
                   onClick={() => addWorkout(currentWeek.id)}
-                  className="px-6 py-4 border-2 border-dashed border-slate-300 dark:border-slate-800 text-slate-400 rounded-[1.5rem] font-black text-[10px] uppercase italic hover:border-blue-500 hover:text-blue-500 transition-all shrink-0"
+                  className="px-6 py-4 border-2 border-dashed border-slate-300 dark:border-slate-800 text-slate-950 dark:text-white rounded-[1.5rem] font-black text-[10px] uppercase hover:border-yellow-600 hover:text-yellow-600 transition-all shrink-0"
                 >
                   + Agregar Día
                 </button>
@@ -565,7 +718,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 <div className="bg-white dark:bg-darkCard rounded-[3rem] border-2 border-slate-100 dark:border-slate-800 p-10 shadow-sm animate-in zoom-in-95 duration-200">
                   <div className="flex justify-between items-center mb-10">
                     <input
-                      className="bg-transparent font-black text-2xl text-slate-800 dark:text-slate-100 focus:outline-none uppercase italic"
+                      className="bg-transparent font-black text-2xl text-slate-800 dark:text-slate-100 focus:outline-none uppercase"
                       value={currentWorkout.name}
                       onChange={e => setCurrentRoutine({
                         ...currentRoutine,
@@ -574,7 +727,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     />
                     <button
                       onClick={() => deleteWorkout(currentWeek.id, currentWorkout.id)}
-                      className="p-3 text-red-400 hover:text-red-600 transition-all flex items-center gap-2 font-black text-[10px] uppercase italic"
+                      className="p-3 text-red-400 hover:text-red-600 transition-all flex items-center gap-2 font-black text-[10px] uppercase"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       Borrar Día
@@ -584,9 +737,9 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                   <div className="mb-10 p-6 bg-orange-50/30 dark:bg-orange-900/10 rounded-[2rem] border-2 border-dashed border-orange-100/50 dark:border-orange-500/20">
                     <textarea
                       placeholder="Instrucciones del día (calentamiento, foco, etc.)..."
-                      className="w-full bg-transparent p-2 rounded-2xl text-sm font-medium outline-none h-20 text-slate-700 dark:text-slate-300 italic"
+                      className="w-full bg-transparent p-2 rounded-2xl text-sm font-medium outline-none h-20 text-slate-700 dark:text-slate-950 dark:text-white"
                       value={currentWorkout.warmup || ''}
-                      onChange={(e) => setCurrentRoutine({
+onChange={(e) => setCurrentRoutine({
                         ...currentRoutine,
                         weeks: currentRoutine.weeks.map(w => w.id === currentWeek.id ? { ...w, workouts: w.workouts.map(wk => wk.id === currentWorkout.id ? { ...wk, warmup: e.target.value } : wk) } : w)
                       })}
@@ -595,127 +748,330 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
 
                   <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId="exercises-list">
-                      {(provided) => (
-                        <div 
-                          className="space-y-16"
-                          {...provided.droppableProps}
-                          ref={provided.innerRef}
-                        >
-                          {currentWorkout.exercises.map((entry, index) => {
-                            const libEx = library.find(l => l.id === entry.libraryExerciseId);
-                            return (
-                              <Draggable key={entry.id} draggableId={entry.id} index={index}>
+                      {(provided) => {
+                        const processedExercises: { type: 'single' | 'superset', exercises: ExerciseEntry[], id: string }[] = [];
+                        const processedIds = new Set<string>();
+
+                        currentWorkout.exercises.forEach(ex => {
+                          if (processedIds.has(ex.id)) return;
+                          
+                          if (ex.supersetLabel) {
+                            const group = currentWorkout.exercises.filter(e => e.supersetLabel === ex.supersetLabel);
+                            processedExercises.push({ type: 'superset', exercises: group, id: `group-${ex.supersetLabel}` });
+                            group.forEach(ge => processedIds.add(ge.id));
+                          } else {
+                            processedExercises.push({ type: 'single', exercises: [ex], id: ex.id });
+                            processedIds.add(ex.id);
+                          }
+                        });
+
+                        return (
+                          <div 
+                            className="space-y-16"
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                          >
+                            {processedExercises.map((group, groupIndex) => (
+                              <Draggable key={group.id} draggableId={group.id} index={groupIndex}>
                                 {(provided) => (
                                   <div 
-                                    className="relative group/ex"
+                                    className={`relative group/ex p-8 rounded-2xl border-2 transition-all ${
+                                      group.type === 'superset' 
+                                        ? 'bg-yellow-50/30 dark:bg-yellow-900/5 border-yellow-100 dark:border-yellow-900/30 shadow-lg shadow-yellow-500/5' 
+                                        : 'bg-white dark:bg-darkCard border-slate-100 dark:border-slate-800 shadow-sm'
+                                    }`}
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
                                   >
-                                    <div className="flex justify-between items-center mb-6 border-b-2 border-slate-50 dark:border-slate-800 pb-4">
-                                      <div className="flex items-center gap-4">
-                                        <div 
-                                          {...provided.dragHandleProps} 
-                                          className="text-slate-300 hover:text-blue-500 cursor-grab active:cursor-grabbing transition-colors"
-                                        >
-                                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M8 6C8 7.10457 7.10457 8 6 8C4.89543 8 4 7.10457 4 6C4 4.89543 4.89543 4 6 4C7.10457 4 8 4.89543 8 6Z" fill="currentColor"/>
-                                            <path d="M8 12C8 13.1046 7.10457 14 6 14C4.89543 14 4 13.1046 4 12C4 10.8954 4.89543 10 6 10C7.10457 10 8 10.8954 8 12Z" fill="currentColor"/>
-                                            <path d="M8 18C8 19.1046 7.10457 20 6 20C4.89543 20 4 19.1046 4 18C4 16.8954 4.89543 16 6 16C7.10457 16 8 16.8954 8 18Z" fill="currentColor"/>
-                                            <path d="M14 6C14 7.10457 13.1046 8 12 8C10.8954 8 10 7.10457 10 6C10 4.89543 10.8954 4 12 4C13.1046 4 14 4.89543 14 6Z" fill="currentColor"/>
-                                            <path d="M14 12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12C10 10.8954 10.8954 10 12 10C13.1046 10 14 10.8954 14 12Z" fill="currentColor"/>
-                                            <path d="M14 18C14 19.1046 13.1046 20 12 20C10.8954 20 10 19.1046 10 18C10 16.8954 10.8954 16 12 16C13.1046 16 14 16.8954 14 18Z" fill="currentColor"/>
-                                            <path d="M20 6C20 7.10457 19.1046 8 18 8C16.8954 8 16 7.10457 16 6C16 4.89543 16.8954 4 18 4C19.1046 4 20 4.89543 20 6Z" fill="currentColor"/>
-                                            <path d="M20 12C20 13.1046 19.1046 14 18 14C16.8954 14 16 13.1046 16 12C16 10.8954 16.8954 10 18 10C19.1046 10 20 10.8954 20 12Z" fill="currentColor"/>
-                                            <path d="M20 18C20 19.1046 19.1046 20 18 20C16.8954 20 16 19.1046 16 18C16 16.8954 16.8954 16 18 16C19.1046 16 20 16.8954 20 18Z" fill="currentColor"/>
-                                          </svg>
-                                        </div>
-                                        <span className="font-black text-xl text-slate-900 dark:text-white uppercase italic tracking-tighter">{libEx?.name || 'Cargando...'}</span>
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover/ex:opacity-100 transition-opacity">
+                                      <div {...provided.dragHandleProps} className="p-2 text-slate-950 dark:text-white hover:text-yellow-500 cursor-grab active:cursor-grabbing">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 8h16M4 16h16" /></svg>
                                       </div>
-                                      <button onClick={() => deleteExercise(currentWeek.id, currentWorkout.id, entry.id)} className="text-slate-300 hover:text-red-500 transition-all">
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                                      </button>
                                     </div>
 
-                                    <div className="overflow-x-auto mb-6">
-                                      <table className="w-full text-center">
-                                        <thead>
-                                          <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 dark:border-slate-800">
-                                            <th className="py-2 w-10">SET</th>
-                                            {currentRoutine.enabledMetrics.reps && <th className="py-2">REPS</th>}
-                                            {currentRoutine.enabledMetrics.kg && <th className="py-2">KG</th>}
-                                            {currentRoutine.enabledMetrics.rir && <th className="py-2">RIR</th>}
-                                            {currentRoutine.enabledMetrics.rmPercentage && <th className="py-2">% RM</th>}
-                                            {currentRoutine.enabledMetrics.rest && <th className="py-2">DESC.</th>}
-                                            <th className="w-10"></th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {entry.sets.map((set, idx) => (
-                                            <tr key={set.id}>
-                                              <td className="py-4">
-                                                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-500 mx-auto">{idx + 1}</div>
-                                              </td>
-                                              {currentRoutine.enabledMetrics.reps && (
-                                                <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.reps} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'reps', e.target.value)} /></td>
-                                              )}
-                                              {currentRoutine.enabledMetrics.kg && (
-                                                <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.kg} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'kg', e.target.value)} /></td>
-                                              )}
-                                              {currentRoutine.enabledMetrics.rir && (
-                                                <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.rir} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rir', e.target.value)} /></td>
-                                              )}
-                                              {currentRoutine.enabledMetrics.rmPercentage && (
-                                                <td><input className="w-14 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.rmPercentage} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rmPercentage', e.target.value)} /></td>
-                                              )}
-                                              {currentRoutine.enabledMetrics.rest && (
-                                                <td><input className="w-16 py-3 text-center bg-slate-50 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-blue-500 outline-none" value={set.rest} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rest', e.target.value)} /></td>
-                                              )}
-                                              <td>
-                                                <button onClick={() => deleteSet(currentWeek.id, currentWorkout.id, entry.id, set.id)} className="text-slate-200 hover:text-red-500 transition-all">
-                                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                                                </button>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
+                                    {group.type === 'superset' && (
+                                      <div className="flex items-center gap-2 mb-8 ml-6">
+                                        <div className="px-4 py-1.5 bg-yellow-400 text-black rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">SUPERSERIE {group.exercises[0].supersetLabel}</div>
+                                        <div className="h-[2px] flex-1 bg-gradient-to-r from-yellow-500 to-transparent dark:from-blue-900/50"></div>
+                                      </div>
+                                    )}
+
+                                    <div className="space-y-10 ml-6">
+                                      {group.exercises.map((entry, entryIdx) => {
+                                        const libEx = library.find(l => l.id === entry.libraryExerciseId);
+                                        return (
+                                          <div key={entry.id} className={`${entryIdx > 0 ? 'pt-10 border-t border-blue-100/50 dark:border-blue-900/20' : ''}`}>
+                                            <div className="flex justify-between items-center mb-6">
+                                              <div className="flex items-center gap-4">
+                                                {group.type === 'superset' && (
+                                                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-[10px] font-black text-yellow-400 text-black">
+                                                    {entryIdx + 1}
+                                                  </div>
+                                                )}
+                                                <span className="font-black text-xl text-slate-900 dark:text-white uppercase tracking-tighter">
+                                                  {libEx?.name || 'Cargando...'}
+                                                </span>
+                                              </div>
+                                              <button 
+                                                onClick={() => deleteExercise(currentWeek.id, currentWorkout.id, entry.id)} 
+                                                className="text-slate-950 dark:text-white hover:text-red-500 transition-all"
+                                              >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                                              </button>
+                                            </div>
+
+                                            <div className="overflow-x-auto mb-6">
+                                              <table className="w-full text-center">
+                                                <thead>
+                                                  <tr className="text-[9px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                                                    <th className="py-2 w-10">SET</th>
+                                                    {currentRoutine.enabledMetrics.reps && <th className="py-2">REPS</th>}
+                                                    {currentRoutine.enabledMetrics.kg && <th className="py-2">KG</th>}
+                                                    {currentRoutine.enabledMetrics.rir && <th className="py-2">RIR</th>}
+                                                    {currentRoutine.enabledMetrics.rmPercentage && <th className="py-2">% RM</th>}
+                                                    {currentRoutine.enabledMetrics.rest && (
+                                                      <th className="py-2">
+                                                        {group.type === 'superset' ? (entryIdx === 0 ? '' : 'DESC.') : 'DESC.'}
+                                                      </th>
+                                                    )}
+                                                    <th className="py-2">DROP</th>
+                                                    <th className="w-10"></th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {entry.sets.map((set, idx) => (
+                                                    <React.Fragment key={set.id}>
+                                                      <tr>
+                                                        <td className="py-4">
+                                                          <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-950 dark:text-slate-100 mx-auto">{idx + 1}</div>
+                                                        </td>
+                                                        {currentRoutine.enabledMetrics.reps && (
+                                                          <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.reps} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'reps', e.target.value)} /></td>
+                                                        )}
+                                                        {currentRoutine.enabledMetrics.kg && (
+                                                          <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.kg} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'kg', e.target.value)} /></td>
+                                                        )}
+                                                        {currentRoutine.enabledMetrics.rir && (
+                                                          <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rir} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rir', e.target.value)} /></td>
+                                                        )}
+                                                        {currentRoutine.enabledMetrics.rmPercentage && (
+                                                          <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rmPercentage} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rmPercentage', e.target.value)} /></td>
+                                                        )}
+                                                        {currentRoutine.enabledMetrics.rest && (
+                                                          <td>
+                                                            {group.type === 'superset' && entryIdx === 0 ? (
+                                                              <span className="text-[9px] font-black text-slate-950 dark:text-white">0:10</span>
+                                                            ) : (
+                                                              <input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rest} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rest', e.target.value)} />
+                                                            )}
+                                                          </td>
+                                                        )}
+                                                        <td>
+                                                          <button 
+                                                            onClick={() => addDropset(currentWeek.id, currentWorkout.id, entry.id, set.id)}
+                                                            className="p-2 text-orange-400 hover:text-orange-600 transition-all"
+                                                          >
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                                                          </button>
+                                                        </td>
+                                                        <td>
+                                                          <button onClick={() => deleteSet(currentWeek.id, currentWorkout.id, entry.id, set.id)} className="text-slate-200 hover:text-red-500 transition-all">
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                          </button>
+                                                        </td>
+                                                      </tr>
+                                                      {set.dropsets?.map((ds, dsIdx) => (
+                                                        <tr key={ds.id} className="bg-orange-50/20 dark:bg-orange-900/5">
+                                                          <td className="py-2">
+                                                            <div className="flex items-center justify-center gap-1">
+                                                              <div className="w-4 h-4 border-l-2 border-b-2 border-slate-300 dark:border-slate-700 rounded-bl-lg mb-2"></div>
+                                                              <span className="text-[8px] font-black text-orange-400">DS {dsIdx + 1}</span>
+                                                            </div>
+                                                          </td>
+                                                          {currentRoutine.enabledMetrics.reps && (
+                                                            <td><input className="w-12 py-2 text-center bg-transparent border-b border-orange-200 dark:border-orange-800 outline-none text-xs font-bold dark:text-white" value={ds.reps} onChange={e => updateDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id, 'reps', e.target.value)} /></td>
+                                                          )}
+                                                          {currentRoutine.enabledMetrics.kg && (
+                                                            <td><input className="w-12 py-2 text-center bg-transparent border-b border-orange-200 dark:border-orange-800 outline-none text-xs font-bold dark:text-white" value={ds.kg} onChange={e => updateDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id, 'kg', e.target.value)} /></td>
+                                                          )}
+                                                          {currentRoutine.enabledMetrics.rir && <td></td>}
+                                                          {currentRoutine.enabledMetrics.rmPercentage && <td></td>}
+                                                          {currentRoutine.enabledMetrics.rest && <td></td>}
+                                                          <td></td>
+                                                          <td>
+                                                            <button onClick={() => deleteDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id)} className="text-slate-950 dark:text-white hover:text-red-500 transition-all">
+                                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                            </button>
+                                                          </td>
+                                                        </tr>
+                                                      ))}
+                                                    </React.Fragment>
+                                                  ))}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                            <button
+                                              onClick={() => addSet(currentWeek.id, currentWorkout.id, entry.id)}
+                                              className="w-full py-4 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-950 dark:text-white hover:border-yellow-600 hover:text-yellow-600 transition-all active:scale-[0.98]"
+                                            >
+                                              + Agregar Serie
+                                            </button>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
-                                    <button
-                                      onClick={() => addSet(currentWeek.id, currentWorkout.id, entry.id)}
-                                      className="w-full py-4 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-blue-500 hover:text-blue-500 transition-all active:scale-[0.98]"
-                                    >
-                                      + Agregar Serie
-                                    </button>
                                   </div>
                                 )}
                               </Draggable>
-                            );
-                          })}
-                          {provided.placeholder}
-                        </div>
-                      )}
+                            ))}
+                            {provided.placeholder}
+                          </div>
+                        );
+                      }}
                     </Droppable>
                   </DragDropContext>
 
-                  <div className="mt-16">
-                    <ExerciseSearch library={library} onSelect={(id) => addExerciseToWorkout(currentWeek.id, currentWorkout.id, id)} />
-                  </div>
+                   <div className="mt-16 flex flex-col lg:flex-row gap-4">
+                     <div className="flex-1">
+                       <ExerciseSearch library={library} onSelect={(id) => addExerciseToWorkout(currentWeek.id, currentWorkout.id, id)} />
+                     </div>
+                     <button 
+                       onClick={() => setShowSupersetModal(true)}
+                       className="px-8 py-5 bg-yellow-400 text-black rounded-[2rem] font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-3"
+                     >
+                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+                       Nueva Superserie
+                     </button>
+                   </div>
                 </div>
               ) : (
                 <div className="text-center py-20 bg-white dark:bg-darkCard rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
-                  <p className="font-black text-slate-400 uppercase tracking-widest text-sm italic mb-6">No hay días creados en esta semana</p>
-                  <button onClick={() => addWorkout(currentWeek.id)} className="px-10 py-5 bg-blue-600 text-white rounded-3xl font-black uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl">Empezar Día 1</button>
+                  <p className="font-black text-slate-950 dark:text-white uppercase tracking-widest text-sm mb-6">No hay días creados en esta semana</p>
+                  <button onClick={() => addWorkout(currentWeek.id)} className="px-10 py-5 bg-yellow-400 text-black rounded-3xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">Empezar Día 1</button>
                 </div>
               )}
             </div>
           ) : (
             <div className="text-center py-40">
-              <p className="font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest text-2xl italic mb-10">Tu programa está vacío</p>
-              <button onClick={addWeek} className="px-12 py-6 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest italic hover:scale-110 transition-all shadow-2xl">Crear Semana 1</button>
+              <p className="font-black text-slate-950 dark:text-white dark:text-slate-700 uppercase tracking-widest text-2xl mb-10">Tu programa está vacío</p>
+              <button onClick={addWeek} className="px-12 py-6 bg-yellow-400 text-black rounded-[2rem] font-black uppercase tracking-widest hover:scale-110 transition-all shadow-2xl">Crear Semana 1</button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Superset Modal */}
+      {showSupersetModal && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-darkCard rounded-[3rem] w-full max-w-2xl border-2 border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-10 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Crear Superserie</h3>
+                <p className="text-[10px] font-bold text-slate-950 dark:text-white uppercase tracking-widest mt-1">Selecciona los dos ejercicios del bloque</p>
+              </div>
+              <button onClick={() => setShowSupersetModal(false)} className="p-4 text-slate-950 dark:text-white hover:text-red-500 transition-all">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="p-10 space-y-10">
+              <div className="space-y-4">
+                <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest ml-4">Ejercicio 1</span>
+                <ExerciseSearch 
+                  library={library} 
+                  onSelect={(id) => setSupersetForm(prev => ({ ...prev, ex1Id: id }))} 
+                />
+                {supersetForm.ex1Id && (
+                  <div className="ml-4 flex items-center gap-2 text-yellow-400 text-black font-bold text-xs">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                    Seleccionado: {library.find(l => l.id === supersetForm.ex1Id)?.name}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest ml-4">Ejercicio 2</span>
+                <ExerciseSearch 
+                  library={library} 
+                  onSelect={(id) => setSupersetForm(prev => ({ ...prev, ex2Id: id }))} 
+                />
+                {supersetForm.ex2Id && (
+                  <div className="ml-4 flex items-center gap-2 text-yellow-400 text-black font-bold text-xs">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                    Seleccionado: {library.find(l => l.id === supersetForm.ex2Id)?.name}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest ml-4">Descanso Sugerido</span>
+                <div className="flex items-center w-full px-8 py-5 bg-slate-900 dark:bg-black border border-slate-800 rounded-[2rem] text-white font-black uppercase text-[10px] tracking-widest shadow-2xl group">
+                  <svg className="w-5 h-5 mr-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <input
+                    placeholder="Ej: 2:00"
+                    className="bg-transparent outline-none w-full placeholder:text-slate-950 dark:text-white uppercase"
+                    value={supersetForm.rest}
+                    onChange={e => setSupersetForm(prev => ({ ...prev, rest: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={() => {
+                  if (!supersetForm.ex1Id || !supersetForm.ex2Id) {
+                    alert('Por favor selecciona ambos ejercicios');
+                    return;
+                  }
+                  if (!activeWeekId || !activeWorkoutId) return;
+                  
+                  const week = currentRoutine.weeks.find(w => w.id === activeWeekId);
+                  const workout = week?.workouts.find(wk => wk.id === activeWorkoutId);
+                  const existingLabels = workout?.exercises.map(e => e.supersetLabel).filter(Boolean) as string[];
+                  const lastLabel = existingLabels.length > 0 ? (existingLabels.length === 1 ? existingLabels[0] : existingLabels.sort().pop() || '@') : '@';
+                  const nextLabel = String.fromCharCode(lastLabel.charCodeAt(0) + 1);
+
+                  setCurrentRoutine(prev => ({
+                    ...prev,
+                    weeks: prev.weeks.map(w => w.id === activeWeekId ? {
+                      ...w,
+                      workouts: w.workouts.map(wk => wk.id === activeWorkoutId ? {
+                        ...wk,
+                        exercises: [
+                          ...wk.exercises,
+                          {
+                            id: Math.random().toString(36).substr(2, 9),
+                            libraryExerciseId: supersetForm.ex1Id!,
+                            supersetLabel: nextLabel,
+                            supersetOrder: 1,
+                            sets: [{ id: Math.random().toString(36).substr(2, 9), reps: '10', kg: '0', rir: '2', rmPercentage: '-', rest: '0:10' }]
+                          },
+                          {
+                            id: Math.random().toString(36).substr(2, 9),
+                            libraryExerciseId: supersetForm.ex2Id!,
+                            supersetLabel: nextLabel,
+                            supersetOrder: 2,
+                            sets: [{ id: Math.random().toString(36).substr(2, 9), reps: '10', kg: '0', rir: '2', rmPercentage: '-', rest: supersetForm.rest }]
+                          }
+                        ]
+                      } : wk)
+                    } : w)
+                  }));
+
+                  setShowSupersetModal(false);
+                  setSupersetForm({ ex1Id: null, ex2Id: null, rest: '2:00' });
+                }}
+                className={`w-full py-6 rounded-[2rem] font-black uppercase tracking-widest transition-all shadow-xl ${
+                  supersetForm.ex1Id && supersetForm.ex2Id 
+                    ? 'bg-yellow-400 text-black hover:scale-[1.02]' 
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-950 dark:text-white cursor-not-allowed'
+                }`}
+              >
+                Crear Superserie
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -732,10 +1088,10 @@ const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => 
   return (
     <div className="relative">
       <div className="flex items-center w-full px-8 py-5 bg-slate-900 dark:bg-black border border-slate-800 rounded-[2rem] text-white font-black uppercase text-[10px] tracking-widest shadow-2xl group">
-        <svg className="w-5 h-5 mr-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+        <svg className="w-5 h-5 mr-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
         <input
           placeholder="Escribe 3 letras para buscar ejercicio..."
-          className="bg-transparent outline-none w-full placeholder:text-slate-600"
+          className="bg-transparent outline-none w-full placeholder:text-slate-950 dark:text-white"
           value={query}
           onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
           onFocus={() => setIsOpen(true)}
@@ -747,7 +1103,7 @@ const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => 
           {filtered.length > 0 ? filtered.map(ex => (
             <div
               key={ex.id}
-              className="p-5 hover:bg-blue-600 hover:text-white cursor-pointer rounded-2xl text-sm font-black text-slate-800 dark:text-slate-100 transition-all flex items-center justify-between uppercase italic"
+              className="p-5 hover:bg-yellow-400 hover:text-black cursor-pointer rounded-2xl text-sm font-black text-slate-800 dark:text-slate-100 transition-all flex items-center justify-between uppercase"
               onClick={() => {
                 onSelect(ex.id);
                 setQuery('');
@@ -758,7 +1114,7 @@ const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => 
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
             </div>
           )) : (
-            <div className="p-8 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest italic">No se encontraron resultados</div>
+            <div className="p-8 text-center text-slate-950 dark:text-white font-bold uppercase text-[10px] tracking-widest">No se encontraron resultados</div>
           )}
         </div>
       )}

@@ -187,7 +187,7 @@ const App: React.FC = () => {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-black text-white' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-black text-white' : 'bg-slate-100 text-slate-900'}`}>
       <div className="fixed top-4 right-4 z-[100] flex gap-2">
         <button
           onClick={toggleTheme}
@@ -198,7 +198,7 @@ const App: React.FC = () => {
         {view !== 'setup' && (
           <button
             onClick={() => { window.location.hash = ''; window.location.reload(); }}
-            className="p-3 bg-red-500 text-white rounded-full shadow-2xl font-bold text-xs active:scale-90"
+            className="p-3 bg-yellow-500 text-black shadow-lg shadow-yellow-500/20 font-bold text-xs active:scale-90"
           >
             SALIR
           </button>
@@ -207,8 +207,8 @@ const App: React.FC = () => {
 
       {isLoading ? (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 animate-in fade-in duration-500">
-          <div className="w-20 h-20 border-8 border-blue-600/30 border-t-blue-600 rounded-full animate-spin mb-8 shadow-2xl shadow-blue-500/20"></div>
-          <h2 className="text-2xl font-black uppercase italic tracking-tighter animate-pulse text-blue-600">PREPARANDO RUTINA...</h2>
+          <div className="w-20 h-20 border-8 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin mb-8 shadow-2xl shadow-yellow-500/20"></div>
+          <h2 className="text-2xl font-['Oswald'] font-black uppercase tracking-tighter animate-pulse text-yellow-400">PREPARANDO RUTINA...</h2>
         </div>
       ) : (
         <>
