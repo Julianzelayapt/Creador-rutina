@@ -694,10 +694,10 @@ ${feedbackText || 'Sin comentarios adicionales.'}
       )}
 
       {/* Portada */}
-      <div className="bg-white dark:bg-darkCard rounded-[2rem] shadow-xl overflow-hidden mb-6 border border-slate-100 dark:border-slate-800 transition-colors">
-        <div className="relative h-48">
+      <div className="bg-white dark:bg-darkCard rounded-[3rem] shadow-xl overflow-hidden mb-10 border border-slate-100 dark:border-slate-800 transition-colors">
+        <div className="relative h-72">
           <img src={routine.image} alt={routine.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent flex flex-col justify-end p-6">
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent flex flex-col justify-end p-6 lg:p-10">
             {/* Language Selector */}
             <div className="absolute top-6 right-6 flex gap-2">
               <button onClick={() => setLanguage('es')} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'es' ? 'bg-yellow-500 text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>ES</button>
@@ -811,34 +811,32 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                               const currentSet = currentEntry.sets[currentSetIdx];
                               const libEx = library.find(l => l.id === currentEntry.libraryExerciseId);
                               return (
-                                <div key={`interact-${group.label}`} className="bg-white dark:bg-darkCard rounded-2xl p-8 border-2 border-yellow-500 shadow-2xl animate-in zoom-in-95 duration-300">
+                                <div key={`interact-${group.label}`} className="bg-white dark:bg-darkCard rounded-2xl p-5 border-2 border-yellow-500 shadow-2xl animate-in zoom-in-95 duration-300">
                                   {/* Progress Tabs */}
-                                  <div className="flex gap-2 mb-10 overflow-x-auto pb-2 scrollbar-hide">
+                                  <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
                                     {group.entries.map((ent: any, i: number) => {
-                                      const ex = library.find(l => l.id === ent.libraryExerciseId);
+                                      const isDone = ent.sets[currentSetIdx] && completedSets[ent.sets[currentSetIdx].id];
                                       return (
                                         <button 
                                           key={ent.id}
                                           onClick={() => setActiveSupersetInteraction(prev => prev ? { ...prev, exerciseIndex: i } : null)}
-                                          className={`flex-1 py-3 px-2 rounded-xl border-2 transition-all font-['Oswald'] ${
+                                          className={`flex-1 py-2 px-3 rounded-lg border-2 transition-all font-['Oswald'] flex items-center justify-center gap-2 ${
                                             currentExIdx === i 
-                                              ? 'bg-yellow-500 border-yellow-500 text-black shadow-lg shadow-yellow-500/20' 
+                                              ? 'bg-yellow-500 border-yellow-500 text-black shadow-md' 
                                               : 'bg-slate-900 border-slate-800 text-slate-500'
                                           }`}
                                         >
-                                          <div className="flex flex-col items-center">
-                                            <span className="text-[8px] font-black uppercase mb-1">EJERCICIO {i + 1}</span>
-                                            <span className="text-[10px] font-black uppercase truncate w-full text-center">{ex?.name || 'EX'}</span>
-                                          </div>
+                                          <span className="text-[10px] font-black uppercase">EX {i + 1}</span>
+                                          {isDone && <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>}
                                         </button>
                                       );
                                     })}
                                   </div>
 
                                   {/* Focused Exercise Info */}
-                                  <div className="flex flex-col items-center text-center mb-6">
-                                    <div className="relative mb-4">
-                                      <div className="w-28 h-28 rounded-full border-4 border-yellow-500 overflow-hidden shadow-xl bg-[#0F1115] flex items-center justify-center p-2">
+                                  <div className="flex flex-col items-center text-center mb-4">
+                                    <div className="relative mb-3">
+                                      <div className="w-20 h-20 rounded-full border-3 border-yellow-500 overflow-hidden shadow-md bg-[#0F1115] flex items-center justify-center p-1">
                                         <img 
                                           src={libEx?.muscleImage || libEx?.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(libEx?.name || 'EX')}&background=0D0D0D&color=fff&bold=true`} 
                                           className="w-full h-full object-contain"
@@ -856,9 +854,9 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                   </div>
 
                                   {/* Interactive Metrics */}
-                                  <div className="grid grid-cols-2 gap-3 mb-6">
-                                    <div className="bg-slate-100 dark:bg-black p-8 rounded-2xl border-2 border-transparent focus-within:border-yellow-500 transition-all">
-                                      <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest mb-3 block">Reps</span>
+                                  <div className="grid grid-cols-2 gap-3 mb-4">
+                                    <div className="bg-slate-100 dark:bg-black p-4 rounded-xl border-2 border-transparent focus-within:border-yellow-500 transition-all">
+                                      <span className="text-[9px] font-black text-slate-950 dark:text-white uppercase tracking-widest mb-1 block">Reps</span>
                                       <input 
                                         type="text"
                                         className="bg-transparent border-none w-full text-4xl lg:text-5xl font-['Oswald'] font-black text-center text-slate-900 dark:text-white outline-none"
@@ -869,15 +867,15 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                         OBJETIVO: <span className="text-yellow-600 dark:text-yellow-500">{currentSet.reps}</span>
                                       </div>
                                     </div>
-                                    <div className="bg-slate-100 dark:bg-black p-8 rounded-2xl border-2 border-transparent focus-within:border-yellow-500 transition-all">
-                                      <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest mb-3 block">Kg</span>
+                                    <div className="bg-slate-100 dark:bg-black p-4 rounded-xl border-2 border-transparent focus-within:border-yellow-500 transition-all">
+                                      <span className="text-[9px] font-black text-slate-950 dark:text-white uppercase tracking-widest mb-1 block">Kg</span>
                                       <input 
                                         type="tel" 
                                         className="bg-transparent border-none w-full text-4xl lg:text-5xl font-['Oswald'] font-black text-center text-slate-900 dark:text-white outline-none"
                                         value={clientWeights[currentSet.id] !== undefined ? clientWeights[currentSet.id] : currentSet.kg}
                                         onChange={(e) => setClientWeights(prev => ({ ...prev, [currentSet.id]: e.target.value }))}
                                       />
-                                      <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 text-[11px] font-black text-slate-950 dark:text-slate-400 uppercase tracking-widest text-center">
+                                      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-[9px] font-black text-slate-950 dark:text-slate-400 uppercase tracking-widest text-center">
                                         OBJETIVO: <span className="text-yellow-600 dark:text-yellow-500">{currentSet.kg}KG</span>
                                       </div>
                                     </div>
