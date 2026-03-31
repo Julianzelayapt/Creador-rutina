@@ -57,9 +57,30 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
             ...w,
             workouts: w.workouts.map(wk => {
               if (wk.id === activeWorkoutId) {
-                const newExercises = Array.from(wk.exercises);
-                const [reorderedItem] = newExercises.splice(result.source.index, 1);
-                newExercises.splice(result.destination.index, 0, reorderedItem);
+                // 1. Replicar la misma lógica de "processedExercises" de la UI
+                const groups: { type: 'single' | 'superset', exercises: ExerciseEntry[], id: string }[] = [];
+                const processedIds = new Set<string>();
+
+                wk.exercises.forEach(ex => {
+                  if (processedIds.has(ex.id)) return;
+                  if (ex.supersetLabel) {
+                    const group = wk.exercises.filter(e => e.supersetLabel === ex.supersetLabel);
+                    groups.push({ type: 'superset', exercises: group, id: `group-${ex.supersetLabel}` });
+                    group.forEach(ge => processedIds.add(ge.id));
+                  } else {
+                    groups.push({ type: 'single', exercises: [ex], id: ex.id });
+                    processedIds.add(ex.id);
+                  }
+                });
+
+                // 2. Reordenar los grupos (no los ejercicios individuales sueltos)
+                const newGroups = Array.from(groups);
+                const [reorderedGroup] = newGroups.splice(result.source.index, 1);
+                newGroups.splice(result.destination.index, 0, reorderedGroup);
+
+                // 3. Aplanar de vuelta a la lista flat con el nuevo orden
+                const newExercises = newGroups.flatMap(g => g.exercises);
+                
                 return { ...wk, exercises: newExercises };
               }
               return wk;
