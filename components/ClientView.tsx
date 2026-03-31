@@ -933,7 +933,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                             );
                                           })}
                                         </div>
-                                        <p className="text-[10px] font-bold text-slate-900 uppercase tracking-widest ml-2">{group.entries.length} EJERCICIOS</p>
+                                        <p className="text-[10px] font-black text-slate-900 dark:text-slate-400 uppercase tracking-widest ml-2">{group.entries.length} EJERCICIOS</p>
                                       </div>
                                     </div>
                                   </div>
