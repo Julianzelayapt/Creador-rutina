@@ -861,21 +861,25 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                       <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest mb-3 block">Reps</span>
                                       <input 
                                         type="tel" 
-                                        className="bg-transparent border-none w-full text-5xl font-black text-center text-slate-900 dark:text-white outline-none"
+                                        className="bg-transparent border-none w-full text-5xl lg:text-6xl font-['Oswald'] font-black text-center text-slate-900 dark:text-white outline-none"
                                         value={clientReps[currentSet.id] !== undefined ? clientReps[currentSet.id] : currentSet.reps}
                                         onChange={(e) => setClientReps(prev => ({ ...prev, [currentSet.id]: e.target.value }))}
                                       />
-                                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-[9px] font-bold text-slate-950 dark:text-slate-200 uppercase">Objetivo: <span className="text-yellow-600">{currentSet.reps}</span></div>
+                                      <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 text-[11px] font-black text-slate-950 dark:text-slate-400 uppercase tracking-widest text-center">
+                                        OBJETIVO: <span className="text-yellow-600 dark:text-yellow-500">{currentSet.reps}</span>
+                                      </div>
                                     </div>
                                     <div className="bg-slate-100 dark:bg-black p-8 rounded-2xl border-2 border-transparent focus-within:border-yellow-500 transition-all">
                                       <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest mb-3 block">Kg</span>
                                       <input 
                                         type="tel" 
-                                        className="bg-transparent border-none w-full text-5xl font-black text-center text-slate-900 dark:text-white outline-none"
+                                        className="bg-transparent border-none w-full text-5xl lg:text-7xl font-['Oswald'] font-black text-center text-slate-900 dark:text-white outline-none"
                                         value={clientWeights[currentSet.id] !== undefined ? clientWeights[currentSet.id] : currentSet.kg}
                                         onChange={(e) => setClientWeights(prev => ({ ...prev, [currentSet.id]: e.target.value }))}
                                       />
-                                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-[9px] font-bold text-slate-950 dark:text-slate-200 uppercase">Objetivo: <span className="text-yellow-600">{currentSet.kg}kg</span></div>
+                                      <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 text-[11px] font-black text-slate-950 dark:text-slate-400 uppercase tracking-widest text-center">
+                                        OBJETIVO: <span className="text-yellow-600 dark:text-yellow-500">{currentSet.kg}KG</span>
+                                      </div>
                                     </div>
                                   </div>
 
@@ -917,7 +921,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                     </div>
                                     <div>
-                                      <h3 className="text-4xl font-['Oswald'] font-black text-slate-900 dark:text-white uppercase tracking-tighter">SUPERSERIE {group.label}</h3>
+                                      <h3 className="text-2xl lg:text-4xl font-['Oswald'] font-black text-slate-900 dark:text-white uppercase tracking-tighter whitespace-nowrap">SUPERSERIE {group.label}</h3>
                                       <div className="flex items-center gap-2 mt-1">
                                         <div className="flex -space-x-4">
                                           {group.entries.slice(0, 3).map((e: any, i: number) => {
@@ -947,7 +951,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                     return (
                                       <div key={ent.id} className="relative group/item">
                                         <div className="absolute -left-[49px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-yellow-500 ring-4 ring-white dark:ring-black"></div>
-                                        <div className="flex items-center gap-5 p-6 bg-white dark:bg-black/30 rounded-[2rem] border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-md transition-all">
+                                        <div className="flex items-center gap-4 lg:gap-6 p-4 lg:p-6 bg-white dark:bg-black/30 rounded-[2rem] border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-md transition-all">
                                           <div className="w-16 h-16 rounded-[1.2rem] bg-slate-100 dark:bg-slate-800 overflow-hidden p-1 flex items-center justify-center">
                                             <img 
                                               src={ex?.muscleImage || ex?.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(ex?.name || 'EX')}&background=0D0D0D&color=fff&bold=true`} 
@@ -957,10 +961,10 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                           </div>
                                           <div className="flex-1">
                                             <span className="text-[8px] font-black text-yellow-500 uppercase tracking-widest mb-1 block">Ejercicio {idx + 1}</span>
-                                            <span className="font-black text-lg text-slate-800 dark:text-slate-200 uppercase px-3 tracking-tighter">{ex?.name}</span>
+                                            <span className="block font-black text-sm lg:text-lg text-slate-800 dark:text-slate-200 uppercase tracking-tighter leading-[1.1]">{ex?.name}</span>
                                           </div>
-                                          <div className="text-right">
-                                            <span className="text-xs font-black text-slate-300 dark:text-slate-700">{ent.sets.length} SETS</span>
+                                          <div className="shrink-0 ml-auto pl-4">
+                                            <span className="inline-block bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-1 rounded-lg text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{ent.sets.length} SETS</span>
                                           </div>
                                         </div>
                                       </div>
