@@ -734,10 +734,10 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     </button>
                   </div>
 
-                  <div className="mb-10 p-6 bg-orange-50/30 dark:bg-orange-900/10 rounded-[2rem] border-2 border-dashed border-orange-100/50 dark:border-orange-500/20">
+                  <div className="mb-10 p-6 bg-orange-50/30 dark:bg-orange-500/10 rounded-[2rem] border-2 border-dashed border-orange-200/50 dark:border-orange-500/40 transition-all focus-within:border-orange-500">
                     <textarea
                       placeholder="Instrucciones del día (calentamiento, foco, etc.)..."
-                      className="w-full bg-transparent p-2 rounded-2xl text-sm font-medium outline-none h-20 text-slate-700 dark:text-slate-950 dark:text-white"
+                      className="w-full bg-transparent p-2 rounded-2xl text-sm font-black outline-none h-20 text-slate-700 dark:text-white placeholder:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
                       value={currentWorkout.warmup || ''}
 onChange={(e) => setCurrentRoutine({
                         ...currentRoutine,
@@ -1009,7 +1009,7 @@ onChange={(e) => setCurrentRoutine({
                   <svg className="w-5 h-5 mr-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   <input
                     placeholder="Ej: 2:00"
-                    className="bg-transparent outline-none w-full placeholder:text-slate-950 dark:text-white uppercase"
+                    className="bg-transparent outline-none w-full text-white placeholder:text-slate-500 uppercase"
                     value={supersetForm.rest}
                     onChange={e => setSupersetForm(prev => ({ ...prev, rest: e.target.value }))}
                   />
@@ -1091,7 +1091,7 @@ const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => 
         <svg className="w-5 h-5 mr-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
         <input
           placeholder="Escribe 3 letras para buscar ejercicio..."
-          className="bg-transparent outline-none w-full placeholder:text-slate-950 dark:text-white"
+          className="bg-transparent outline-none w-full text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
           value={query}
           onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
           onFocus={() => setIsOpen(true)}
