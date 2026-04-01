@@ -615,7 +615,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                   <button
                     key={star}
                     onClick={() => setRating(star)}
-                    className={`transition-all transform hover:scale-110 active:scale-90 ${rating >= star ? 'text-yellow-500' : 'text-slate-200 dark:text-slate-700'}`}
+                    className={`transition-all transform hover:scale-110 active:scale-90 ${rating >= star ? 'text-yellow-500' : 'text-slate-200 dark:text-slate-600'}`}
                   >
                     <svg className="w-12 h-12 fill-current" viewBox="0 0 24 24">
                       <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
@@ -626,7 +626,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
 
               <div className="space-y-6">
                 <div className="text-left space-y-2">
-                  <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-4">{t('comments')}</label>
+                  <label className="text-[10px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-widest ml-4">{t('comments')}</label>
                   <textarea
                     placeholder={t('feedbackPlaceholder')}
                     className="w-full bg-slate-100 dark:bg-black p-6 rounded-[2rem] border-2 border-transparent focus:border-yellow-600 outline-none transition-all h-36 text-slate-800 dark:text-slate-200 font-medium shadow-inner"
@@ -643,7 +643,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                 </button>
                 <button
                   onClick={() => setShowFeedbackScreen(false)}
-                  className="w-full py-2 text-slate-900 font-black uppercase text-[10px] tracking-[0.2em] hover:text-slate-900 transition-all"
+                  className="w-full py-2 text-slate-900 dark:text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] hover:text-slate-900 dark:hover:text-white transition-all"
                 >
                   {t('keepEditing')}
                 </button>
