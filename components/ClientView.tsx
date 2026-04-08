@@ -175,6 +175,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
   const [timer, setTimer] = useState<number | null>(null);
   const [language, setLanguage] = useState<'es' | 'en' | 'it'>(savedData?.language || 'es');
   const [weeklySnapshots, setWeeklySnapshots] = useState<Record<string, Record<string, number>>>(savedData?.weeklySnapshots || routine.clientProgress?.weeklySnapshots || {});
+  const [scrollPositions, setScrollPositions] = useState<Record<string, number>>(savedData?.scrollPositions || {});
 
   // Tabs: 'training' o 'overload'
   const [activeTab, setActiveTab] = useState<'training' | 'overload'>('training');
@@ -393,6 +394,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
       setWeeklySnapshots(newSnapshots);
     }
 
+    const currentScrollPosition = window.scrollY;
+    
     const progressData = {
       completedSets,
       clientWeights,
@@ -401,7 +404,11 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
       activeWeekId,
       activeWorkoutId,
       language,
-      weeklySnapshots: newSnapshots
+      weeklySnapshots: newSnapshots,
+      scrollPositions: {
+        ...scrollPositions,
+        ...(activeWorkoutId ? { [activeWorkoutId]: currentScrollPosition } : {})
+      }
     };
 
     localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(progressData));
@@ -414,6 +421,11 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         .eq('id', routine.id);
     } catch (err) {
       console.error('Error synchronizing progress to Supabase:', err);
+    }
+
+    // Actualizar el estado local para la próxima vez
+    if (activeWorkoutId) {
+      setScrollPositions(prev => ({ ...prev, [activeWorkoutId]: currentScrollPosition }));
     }
   };
 
@@ -439,8 +451,25 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
       if (data.activeWeekId) setActiveWeekId(data.activeWeekId);
       if (data.activeWorkoutId) setActiveWorkoutId(data.activeWorkoutId);
       if (data.language) setLanguage(data.language);
+      if (data.scrollPositions) setScrollPositions(data.scrollPositions);
     }
   }, [routine.id]);
+
+  // Restaurar el scroll al cambiar de entrenamiento
+  useEffect(() => {
+    if (activeWorkoutId && scrollPositions[activeWorkoutId] !== undefined) {
+      // Un pequeño delay para que React termine de renderizar la rutina
+      const timer = setTimeout(() => {
+        window.scrollTo({
+          top: scrollPositions[activeWorkoutId],
+          behavior: 'instant'
+        } as any);
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+       window.scrollTo(0, 0);
+    }
+  }, [activeWorkoutId]);
 
   const initAudio = () => {
     if (!audioContextRef.current) {

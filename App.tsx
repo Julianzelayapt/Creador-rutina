@@ -66,8 +66,38 @@ const App: React.FC = () => {
     };
 
     const loadRoutine = async (routineId: string, targetView: 'client' | 'builder') => {
-      setIsLoading(true);
-      // Cargar rutina desde Supabase
+      // 1. Intentar carga inmediata desde caché local
+      const cachedProgressRaw = localStorage.getItem(`routine_progress_${routineId}`);
+      let routineFromCache = null;
+      
+      if (cachedProgressRaw) {
+        try {
+          // Si guardamos progreso, solemos guardar una versión de la rutina ahí
+          // O podemos buscar en una clave global de rutinas si existiera.
+          // Por ahora, si hay progreso, intentamos usarlo para no mostrar el spinner.
+          // Pero lo ideal es que el progreso guarde la estructura de la rutina también.
+          // En ClientView.tsx saveProgress ya guarda casi todo.
+        } catch (e) {}
+      }
+
+      // Para una carga realmente instantánea, necesitamos haber guardado la rutina completa previamente.
+      const fullCacheKey = `full_routine_cache_${routineId}`;
+      const fullCachedRoutine = localStorage.getItem(fullCacheKey);
+      
+      if (fullCachedRoutine) {
+        try {
+          const parsed = JSON.parse(fullCachedRoutine);
+          setCurrentRoutine(parsed);
+          setView(targetView);
+          // No seteamos isLoading(true) si hay caché, para que sea instantáneo
+        } catch (e) {
+          setIsLoading(true);
+        }
+      } else {
+        setIsLoading(true);
+      }
+
+      // 2. Cargar/Actualizar desde Supabase en segundo plano
       const { data, error } = await supabase
         .from('routines')
         .select('*')
@@ -76,11 +106,13 @@ const App: React.FC = () => {
 
       if (error) {
         console.error('Error loading routine:', error);
-        alert('No se pudo cargar la rutina. Verifique el enlace.');
+        if (!fullCachedRoutine) alert('No se pudo cargar la rutina. Verifique el enlace.');
       } else if (data) {
-        // La columna 'data' contiene la estructura JSON de la rutina
-        setCurrentRoutine({ ...data.data, id: data.id }); // Aseguramos que el ID coincida
+        const freshRoutine = { ...data.data, id: data.id };
+        setCurrentRoutine(freshRoutine);
         setView(targetView);
+        // Guardar en caché para la próxima vez
+        localStorage.setItem(fullCacheKey, JSON.stringify(freshRoutine));
       }
       setIsLoading(false);
     };
