@@ -148,22 +148,25 @@ const ExerciseBlock: React.FC<{
 const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
   // Función para obtener datos guardados de forma segura
   const getSavedData = () => {
-    // Si la rutina cargada desde Supabase ya incluye progreso (desde otro celular, etc), lo priorizamos
-    if (routine.clientProgress && Object.keys(routine.clientProgress).length > 0) {
-      // Sincronizamos con localStorage para tenerlo también ahí
-      localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(routine.clientProgress));
-      return routine.clientProgress;
-    }
-
+    // Priorizamos el localStorage ya que es la fuente de verdad de la sesión actual en este dispositivo.
+    // Solo usamos routine.clientProgress (nube) si no hay nada local (ej: cambio de dispositivo).
     const saved = localStorage.getItem(`routine_progress_${routine.id}`);
+    let localData = null;
+    
     if (saved) {
       try {
-        return JSON.parse(saved);
+        localData = JSON.parse(saved);
       } catch (e) {
         console.error('Error parsing saved progress:', e);
       }
     }
-    return null;
+
+    // Si tenemos datos locales, los devolvemos directamente.
+    // No sobreescribimos el localStorage aquí (es un efecto secundario que no debe ir en el render).
+    if (localData) return localData;
+
+    // Si no hay datos locales, devolvemos lo que venga de la nube (si existe).
+    return (routine.clientProgress && Object.keys(routine.clientProgress).length > 0) ? routine.clientProgress : null;
   };
 
   const savedData = getSavedData();

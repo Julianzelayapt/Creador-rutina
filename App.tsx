@@ -67,33 +67,23 @@ const App: React.FC = () => {
 
     const loadRoutine = async (routineId: string, targetView: 'client' | 'builder') => {
       // 1. Intentar carga inmediata desde caché local
-      const cachedProgressRaw = localStorage.getItem(`routine_progress_${routineId}`);
-      let routineFromCache = null;
-      
-      if (cachedProgressRaw) {
-        try {
-          // Si guardamos progreso, solemos guardar una versión de la rutina ahí
-          // O podemos buscar en una clave global de rutinas si existiera.
-          // Por ahora, si hay progreso, intentamos usarlo para no mostrar el spinner.
-          // Pero lo ideal es que el progreso guarde la estructura de la rutina también.
-          // En ClientView.tsx saveProgress ya guarda casi todo.
-        } catch (e) {}
-      }
-
-      // Para una carga realmente instantánea, necesitamos haber guardado la rutina completa previamente.
       const fullCacheKey = `full_routine_cache_${routineId}`;
       const fullCachedRoutine = localStorage.getItem(fullCacheKey);
+      let cacheFound = false;
       
       if (fullCachedRoutine) {
         try {
           const parsed = JSON.parse(fullCachedRoutine);
           setCurrentRoutine(parsed);
           setView(targetView);
-          // No seteamos isLoading(true) si hay caché, para que sea instantáneo
+          cacheFound = true;
+          // No seteamos isLoading(true) si hay caché satisfactorio
         } catch (e) {
-          setIsLoading(true);
+          console.error('Error parsing full routine cache:', e);
         }
-      } else {
+      }
+
+      if (!cacheFound) {
         setIsLoading(true);
       }
 
@@ -106,10 +96,21 @@ const App: React.FC = () => {
 
       if (error) {
         console.error('Error loading routine:', error);
-        if (!fullCachedRoutine) alert('No se pudo cargar la rutina. Verifique el enlace.');
+        if (!cacheFound) alert('No se pudo cargar la rutina. Verifique el enlace.');
       } else if (data) {
         const freshRoutine = { ...data.data, id: data.id };
-        setCurrentRoutine(freshRoutine);
+        
+        // Solo actualizamos si es una rutina distinta o si hubo cambios reales
+        // Esto evita que ClientView se reinicie injustificadamente
+        setCurrentRoutine(prev => {
+          if (prev?.id === freshRoutine.id) {
+            // Si es la misma, comparamos si el progreso de la nube es más reciente? 
+            // Por ahora solo actualizamos el objeto para reflejar cambios del coach
+            return freshRoutine;
+          }
+          return freshRoutine;
+        });
+        
         setView(targetView);
         // Guardar en caché para la próxima vez
         localStorage.setItem(fullCacheKey, JSON.stringify(freshRoutine));
