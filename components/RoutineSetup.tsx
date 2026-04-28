@@ -42,7 +42,8 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
         kg: true,
         rir: true,
         rmPercentage: false,
-        rest: true
+        rest: true,
+        tempo: false
       }
     };
 

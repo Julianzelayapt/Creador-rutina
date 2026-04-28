@@ -14,7 +14,10 @@ interface RoutineBuilderProps {
 }
 
 const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSave, onAddToLibrary, onRemoveFromLibrary, onEditLibrary, onGoToClient }) => {
-  const [currentRoutine, setCurrentRoutine] = useState<Routine>(routine);
+  const [currentRoutine, setCurrentRoutine] = useState<Routine>(() => ({
+    ...routine,
+    enabledMetrics: routine.enabledMetrics || { reps: true, kg: true, rir: true, rmPercentage: false, rest: true, tempo: false }
+  }));
   const [showLibraryForm, setShowLibraryForm] = useState(false);
   const [newExercise, setNewExercise] = useState<{ id?: string, name: string, videoUrl: string, muscleImage: string, tip: string }>({ name: '', videoUrl: '', muscleImage: '', tip: '' });
   const [shareLinks, setShareLinks] = useState<{ client: string, builder: string } | null>(null);
@@ -470,7 +473,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   const currentWeek = currentRoutine.weeks.find(w => w.id === activeWeekId);
   const currentWorkout = currentWeek?.workouts.find(wk => wk.id === activeWorkoutId);
 
-  const metricOrder = ['reps', 'kg', 'rir', 'rmPercentage', 'rest'] as const;
+  const metricOrder = ['reps', 'kg', 'rir', 'rmPercentage', 'tempo', 'rest'] as const;
 
   return (
     <div className="flex min-h-screen bg-slate-100 dark:bg-black transition-colors relative">
@@ -689,7 +692,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
 
           {/* Metric Selector */}
           <div className="mb-12 flex flex-wrap gap-2 items-center bg-slate-200/50 dark:bg-slate-900 p-3 rounded-[1.5rem] w-fit border border-slate-200 dark:border-slate-800">
-            <span className="text-[10px] font-black text-slate-900 uppercase px-3 tracking-tighter">Métricas:</span>
+            <span className="text-[10px] font-black text-slate-900 dark:text-slate-200 uppercase px-3 tracking-tighter">Métricas:</span>
             {metricOrder.map(metric => (
               <button
                 key={metric}
@@ -900,6 +903,7 @@ onChange={(e) => setCurrentRoutine({
                                                       {currentRoutine.enabledMetrics.kg && <th className="py-2">KG</th>}
                                                       {currentRoutine.enabledMetrics.rir && <th className="py-2">RIR</th>}
                                                       {currentRoutine.enabledMetrics.rmPercentage && <th className="py-2">% RM</th>}
+                                                      {currentRoutine.enabledMetrics.tempo && <th className="py-2">TEMPO</th>}
                                                       {currentRoutine.enabledMetrics.rest && (
                                                         <th className="py-2">
                                                           {group.type === 'superset' ? (entryIdx === 0 ? '' : 'DESC.') : 'DESC.'}
@@ -927,6 +931,9 @@ onChange={(e) => setCurrentRoutine({
                                                           )}
                                                           {currentRoutine.enabledMetrics.rmPercentage && (
                                                             <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rmPercentage} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rmPercentage', e.target.value)} /></td>
+                                                          )}
+                                                          {currentRoutine.enabledMetrics.tempo && (
+                                                            <td><input className="w-16 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.tempo || ''} placeholder="3-1-1" onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'tempo', e.target.value)} /></td>
                                                           )}
                                                           {currentRoutine.enabledMetrics.rest && (
                                                             <td>
@@ -967,6 +974,7 @@ onChange={(e) => setCurrentRoutine({
                                                             )}
                                                             {currentRoutine.enabledMetrics.rir && <td></td>}
                                                             {currentRoutine.enabledMetrics.rmPercentage && <td></td>}
+                                                            {currentRoutine.enabledMetrics.tempo && <td></td>}
                                                             {currentRoutine.enabledMetrics.rest && <td></td>}
                                                             <td></td>
                                                             <td>

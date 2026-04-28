@@ -20,6 +20,7 @@ export interface TrainingSet {
   rir: string;
   rmPercentage: string;
   rest: string;
+  tempo?: string;
   dropsets?: DropSet[];
 }
 
@@ -72,5 +73,6 @@ export interface Routine {
     rir: boolean;
     rmPercentage: boolean;
     rest: boolean;
+    tempo?: boolean;
   };
 }

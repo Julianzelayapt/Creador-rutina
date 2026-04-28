@@ -61,6 +61,7 @@ const ExerciseBlock: React.FC<{
                   {routine.enabledMetrics.kg && <th className="py-4">{t('kg')}</th>}
                   {routine.enabledMetrics.rir && <th className="py-4">{t('rir')}</th>}
                   {routine.enabledMetrics.rmPercentage && <th className="py-2 lg:py-4">{t('rm')}</th>}
+                  {routine.enabledMetrics.tempo && <th className="py-2 lg:py-4">{t('tempo')}</th>}
                   <th className="py-2 lg:py-4 w-12 lg:w-20">{t('ok')}</th>
                 </tr>
               </thead>
@@ -95,6 +96,7 @@ const ExerciseBlock: React.FC<{
                       )}
                       {routine.enabledMetrics.rir && <td className="py-4 lg:py-6 font-black text-slate-950 dark:text-white text-lg">{set.rir}</td>}
                       {routine.enabledMetrics.rmPercentage && <td className="py-4 lg:py-6 font-black text-slate-950 dark:text-white text-lg">{set.rmPercentage}%</td>}
+                      {routine.enabledMetrics.tempo && <td className="py-4 lg:py-6 font-black text-slate-950 dark:text-white text-lg">{set.tempo}</td>}
                       <td className="py-4 lg:py-6">
                         <button
                           onClick={() => handleSetToggle(set.id, set.rest)}
@@ -145,7 +147,11 @@ const ExerciseBlock: React.FC<{
   );
 };
 
-const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
+const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, library }) => {
+  const routine = {
+    ...initialRoutine,
+    enabledMetrics: initialRoutine.enabledMetrics || { reps: true, kg: true, rir: true, rmPercentage: false, rest: true, tempo: false }
+  };
   // Función para obtener datos guardados de forma segura
   const getSavedData = () => {
     // Priorizamos el localStorage ya que es la fuente de verdad de la sesión actual en este dispositivo.
@@ -212,6 +218,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         kg: 'KG',
         rir: 'RIR',
         rm: '% RM',
+        tempo: 'TEMPO',
         rest: 'PAUSA',
         ok: 'OK',
         dayCompleted: '¡Día Completado!',
@@ -243,6 +250,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         kg: 'KG',
         rir: 'RIR',
         rm: '% RM',
+        tempo: 'TEMPO',
         rest: 'REST',
         ok: 'OK',
         dayCompleted: 'Workout Completed!',
@@ -274,6 +282,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine, library }) => {
         kg: 'KG',
         rir: 'RIR',
         rm: '% RM',
+        tempo: 'TEMPO',
         rest: 'REC',
         ok: 'OK',
         dayCompleted: 'Allenamento Completato!',
