@@ -53,15 +53,15 @@ const ExerciseBlock: React.FC<{
           </div>
 
           <div className="overflow-x-auto mb-8 w-full pb-4">
-            <table className="w-full text-center table-auto min-w-max">
+            <table className="w-full text-center table-auto">
               <thead>
                 <tr className="text-[9px] lg:text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-tight border-b border-slate-100 dark:border-slate-800">
-                  {routine.enabledMetrics.reps && <th className="py-4 px-1 lg:px-2 w-20 lg:w-24 min-w-[70px]">{t('reps')}</th>}
-                  {routine.enabledMetrics.kg && <th className="py-4 px-1 lg:px-2 w-20 lg:w-24 min-w-[70px]">{t('kg')}</th>}
-                  {routine.enabledMetrics.rir && <th className="py-4 px-1 lg:px-2 w-12 lg:w-16 min-w-[48px]">{t('rir')}</th>}
-                  {routine.enabledMetrics.rmPercentage && <th className="py-2 lg:py-4 px-1 lg:px-2 w-16 lg:w-20 min-w-[64px]">{t('rm')}</th>}
-                  {routine.enabledMetrics.tempo && <th className="py-2 lg:py-4 px-1 lg:px-2 w-20 lg:w-24 min-w-[70px] whitespace-nowrap">{t('tempo')}</th>}
-                  <th className="py-2 lg:py-4 w-12 lg:w-16 min-w-[48px]">{t('ok')}</th>
+                  {routine.enabledMetrics.reps && <th className="py-4 px-1 lg:px-2 w-[18%]">{t('reps')}</th>}
+                  {routine.enabledMetrics.kg && <th className="py-4 px-1 lg:px-2 w-[18%]">{t('kg')}</th>}
+                  {routine.enabledMetrics.rir && <th className="py-4 px-1 lg:px-2 w-[12%]">{t('rir')}</th>}
+                  {routine.enabledMetrics.rmPercentage && <th className="py-2 lg:py-4 px-1 lg:px-2 w-[14%]">{t('rm')}</th>}
+                  {routine.enabledMetrics.tempo && <th className="py-2 lg:py-4 px-1 lg:px-2 w-[22%] whitespace-nowrap">{t('tempo')}</th>}
+                  <th className="py-2 lg:py-4 w-[16%]">{t('ok')}</th>
                 </tr>
               </thead>
               <tbody>

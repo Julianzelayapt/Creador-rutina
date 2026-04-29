@@ -929,7 +929,7 @@ onChange={(e) => setCurrentRoutine({
                                                             <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rmPercentage} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rmPercentage', e.target.value)} /></td>
                                                           )}
                                                           {currentRoutine.enabledMetrics.tempo && (
-                                                            <td><input className="w-16 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.tempo || ''} placeholder="3-1-1" onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'tempo', e.target.value)} /></td>
+                                                            <td><input className="w-16 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none placeholder:font-normal placeholder:text-slate-300 dark:placeholder:text-slate-700" value={set.tempo || ''} placeholder="ej: 3-1-1" onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'tempo', e.target.value)} /></td>
                                                           )}
                                                           {currentRoutine.enabledMetrics.rest && (
                                                             <td>
