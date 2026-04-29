@@ -56,12 +56,12 @@ const ExerciseBlock: React.FC<{
             <table className="w-full text-center table-auto min-w-max">
               <thead>
                 <tr className="text-[9px] lg:text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-tight border-b border-slate-100 dark:border-slate-800">
-                  {routine.enabledMetrics.reps && <th className="py-4 px-1 lg:px-2">{t('reps')}</th>}
-                  {routine.enabledMetrics.kg && <th className="py-4">{t('kg')}</th>}
-                  {routine.enabledMetrics.rir && <th className="py-4">{t('rir')}</th>}
-                  {routine.enabledMetrics.rmPercentage && <th className="py-2 lg:py-4">{t('rm')}</th>}
-                  {routine.enabledMetrics.tempo && <th className="py-2 lg:py-4">{t('tempo')}</th>}
-                  <th className="py-2 lg:py-4 w-12 lg:w-20">{t('ok')}</th>
+                  {routine.enabledMetrics.reps && <th className="py-4 px-1 lg:px-2 w-20 lg:w-24 min-w-[70px]">{t('reps')}</th>}
+                  {routine.enabledMetrics.kg && <th className="py-4 px-1 lg:px-2 w-20 lg:w-24 min-w-[70px]">{t('kg')}</th>}
+                  {routine.enabledMetrics.rir && <th className="py-4 px-1 lg:px-2 w-12 lg:w-16 min-w-[48px]">{t('rir')}</th>}
+                  {routine.enabledMetrics.rmPercentage && <th className="py-2 lg:py-4 px-1 lg:px-2 w-16 lg:w-20 min-w-[64px]">{t('rm')}</th>}
+                  {routine.enabledMetrics.tempo && <th className="py-2 lg:py-4 px-1 lg:px-2 w-20 lg:w-24 min-w-[70px] whitespace-nowrap">{t('tempo')}</th>}
+                  <th className="py-2 lg:py-4 w-12 lg:w-16 min-w-[48px]">{t('ok')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -90,13 +90,13 @@ const ExerciseBlock: React.FC<{
                       )}
                       {routine.enabledMetrics.rir && <td className="py-3 lg:py-6 px-1 lg:px-2 font-black text-slate-950 dark:text-white text-base lg:text-lg">{set.rir}</td>}
                       {routine.enabledMetrics.rmPercentage && <td className="py-3 lg:py-6 px-1 lg:px-2 font-black text-slate-950 dark:text-white text-base lg:text-lg">{set.rmPercentage}%</td>}
-                      {routine.enabledMetrics.tempo && <td className="py-3 lg:py-6 px-1 lg:px-2 font-black text-slate-950 dark:text-white text-base lg:text-lg">{set.tempo}</td>}
-                      <td className="py-3 lg:py-6 px-2">
+                      {routine.enabledMetrics.tempo && <td className="py-3 lg:py-6 px-1 lg:px-2 font-black text-slate-950 dark:text-white text-base lg:text-lg whitespace-nowrap">{set.tempo || '-'}</td>}
+                      <td className="py-3 lg:py-6 px-1">
                         <button
                           onClick={() => handleSetToggle(set.id, set.rest)}
-                          className={`w-12 h-12 lg:w-16 lg:h-16 mx-auto rounded-lg lg:rounded-xl border-[3px] lg:border-4 flex items-center justify-center transition-all active:scale-90 ${completedSets[set.id] ? 'bg-green-500 border-green-500 text-white shadow-2xl scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-transparent hover:border-green-400'}`}
+                          className={`w-10 h-10 lg:w-14 lg:h-14 mx-auto rounded-lg lg:rounded-xl border-[3px] lg:border-4 flex items-center justify-center transition-all active:scale-95 shrink-0 ${completedSets[set.id] ? 'bg-green-500 border-green-500 text-white shadow-2xl scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-transparent hover:border-green-400'}`}
                         >
-                          <svg className="w-5 h-5 lg:w-10 lg:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" d="M5 13l4 4L19 7" /></svg>
+                          <svg className="w-5 h-5 lg:w-8 lg:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" d="M5 13l4 4L19 7" /></svg>
                         </button>
                       </td>
                     </tr>
