@@ -898,7 +898,6 @@ onChange={(e) => setCurrentRoutine({
                                                 <table className="w-full text-center table-auto min-w-max">
                                                   <thead>
                                                     <tr className="text-[9px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                                                      <th className="py-2 w-10">SET</th>
                                                       {currentRoutine.enabledMetrics.reps && <th className="py-2">REPS</th>}
                                                       {currentRoutine.enabledMetrics.kg && <th className="py-2">KG</th>}
                                                       {currentRoutine.enabledMetrics.rir && <th className="py-2">RIR</th>}
@@ -917,9 +916,6 @@ onChange={(e) => setCurrentRoutine({
                                                     {entry.sets.map((set, idx) => (
                                                       <React.Fragment key={set.id}>
                                                         <tr>
-                                                          <td className="py-4">
-                                                            <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-950 dark:text-slate-100 mx-auto">{idx + 1}</div>
-                                                          </td>
                                                           {currentRoutine.enabledMetrics.reps && (
                                                             <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.reps} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'reps', e.target.value)} /></td>
                                                           )}
@@ -960,14 +956,13 @@ onChange={(e) => setCurrentRoutine({
                                                         </tr>
                                                         {set.dropsets?.map((ds, dsIdx) => (
                                                           <tr key={ds.id} className="bg-orange-50/20 dark:bg-orange-900/5">
-                                                            <td className="py-2">
-                                                              <div className="flex items-center justify-center gap-1">
-                                                                <div className="w-4 h-4 border-l-2 border-b-2 border-slate-300 dark:border-slate-700 rounded-bl-lg mb-2"></div>
-                                                                <span className="text-[8px] font-black text-orange-400">DS {dsIdx + 1}</span>
-                                                              </div>
-                                                            </td>
                                                             {currentRoutine.enabledMetrics.reps && (
-                                                              <td><input className="w-12 py-2 text-center bg-transparent border-b border-orange-200 dark:border-orange-800 outline-none text-xs font-bold dark:text-white" value={ds.reps} onChange={e => updateDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id, 'reps', e.target.value)} /></td>
+                                                              <td>
+                                                                <div className="flex items-center justify-center gap-1 relative">
+                                                                  <span className="absolute left-0 text-[8px] font-black text-orange-400">DS {dsIdx + 1}</span>
+                                                                  <input className="w-12 py-2 text-center bg-transparent border-b border-orange-200 dark:border-orange-800 outline-none text-xs font-bold dark:text-white" value={ds.reps} onChange={e => updateDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id, 'reps', e.target.value)} />
+                                                                </div>
+                                                              </td>
                                                             )}
                                                             {currentRoutine.enabledMetrics.kg && (
                                                               <td><input className="w-12 py-2 text-center bg-transparent border-b border-orange-200 dark:border-orange-800 outline-none text-xs font-bold dark:text-white" value={ds.kg} onChange={e => updateDropset(currentWeek.id, currentWorkout.id, entry.id, set.id, ds.id, 'kg', e.target.value)} /></td>

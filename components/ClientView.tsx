@@ -52,12 +52,11 @@ const ExerciseBlock: React.FC<{
             <p className="text-slate-950 dark:text-white font-bold text-base">💡 {t('tip')}: {libEx?.tip || '...'}</p>
           </div>
 
-          <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 mb-8 w-[100vw] lg:w-full">
+          <div className="overflow-x-auto mb-8 w-full pb-4">
             <table className="w-full text-center table-auto min-w-max">
               <thead>
                 <tr className="text-[9px] lg:text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-tight border-b border-slate-100 dark:border-slate-800">
-                  <th className="py-4 w-16">{t('set')}</th>
-                  {routine.enabledMetrics.reps && <th className="py-4">{t('reps')}</th>}
+                  {routine.enabledMetrics.reps && <th className="py-4 px-1 lg:px-2">{t('reps')}</th>}
                   {routine.enabledMetrics.kg && <th className="py-4">{t('kg')}</th>}
                   {routine.enabledMetrics.rir && <th className="py-4">{t('rir')}</th>}
                   {routine.enabledMetrics.rmPercentage && <th className="py-2 lg:py-4">{t('rm')}</th>}
@@ -69,11 +68,6 @@ const ExerciseBlock: React.FC<{
                 {entry.sets.map((set: any, idx: number) => (
                   <React.Fragment key={set.id}>
                     <tr className={`transition-all border-b border-slate-100 dark:border-slate-900 last:border-0 ${completedSets[set.id] ? 'bg-green-500/10 dark:bg-green-500/5' : ''}`}>
-                      <td className="py-3 lg:py-6">
-                        <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center text-xs lg:text-sm font-black mx-auto transition-all ${completedSets[set.id] ? 'bg-green-600 text-white shadow-xl' : 'bg-slate-900 dark:bg-slate-700 text-white'}`}>
-                          {idx + 1}
-                        </div>
-                      </td>
                       {routine.enabledMetrics.reps && (
                         <td className="py-3 lg:py-6 px-1 lg:px-2">
                           <input
@@ -108,20 +102,17 @@ const ExerciseBlock: React.FC<{
                     </tr>
                     {set.dropsets?.map((ds: any, dsIdx: number) => (
                       <tr key={ds.id} className="bg-orange-50/10 dark:bg-orange-900/5">
-                        <td className="py-2">
-                          <div className="flex items-center justify-center gap-1">
-                            <div className="w-4 h-4 border-l-2 border-b-2 border-slate-300 dark:border-slate-700 rounded-bl-lg mb-2"></div>
-                            <span className="text-[10px] font-black text-orange-500">DS {dsIdx + 1}</span>
-                          </div>
-                        </td>
-                        <td colSpan={2} className="py-2">
+                        <td colSpan={10} className="py-3">
                           <div className="flex items-center justify-center gap-4">
+                            <div className="flex items-center gap-1 bg-orange-100 dark:bg-orange-500/20 px-2 py-1 rounded">
+                              <div className="w-3 h-3 border-l-2 border-b-2 border-orange-400 rounded-bl-sm"></div>
+                              <span className="text-[10px] font-black text-orange-600 dark:text-orange-400">DS {dsIdx + 1}</span>
+                            </div>
                             <span className="text-lg font-black text-slate-700 dark:text-slate-300">{ds.kg}kg</span>
                             <span className="text-slate-950 dark:text-slate-200 font-bold">x</span>
                             <span className="text-lg font-black text-slate-700 dark:text-slate-300">{ds.reps} reps</span>
                           </div>
                         </td>
-                        <td colSpan={3}></td>
                       </tr>
                     ))}
                   </React.Fragment>
