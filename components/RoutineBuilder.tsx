@@ -894,8 +894,8 @@ onChange={(e) => setCurrentRoutine({
                                                 </button>
                                               </div>
 
-                                              <div className="overflow-x-auto mb-6">
-                                                <table className="w-full text-center">
+                                              <div className="overflow-x-auto mb-6 -mx-4 px-4 lg:mx-0 lg:px-0 w-[100vw] lg:w-full">
+                                                <table className="w-full text-center table-auto min-w-max">
                                                   <thead>
                                                     <tr className="text-[9px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                                                       <th className="py-2 w-10">SET</th>

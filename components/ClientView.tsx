@@ -52,10 +52,10 @@ const ExerciseBlock: React.FC<{
             <p className="text-slate-950 dark:text-white font-bold text-base">💡 {t('tip')}: {libEx?.tip || '...'}</p>
           </div>
 
-          <div className="overflow-x-auto mb-8">
-            <table className="w-full text-center">
+          <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 mb-8 w-[100vw] lg:w-full">
+            <table className="w-full text-center table-auto min-w-max">
               <thead>
-                <tr className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                <tr className="text-[9px] lg:text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-tight border-b border-slate-100 dark:border-slate-800">
                   <th className="py-4 w-16">{t('set')}</th>
                   {routine.enabledMetrics.reps && <th className="py-4">{t('reps')}</th>}
                   {routine.enabledMetrics.kg && <th className="py-4">{t('kg')}</th>}
@@ -69,38 +69,38 @@ const ExerciseBlock: React.FC<{
                 {entry.sets.map((set: any, idx: number) => (
                   <React.Fragment key={set.id}>
                     <tr className={`transition-all border-b border-slate-100 dark:border-slate-900 last:border-0 ${completedSets[set.id] ? 'bg-green-500/10 dark:bg-green-500/5' : ''}`}>
-                      <td className="py-4 lg:py-6">
+                      <td className="py-3 lg:py-6">
                         <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center text-xs lg:text-sm font-black mx-auto transition-all ${completedSets[set.id] ? 'bg-green-600 text-white shadow-xl' : 'bg-slate-900 dark:bg-slate-700 text-white'}`}>
                           {idx + 1}
                         </div>
                       </td>
                       {routine.enabledMetrics.reps && (
-                        <td className="py-4 lg:py-6">
+                        <td className="py-3 lg:py-6 px-1 lg:px-2">
                           <input
                             type="text"
-                            className="w-16 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-yellow-500 transition-all text-lg lg:text-xl"
+                            className="w-14 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-2 lg:border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-yellow-500 transition-all text-base lg:text-xl"
                             value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
                             onChange={(e) => setClientReps(prev => ({ ...prev, [set.id]: e.target.value }))}
                           />
                         </td>
                       )}
                       {routine.enabledMetrics.kg && (
-                        <td className="py-4 lg:py-6">
+                        <td className="py-3 lg:py-6 px-1 lg:px-2">
                           <input
                             type="text"
-                            className="w-16 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-yellow-500 transition-all text-lg lg:text-xl"
+                            className="w-14 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-2 lg:border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-yellow-500 transition-all text-base lg:text-xl"
                             value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
                             onChange={(e) => setClientWeights(prev => ({ ...prev, [set.id]: e.target.value }))}
                           />
                         </td>
                       )}
-                      {routine.enabledMetrics.rir && <td className="py-4 lg:py-6 font-black text-slate-950 dark:text-white text-lg">{set.rir}</td>}
-                      {routine.enabledMetrics.rmPercentage && <td className="py-4 lg:py-6 font-black text-slate-950 dark:text-white text-lg">{set.rmPercentage}%</td>}
-                      {routine.enabledMetrics.tempo && <td className="py-4 lg:py-6 font-black text-slate-950 dark:text-white text-lg">{set.tempo}</td>}
-                      <td className="py-4 lg:py-6">
+                      {routine.enabledMetrics.rir && <td className="py-3 lg:py-6 px-1 lg:px-2 font-black text-slate-950 dark:text-white text-base lg:text-lg">{set.rir}</td>}
+                      {routine.enabledMetrics.rmPercentage && <td className="py-3 lg:py-6 px-1 lg:px-2 font-black text-slate-950 dark:text-white text-base lg:text-lg">{set.rmPercentage}%</td>}
+                      {routine.enabledMetrics.tempo && <td className="py-3 lg:py-6 px-1 lg:px-2 font-black text-slate-950 dark:text-white text-base lg:text-lg">{set.tempo}</td>}
+                      <td className="py-3 lg:py-6 px-2">
                         <button
                           onClick={() => handleSetToggle(set.id, set.rest)}
-                          className={`w-10 h-10 lg:w-16 lg:h-16 rounded-lg lg:rounded-xl border-[3px] lg:border-4 flex items-center justify-center transition-all active:scale-90 ${completedSets[set.id] ? 'bg-green-500 border-green-500 text-white shadow-2xl scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-transparent hover:border-green-400'}`}
+                          className={`w-12 h-12 lg:w-16 lg:h-16 mx-auto rounded-lg lg:rounded-xl border-[3px] lg:border-4 flex items-center justify-center transition-all active:scale-90 ${completedSets[set.id] ? 'bg-green-500 border-green-500 text-white shadow-2xl scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-transparent hover:border-green-400'}`}
                         >
                           <svg className="w-5 h-5 lg:w-10 lg:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" d="M5 13l4 4L19 7" /></svg>
                         </button>
