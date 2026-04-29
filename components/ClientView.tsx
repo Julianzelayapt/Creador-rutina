@@ -91,12 +91,12 @@ const ExerciseBlock: React.FC<{
                       {routine.enabledMetrics.rir && <td className="py-3 lg:py-6 px-1 lg:px-2 font-black text-slate-950 dark:text-white text-base lg:text-lg">{set.rir}</td>}
                       {routine.enabledMetrics.rmPercentage && <td className="py-3 lg:py-6 px-1 lg:px-2 font-black text-slate-950 dark:text-white text-base lg:text-lg">{set.rmPercentage}%</td>}
                       {routine.enabledMetrics.tempo && <td className="py-3 lg:py-6 px-1 lg:px-2 font-black text-slate-950 dark:text-white text-base lg:text-lg whitespace-nowrap">{set.tempo || '-'}</td>}
-                      <td className="py-3 lg:py-6 px-1">
+                      <td className="py-2 lg:py-6 px-1">
                         <button
                           onClick={() => handleSetToggle(set.id, set.rest)}
-                          className={`w-10 h-10 lg:w-14 lg:h-14 mx-auto rounded-lg lg:rounded-xl border-[3px] lg:border-4 flex items-center justify-center transition-all active:scale-95 shrink-0 ${completedSets[set.id] ? 'bg-green-500 border-green-500 text-white shadow-2xl scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-transparent hover:border-green-400'}`}
+                          className={`w-8 h-8 lg:w-14 lg:h-14 mx-auto rounded-md lg:rounded-xl border-2 lg:border-4 flex items-center justify-center transition-all active:scale-95 shrink-0 ${completedSets[set.id] ? 'bg-green-500 border-green-500 text-white shadow-xl scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-transparent hover:border-green-400'}`}
                         >
-                          <svg className="w-5 h-5 lg:w-8 lg:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" d="M5 13l4 4L19 7" /></svg>
+                          <svg className="w-4 h-4 lg:w-8 lg:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" d="M5 13l4 4L19 7" /></svg>
                         </button>
                       </td>
                     </tr>
