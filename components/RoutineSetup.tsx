@@ -13,6 +13,48 @@ interface RoutineSetupProps {
   onRoutineCreated: (routine: Routine) => void;
 }
 
+const compressImage = (file: File, maxWidth = 800, maxHeight = 600, quality = 0.6): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(event.target?.result as string);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Error al cargar imagen'));
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Error al leer archivo'));
+    reader.readAsDataURL(file);
+  });
+};
+
 const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -50,14 +92,21 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
     onRoutineCreated(newRoutine);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressedBase64 = await compressImage(file, 800, 600, 0.6);
+        setFormData({ ...formData, image: compressedBase64 });
+      } catch (err) {
+        console.error('Error al comprimir la imagen:', err);
+        // Fallback en caso de error
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData({ ...formData, image: reader.result as string });
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 

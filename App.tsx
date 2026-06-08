@@ -10,6 +10,50 @@ const LOCAL_STORAGE_KEY = 'coach_routines_data_v3';
 const LIBRARY_STORAGE_KEY = 'coach_exercise_library_v3';
 const THEME_KEY = 'hevy_theme_v3';
 
+const compressBase64Image = (base64Str: string, maxWidth = 800, maxHeight = 600, quality = 0.6): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!base64Str || !base64Str.startsWith('data:image/') || base64Str.length < 150000) {
+      resolve(base64Str);
+      return;
+    }
+    
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(base64Str);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => {
+      resolve(base64Str);
+    };
+    img.src = base64Str;
+  });
+};
+
 const App: React.FC = () => {
   const [view, setView] = useState<'setup' | 'builder' | 'client'>('setup');
   const [currentRoutine, setCurrentRoutine] = useState<Routine | null>(null);
@@ -139,6 +183,15 @@ const App: React.FC = () => {
 
     if (currentDbData?.data?.clientProgress) {
       updatedRoutine.clientProgress = currentDbData.data.clientProgress;
+    }
+
+    // Comprimir la imagen si es un base64 muy grande para evitar exceder límites de Supabase/red
+    if (updatedRoutine.image && updatedRoutine.image.startsWith('data:image/')) {
+      try {
+        updatedRoutine.image = await compressBase64Image(updatedRoutine.image);
+      } catch (e) {
+        console.error('Error al comprimir la imagen al guardar:', e);
+      }
     }
 
     setCurrentRoutine(updatedRoutine);
