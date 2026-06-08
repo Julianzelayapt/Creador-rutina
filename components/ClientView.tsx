@@ -313,6 +313,15 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
 
   const audioContextRef = useRef<AudioContext | null>(null);
 
+  // Asegurar que activeWeekId sea válido y no quede en null o apuntando a una semana inexistente
+  useEffect(() => {
+    if (!activeWeekId || !routine.weeks.some(w => w.id === activeWeekId)) {
+      if (routine.weeks.length > 0) {
+        setActiveWeekId(routine.weeks[0].id);
+      }
+    }
+  }, [routine.weeks, activeWeekId]);
+
   useEffect(() => {
     if (activeWeekId) {
       const week = routine.weeks.find(w => w.id === activeWeekId);

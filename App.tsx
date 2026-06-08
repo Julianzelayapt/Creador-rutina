@@ -143,6 +143,10 @@ const App: React.FC = () => {
 
     setCurrentRoutine(updatedRoutine);
 
+    // Guardar en caché local
+    const fullCacheKey = `full_routine_cache_${updatedRoutine.id}`;
+    localStorage.setItem(fullCacheKey, JSON.stringify(updatedRoutine));
+
     // Guardar en Supabase
     const { error } = await supabase
       .from('routines')
