@@ -110,18 +110,17 @@ const App: React.FC = () => {
     };
 
     const loadRoutine = async (routineId: string, targetView: 'client' | 'builder') => {
-      // 1. Intentar carga inmediata desde caché local
+      // 1. Intentar carga inmediata desde caché local (Solo para vista de cliente)
       const fullCacheKey = `full_routine_cache_${routineId}`;
       const fullCachedRoutine = localStorage.getItem(fullCacheKey);
       let cacheFound = false;
       
-      if (fullCachedRoutine) {
+      if (targetView === 'client' && fullCachedRoutine) {
         try {
           const parsed = JSON.parse(fullCachedRoutine);
           setCurrentRoutine(parsed);
           setView(targetView);
           cacheFound = true;
-          // No seteamos isLoading(true) si hay caché satisfactorio
         } catch (e) {
           console.error('Error parsing full routine cache:', e);
         }
@@ -131,7 +130,7 @@ const App: React.FC = () => {
         setIsLoading(true);
       }
 
-      // 2. Cargar/Actualizar desde Supabase en segundo plano
+      // 2. Cargar/Actualizar desde Supabase
       const { data, error } = await supabase
         .from('routines')
         .select('*')
@@ -144,18 +143,9 @@ const App: React.FC = () => {
       } else if (data) {
         const freshRoutine = { ...data.data, id: data.id };
         
-        // Solo actualizamos si es una rutina distinta o si hubo cambios reales
-        // Esto evita que ClientView se reinicie injustificadamente
-        setCurrentRoutine(prev => {
-          if (prev?.id === freshRoutine.id) {
-            // Si es la misma, comparamos si el progreso de la nube es más reciente? 
-            // Por ahora solo actualizamos el objeto para reflejar cambios del coach
-            return freshRoutine;
-          }
-          return freshRoutine;
-        });
-        
+        setCurrentRoutine(freshRoutine);
         setView(targetView);
+        
         // Guardar en caché para la próxima vez
         localStorage.setItem(fullCacheKey, JSON.stringify(freshRoutine));
       }

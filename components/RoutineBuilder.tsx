@@ -32,13 +32,13 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   const [showSupersetModal, setShowSupersetModal] = useState(false);
   const [supersetForm, setSupersetForm] = useState<{ ex1Id: string | null, ex2Id: string | null, rest: string }>({ ex1Id: null, ex2Id: null, rest: '2:00' });
 
-  // Sincronizar el estado local cuando la rutina inicial cambia (por ejemplo, al terminar la carga de la base de datos)
+  // Sincronizar el estado local cuando la rutina cambia de ID
   useEffect(() => {
     setCurrentRoutine({
       ...routine,
       enabledMetrics: routine.enabledMetrics || { reps: true, kg: true, rir: true, rmPercentage: false, rest: true, tempo: false }
     });
-  }, [routine]);
+  }, [routine.id]);
 
   // Asegurar que activeWeekId sea válido y no quede en null si hay semanas disponibles
   useEffect(() => {
