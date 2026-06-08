@@ -163,18 +163,6 @@ const App: React.FC = () => {
   };
 
   const handleSaveRoutine = async (updatedRoutine: Routine) => {
-    // Para evitar sobreescribir el progreso del cliente si el coach guarda cambios 
-    // mientras el cliente está entrenando, obtenemos el progreso más reciente primero.
-    const { data: currentDbData } = await supabase
-      .from('routines')
-      .select('data')
-      .eq('id', updatedRoutine.id)
-      .single();
-
-    if (currentDbData?.data?.clientProgress) {
-      updatedRoutine.clientProgress = currentDbData.data.clientProgress;
-    }
-
     // Comprimir la imagen si es un base64 muy grande para evitar exceder límites de Supabase/red
     if (updatedRoutine.image && updatedRoutine.image.startsWith('data:image/')) {
       try {
@@ -184,27 +172,26 @@ const App: React.FC = () => {
       }
     }
 
-    setCurrentRoutine(updatedRoutine);
-
-    // Guardar en caché local
-    const fullCacheKey = `full_routine_cache_${updatedRoutine.id}`;
-    localStorage.setItem(fullCacheKey, JSON.stringify(updatedRoutine));
-
-    // Guardar en Supabase
+    // Guardar en Supabase primero para asegurar la persistencia
     const { error } = await supabase
       .from('routines')
       .upsert({
         id: updatedRoutine.id,
         name: updatedRoutine.name,
         client_name: updatedRoutine.clientName,
-        data: updatedRoutine // Guardamos todo el objeto rutina en la columna JSONB
+        data: updatedRoutine
       });
 
     if (error) {
       console.error('Error saving routine:', error);
-      alert('Error al guardar la rutina');
+      alert(`Error al guardar la rutina: ${error.message}`);
       return '';
     }
+
+    // Solo actualizar estado y caché si el guardado fue exitoso
+    setCurrentRoutine(updatedRoutine);
+    const fullCacheKey = `full_routine_cache_${updatedRoutine.id}`;
+    localStorage.setItem(fullCacheKey, JSON.stringify(updatedRoutine));
 
     return updatedRoutine.id;
   };
