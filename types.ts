@@ -33,6 +33,7 @@ export interface ExerciseEntry {
   supersetOrder?: number;
   supersetRest?: string;
   supersetFinalRest?: string;
+  customTip?: string;
 }
 
 export interface Workout {

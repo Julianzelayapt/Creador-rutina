@@ -375,6 +375,34 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
     });
   };
 
+  const updateExerciseCustomTip = (weekId: string, workoutId: string, entryId: string, tip: string) => {
+    setCurrentRoutine({
+      ...currentRoutine,
+      weeks: currentRoutine.weeks.map(w => {
+        if (w.id === weekId) {
+          return {
+            ...w,
+            workouts: w.workouts.map(wk => {
+              if (wk.id === workoutId) {
+                return {
+                  ...wk,
+                  exercises: wk.exercises.map(ex => {
+                    if (ex.id === entryId) {
+                      return { ...ex, customTip: tip };
+                    }
+                    return ex;
+                  })
+                };
+              }
+              return wk;
+            })
+          };
+        }
+        return w;
+      })
+    });
+  };
+
   const addDropset = (weekId: string, workoutId: string, entryId: string, setId: string) => {
     setCurrentRoutine({
       ...currentRoutine,
@@ -892,7 +920,7 @@ onChange={(e) => setCurrentRoutine({
                                           const libEx = library.find(l => l.id === entry.libraryExerciseId);
                                           return (
                                             <div key={entry.id} className={`${entryIdx > 0 ? 'pt-10 border-t border-blue-100/50 dark:border-blue-900/20' : ''}`}>
-                                              <div className="flex justify-between items-center mb-6">
+                                              <div className="flex justify-between items-center mb-4">
                                                 <div className="flex items-center gap-4">
                                                   {group.type === 'superset' && (
                                                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-[10px] font-black text-yellow-400 text-black">
@@ -909,6 +937,20 @@ onChange={(e) => setCurrentRoutine({
                                                 >
                                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
                                                 </button>
+                                              </div>
+
+                                              <div className="mb-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/85 focus-within:border-yellow-500/50 transition-all">
+                                                <div className="flex items-center gap-2 mb-1.5">
+                                                  <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                                    Instrucción personalizada para el alumno
+                                                  </span>
+                                                </div>
+                                                <textarea
+                                                  placeholder={libEx?.tip ? `Tip por defecto: ${libEx.tip}` : "Escribe una instrucción personalizada (ej. rest-pause de 10 seg, al fallo...)"}
+                                                  className="w-full bg-transparent text-xs font-semibold outline-none text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 h-14 resize-none"
+                                                  value={entry.customTip || ''}
+                                                  onChange={e => updateExerciseCustomTip(currentWeek.id, currentWorkout.id, entry.id, e.target.value)}
+                                                />
                                               </div>
 
                                               <div className="overflow-x-auto mb-6 -mx-4 px-4 lg:mx-0 lg:px-0 w-[100vw] lg:w-full">

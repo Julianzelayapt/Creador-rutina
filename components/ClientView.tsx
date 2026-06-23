@@ -49,7 +49,7 @@ const ExerciseBlock: React.FC<{
           </div>
 
           <div className="mb-8 p-6 bg-slate-100 dark:bg-black/30 rounded-xl border-l-[8px] border-yellow-500">
-            <p className="text-slate-950 dark:text-white font-bold text-base">💡 {t('tip')}: {libEx?.tip || '...'}</p>
+            <p className="text-slate-950 dark:text-white font-bold text-base">💡 {t('tip')}: {entry.customTip || libEx?.tip || '...'}</p>
           </div>
 
           <div className="overflow-x-auto mb-8 w-full pb-4">
