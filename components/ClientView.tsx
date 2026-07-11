@@ -18,13 +18,13 @@ const ExerciseBlock: React.FC<{
   completedSets: Record<string, boolean>;
   clientReps: Record<string, string>;
   clientWeights: Record<string, string>;
-  setClientReps: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  setClientWeights: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  onRepsChange: (setId: string, value: string) => void;
+  onWeightsChange: (setId: string, value: string) => void;
   handleSetToggle: (id: string, rest: string) => void;
   feelings: Record<string, string>;
-  setFeelings: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  onFeelingsChange: (exerciseId: string, value: string) => void;
   isSuperset?: boolean;
-}> = ({ entry, library, t, routine, completedSets, clientReps, clientWeights, setClientReps, setClientWeights, handleSetToggle, feelings, setFeelings, isSuperset }) => {
+}> = ({ entry, library, t, routine, completedSets, clientReps, clientWeights, onRepsChange, onWeightsChange, handleSetToggle, feelings, onFeelingsChange, isSuperset }) => {
   const libEx = library.find(l => l.id === entry.libraryExerciseId);
   return (
     <div key={entry.id} className="relative mb-20 lg:mb-32">
@@ -74,7 +74,7 @@ const ExerciseBlock: React.FC<{
                             type="text"
                             className="w-14 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-2 lg:border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-yellow-500 transition-all text-base lg:text-xl"
                             value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
-                            onChange={(e) => setClientReps(prev => ({ ...prev, [set.id]: e.target.value }))}
+                            onChange={(e) => onRepsChange(set.id, e.target.value)}
                           />
                         </td>
                       )}
@@ -84,7 +84,7 @@ const ExerciseBlock: React.FC<{
                             type="text"
                             className="w-14 lg:w-24 py-2 lg:py-4 text-center bg-white dark:bg-black border-2 lg:border-[3px] border-slate-200 dark:border-slate-700 rounded-2xl font-black text-slate-900 dark:text-white outline-none focus:border-yellow-500 transition-all text-base lg:text-xl"
                             value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
-                            onChange={(e) => setClientWeights(prev => ({ ...prev, [set.id]: e.target.value }))}
+                            onChange={(e) => onWeightsChange(set.id, e.target.value)}
                           />
                         </td>
                       )}
@@ -126,10 +126,7 @@ const ExerciseBlock: React.FC<{
               placeholder={t('notesPlaceholder')}
               className="w-full bg-white dark:bg-darkCard p-6 rounded-lg border-2 border-transparent focus:border-yellow-500 outline-none transition-all h-28 text-slate-800 dark:text-slate-200 font-medium shadow-inner"
               value={feelings[entry.id] || ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                setFeelings(prev => ({ ...prev, [entry.id]: val }));
-              }}
+              onChange={(e) => onFeelingsChange(entry.id, e.target.value)}
             />
           </div>
         </div>
@@ -185,6 +182,27 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     setIndex: number;
   } | null>(null);
 
+  const isDirtyRef = useRef(false);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error' | null>(null);
+
+  const handleRepsChange = (setId: string, value: string) => {
+    isDirtyRef.current = true;
+    setSyncStatus('syncing');
+    setClientReps(prev => ({ ...prev, [setId]: value }));
+  };
+
+  const handleWeightsChange = (setId: string, value: string) => {
+    isDirtyRef.current = true;
+    setSyncStatus('syncing');
+    setClientWeights(prev => ({ ...prev, [setId]: value }));
+  };
+
+  const handleFeelingsChange = (exerciseId: string, value: string) => {
+    isDirtyRef.current = true;
+    setSyncStatus('syncing');
+    setFeelings(prev => ({ ...prev, [exerciseId]: value }));
+  };
+
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       es: {
@@ -217,7 +235,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         loading: 'Cargando...',
         notesPlaceholder: 'Notas específicas para este ejercicio...',
         feedbackPlaceholder: 'Contanos cómo te sentiste, pesos, fatiga...',
-        warmup: 'Calentamiento'
+        warmup: 'Calentamiento',
+        syncing: 'Sincronizando...',
+        synced: 'Guardado en la nube',
+        syncError: 'Error al guardar en la nube'
       },
       en: {
         week: 'Week',
@@ -249,7 +270,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         loading: 'Loading...',
         notesPlaceholder: 'Specific notes for this exercise...',
         feedbackPlaceholder: 'Tell us how you felt, weights, fatigue...',
-        warmup: 'Warmup'
+        warmup: 'Warmup',
+        syncing: 'Syncing...',
+        synced: 'Saved to cloud',
+        syncError: 'Error saving to cloud'
       },
       it: {
         week: 'Settimana',
@@ -279,16 +303,18 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         dayCompleted: 'Allenamento Completato!',
         hello: 'Ciao',
         loading: 'Caricamento...',
-        notesPlaceholder: 'Note specifiche per questo esercizio...',
+        notesPlaceholder: 'Note specifiche per questo ejercicio...',
         feedbackPlaceholder: 'Raccontaci come ti sei sentito, pesi, fatica...',
-        warmup: 'Riscaldamento'
+        warmup: 'Riscaldamento',
+        syncing: 'Sincronizzazione...',
+        synced: 'Salvato nel cloud',
+        syncError: 'Errore di salvataggio nel cloud'
       }
     };
     return translations[language][key] || key;
   };
 
   const getTranslatedName = (name: string, type: 'week' | 'day') => {
-    // Si el nombre es el default (Week X o Día X), lo traducimos dinámicamente
     const numMatch = name.match(/\d+/);
     if (numMatch) {
       if (type === 'week' && name.toLowerCase().includes('week')) {
@@ -364,7 +390,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     return () => clearInterval(interval);
   }, [timer]);
 
-  const saveProgress = async () => {
+  const saveProgress = async (syncToCloud = false, currentScroll = window.scrollY) => {
     if (!activeWorkoutId) return;
 
     // Calcular el snapshot de la semana actual
@@ -401,13 +427,12 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       ...(activeWeekId && Object.keys(currentWeekSnapshot).length > 0 ? { [activeWeekId]: currentWeekSnapshot } : {})
     };
 
-    // Update local state lightly
-    if (activeWeekId && Object.keys(currentWeekSnapshot).length > 0) {
+    // Update local state if snapshots changed
+    const hasNewSnapshots = activeWeekId && Object.keys(currentWeekSnapshot).length > 0;
+    if (hasNewSnapshots && JSON.stringify(weeklySnapshots[activeWeekId!]) !== JSON.stringify(currentWeekSnapshot)) {
       setWeeklySnapshots(newSnapshots);
     }
 
-    const currentScrollPosition = window.scrollY;
-    
     const progressData = {
       completedSets,
       clientWeights,
@@ -419,53 +444,60 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       weeklySnapshots: newSnapshots,
       scrollPositions: {
         ...scrollPositions,
-        ...(activeWorkoutId ? { [activeWorkoutId]: currentScrollPosition } : {})
+        ...(activeWorkoutId ? { [activeWorkoutId]: currentScroll } : {})
       }
     };
 
     localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(progressData));
 
-    // Guardado en la nube: Sincronizar el progreso real con Supabase
-    try {
-      await supabase
-        .from('routines')
-        .update({ data: { ...routine, clientProgress: progressData } })
-        .eq('id', routine.id);
-    } catch (err) {
-      console.error('Error synchronizing progress to Supabase:', err);
-    }
-
-    // Actualizar el estado local para la próxima vez
-    if (activeWorkoutId) {
-      setScrollPositions(prev => ({ ...prev, [activeWorkoutId]: currentScrollPosition }));
+    if (syncToCloud) {
+      try {
+        await supabase
+          .from('routines')
+          .update({ data: { ...routine, clientProgress: progressData } })
+          .eq('id', routine.id);
+        setSyncStatus('synced');
+      } catch (err) {
+        console.error('Error synchronizing progress to Supabase:', err);
+        setSyncStatus('error');
+      }
     }
   };
 
-  // Debounced Autosave
+  // 1. Guardado inmediato en localStorage para evitar pérdida de datos locales
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (Object.keys(completedSets).length > 0 || Object.keys(clientWeights).length > 0 || Object.keys(clientReps).length > 0 || Object.keys(feelings).length > 0 || activeWeekId || activeWorkoutId) {
-        saveProgress();
-      }
-    }, 2000); // Save after 2 seconds of inactivity
-    return () => clearTimeout(timeoutId);
-  }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId]);
-
-  // Cargamos inicialmente en el useState, así que el useEffect de carga ya no es necesario
-  // pero mantendremos este por si cambia el routine.id
-  useEffect(() => {
-    const data = getSavedData();
-    if (data) {
-      if (data.completedSets) setCompletedSets(data.completedSets);
-      if (data.clientWeights) setClientWeights(data.clientWeights);
-      if (data.clientReps) setClientReps(data.clientReps);
-      if (data.feelings) setFeelings(data.feelings);
-      if (data.activeWeekId) setActiveWeekId(data.activeWeekId);
-      if (data.activeWorkoutId) setActiveWorkoutId(data.activeWorkoutId);
-      if (data.language) setLanguage(data.language);
-      if (data.scrollPositions) setScrollPositions(data.scrollPositions);
+    if (activeWorkoutId) {
+      saveProgress(false);
     }
-  }, [routine.id]);
+  }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId, language]);
+
+  // 2. Sincronización en la nube (Supabase) con debounce de 2 segundos
+  useEffect(() => {
+    if (!isDirtyRef.current || !activeWorkoutId) return;
+
+    const timeoutId = setTimeout(() => {
+      saveProgress(true);
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId, language]);
+
+  // 3. Cargar datos iniciales y frescos cuando cambia la rutina desde la nube (si el usuario no ha interactuado aún)
+  useEffect(() => {
+    if (!isDirtyRef.current) {
+      const data = getSavedData();
+      if (data) {
+        if (data.completedSets) setCompletedSets(data.completedSets);
+        if (data.clientWeights) setClientWeights(data.clientWeights);
+        if (data.clientReps) setClientReps(data.clientReps);
+        if (data.feelings) setFeelings(data.feelings);
+        if (data.activeWeekId) setActiveWeekId(data.activeWeekId);
+        if (data.activeWorkoutId) setActiveWorkoutId(data.activeWorkoutId);
+        if (data.language) setLanguage(data.language);
+        if (data.scrollPositions) setScrollPositions(data.scrollPositions);
+      }
+    }
+  }, [routine]);
 
   // Restaurar el scroll al cambiar de entrenamiento
   useEffect(() => {
@@ -537,6 +569,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   };
 
   const handleSetToggle = (setId: string, restTime: string) => {
+    isDirtyRef.current = true;
+    setSyncStatus('syncing');
     initAudio();
     const isNowCompleted = !completedSets[setId];
     setCompletedSets(prev => ({ ...prev, [setId]: isNowCompleted }));
@@ -582,8 +616,9 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     if (isSubmitting) return; // Guard against multiple clicks
     setIsSubmitting(true);
 
-    // Al usar localStorage, simplemente nos aseguramos de que todo esté guardado localmente
-    saveProgress();
+    // Esperar a guardar todo en la nube antes de mandar el email
+    setSyncStatus('syncing');
+    await saveProgress(true);
 
     // 1. Generar Resumen del Entrenamiento
     const summary = currentWorkout?.exercises.map(entry => {
@@ -741,12 +776,28 @@ ${feedbackText || 'Sin comentarios adicionales.'}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent flex flex-col justify-end p-6 lg:p-10">
             {/* Language Selector */}
             <div className="absolute top-6 right-6 flex gap-2">
-              <button onClick={() => setLanguage('es')} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'es' ? 'bg-yellow-500 text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>ES</button>
-              <button onClick={() => setLanguage('en')} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'en' ? 'bg-yellow-500 text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>EN</button>
-              <button onClick={() => setLanguage('it')} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'it' ? 'bg-yellow-500 text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>IT</button>
+              <button onClick={() => { isDirtyRef.current = true; setLanguage('es'); }} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'es' ? 'bg-yellow-500 text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>ES</button>
+              <button onClick={() => { isDirtyRef.current = true; setLanguage('en'); }} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'en' ? 'bg-yellow-500 text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>EN</button>
+              <button onClick={() => { isDirtyRef.current = true; setLanguage('it'); }} className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] transition-all ${language === 'it' ? 'bg-yellow-500 text-black scale-110 shadow-lg' : 'bg-black/40 text-white backdrop-blur-sm'}`}>IT</button>
             </div>
 
-            <h1 className="text-3xl lg:text-5xl font-black text-white mb-2 tracking-tighter uppercase">{routine.name}</h1>
+            <div className="flex items-center gap-3 flex-wrap mb-2">
+              <h1 className="text-3xl lg:text-5xl font-black text-white tracking-tighter uppercase leading-none">{routine.name}</h1>
+              {syncStatus && (
+                <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all self-center ${
+                  syncStatus === 'syncing' ? 'bg-yellow-500/10 text-yellow-500 animate-pulse' :
+                  syncStatus === 'synced' ? 'bg-green-500/10 text-green-500' :
+                  'bg-red-500/10 text-red-500'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    syncStatus === 'syncing' ? 'bg-yellow-500 animate-ping' :
+                    syncStatus === 'synced' ? 'bg-green-500' :
+                    'bg-red-500'
+                  }`}></span>
+                  {t(syncStatus === 'syncing' ? 'syncing' : syncStatus === 'synced' ? 'synced' : 'syncError')}
+                </div>
+              )}
+            </div>
             <p className="text-yellow-600 font-black text-[10px] lg:text-xs uppercase tracking-widest">{t('hello')}, {routine.clientName}</p>
           </div>
         </div>
@@ -779,7 +830,11 @@ ${feedbackText || 'Sin comentarios adicionales.'}
               <label className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest ml-4 mb-2 block">{t('week')}</label>
               <select
                 value={activeWeekId || ''}
-                onChange={(e) => setActiveWeekId(e.target.value)}
+                onChange={(e) => {
+                  isDirtyRef.current = true;
+                  setSyncStatus('syncing');
+                  setActiveWeekId(e.target.value);
+                }}
                 className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-yellow-500 transition-all outline-none"
               >
                 {routine.weeks.map(week => (
@@ -795,7 +850,11 @@ ${feedbackText || 'Sin comentarios adicionales.'}
               <label className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest ml-4 mb-2 block">{t('day')}</label>
               <select
                 value={activeWorkoutId || ''}
-                onChange={(e) => setActiveWorkoutId(e.target.value)}
+                onChange={(e) => {
+                  isDirtyRef.current = true;
+                  setSyncStatus('syncing');
+                  setActiveWorkoutId(e.target.value);
+                }}
                 className="w-full bg-white dark:bg-darkCard px-6 py-5 rounded-[2rem] font-black uppercase text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-lg appearance-none cursor-pointer focus:border-yellow-600 transition-all outline-none"
               >
                 {currentWeek?.workouts.map(workout => (
@@ -902,7 +961,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                         type="text"
                                         className="bg-transparent border-none w-full text-4xl lg:text-5xl font-['Oswald'] font-black text-center text-slate-900 dark:text-white outline-none"
                                         value={clientReps[currentSet.id] !== undefined ? clientReps[currentSet.id] : currentSet.reps}
-                                        onChange={(e) => setClientReps(prev => ({ ...prev, [currentSet.id]: e.target.value }))}
+                                        onChange={(e) => handleRepsChange(currentSet.id, e.target.value)}
                                       />
                                       <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 text-[11px] font-black text-slate-950 dark:text-slate-400 uppercase tracking-widest text-center">
                                         OBJETIVO: <span className="text-yellow-600 dark:text-yellow-500">{currentSet.reps}</span>
@@ -914,7 +973,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                                         type="tel" 
                                         className="bg-transparent border-none w-full text-4xl lg:text-5xl font-['Oswald'] font-black text-center text-slate-900 dark:text-white outline-none"
                                         value={clientWeights[currentSet.id] !== undefined ? clientWeights[currentSet.id] : currentSet.kg}
-                                        onChange={(e) => setClientWeights(prev => ({ ...prev, [currentSet.id]: e.target.value }))}
+                                        onChange={(e) => handleWeightsChange(currentSet.id, e.target.value)}
                                       />
                                       <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-[9px] font-black text-slate-950 dark:text-slate-400 uppercase tracking-widest text-center">
                                         OBJETIVO: <span className="text-yellow-600 dark:text-yellow-500">{currentSet.kg}KG</span>
@@ -1028,11 +1087,11 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                               completedSets={completedSets} 
                               clientReps={clientReps} 
                               clientWeights={clientWeights} 
-                              setClientReps={setClientReps} 
-                              setClientWeights={setClientWeights} 
+                              onRepsChange={handleRepsChange} 
+                              onWeightsChange={handleWeightsChange} 
+                              onFeelingsChange={handleFeelingsChange}
                               handleSetToggle={handleSetToggle} 
                               feelings={feelings} 
-                              setFeelings={setFeelings}
                             />
                           );
                         });
