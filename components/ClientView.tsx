@@ -497,7 +497,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         if (data.scrollPositions) setScrollPositions(data.scrollPositions);
       }
     }
-  }, [routine]);
+  }, [initialRoutine]);
 
   // Restaurar el scroll al cambiar de entrenamiento
   useEffect(() => {

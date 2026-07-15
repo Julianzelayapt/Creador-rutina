@@ -113,6 +113,10 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   };
 
   const handleSave = async () => {
+    if (currentRoutine.weeks.length === 0) {
+      const confirmEmpty = window.confirm('La rutina no tiene semanas ni ejercicios. ¿Quieres guardarla vacía para generar el link de todas formas?');
+      if (!confirmEmpty) return;
+    }
     const routineId = await onSave(currentRoutine);
     const origin = window.location.origin + window.location.pathname;
     setShareLinks({
