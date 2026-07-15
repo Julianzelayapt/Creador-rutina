@@ -364,7 +364,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         }
       }
     }
-  }, [activeWeekId, routine.weeks]);
+  }, [activeWeekId, routine.weeks, activeWorkoutId]);
 
   /* Timer Logic using robust Date.now() diff for main thread stability */
   useEffect(() => {
