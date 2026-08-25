@@ -54,6 +54,29 @@ const compressBase64Image = (base64Str: string, maxWidth = 800, maxHeight = 600,
   });
 };
 
+const parseRoutineData = (rawRecord: any): Routine | null => {
+  if (!rawRecord) return null;
+  let payload = rawRecord.data !== undefined ? rawRecord.data : rawRecord;
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload);
+    } catch (e) {
+      console.error('Error parsing JSON from payload:', e);
+      return null;
+    }
+  }
+  if (typeof payload === 'object' && payload !== null) {
+    return {
+      ...payload,
+      id: rawRecord.id || payload.id,
+      name: payload.name || rawRecord.name || '',
+      clientName: payload.clientName || rawRecord.client_name || '',
+      weeks: Array.isArray(payload.weeks) ? payload.weeks : []
+    };
+  }
+  return null;
+};
+
 const App: React.FC = () => {
   const [view, setView] = useState<'setup' | 'builder' | 'client'>('setup');
   const [currentRoutine, setCurrentRoutine] = useState<Routine | null>(null);
@@ -118,7 +141,7 @@ const App: React.FC = () => {
       
       if (fullCachedRoutine) {
         try {
-          cachedData = JSON.parse(fullCachedRoutine);
+          cachedData = parseRoutineData(JSON.parse(fullCachedRoutine));
           if (cachedData && cachedData.id === routineId) {
             setCurrentRoutine(cachedData);
             setView(targetView);
@@ -143,18 +166,20 @@ const App: React.FC = () => {
 
         if (error) {
           console.error('Error loading routine from Supabase:', error);
-          if (!cacheFound) alert('No se pudo cargar la rutina. Verifique el enlace.');
-        } else if (data && data.data) {
-          const freshRoutine = { ...data.data, id: data.id };
+          if (!cacheFound) alert('No se pudo cargar la rutina desde la nube. Verifique el enlace.');
+        } else if (data) {
+          const freshRoutine = parseRoutineData(data);
           
-          const remoteHasWeeks = freshRoutine.weeks && freshRoutine.weeks.length > 0;
-          const localHasWeeks = cachedData && cachedData.weeks && cachedData.weeks.length > 0;
+          if (freshRoutine) {
+            const remoteHasWeeks = freshRoutine.weeks && freshRoutine.weeks.length > 0;
+            const localHasWeeks = cachedData && cachedData.weeks && cachedData.weeks.length > 0;
 
-          // Solo actualizar si Supabase tiene semanas armadas o si no teníamos contenido local
-          if (!localHasWeeks || remoteHasWeeks) {
-            setCurrentRoutine(freshRoutine);
-            setView(targetView);
-            localStorage.setItem(fullCacheKey, JSON.stringify(freshRoutine));
+            // Solo actualizar si Supabase tiene semanas armadas o si no teníamos contenido local
+            if (!localHasWeeks || remoteHasWeeks) {
+              setCurrentRoutine(freshRoutine);
+              setView(targetView);
+              localStorage.setItem(fullCacheKey, JSON.stringify(freshRoutine));
+            }
           }
         }
       } catch (e) {
