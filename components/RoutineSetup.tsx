@@ -55,6 +55,17 @@ const compressImage = (file: File, maxWidth = 800, maxHeight = 600, quality = 0.
   });
 };
 
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -76,7 +87,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
     }
 
     const newRoutine: Routine = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: generateUUID(),
       ...formData,
       weeks: [],
       enabledMetrics: {
