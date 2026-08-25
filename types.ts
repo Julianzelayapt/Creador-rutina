@@ -66,6 +66,8 @@ export interface Routine {
   description: string;
   clientName: string;
   image: string;
+  objective?: string;
+  split?: string;
   clientProgress?: ClientProgress;
   weeks: Week[];
   enabledMetrics: {

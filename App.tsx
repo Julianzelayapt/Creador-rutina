@@ -110,17 +110,20 @@ const App: React.FC = () => {
     };
 
     const loadRoutine = async (routineId: string, targetView: 'client' | 'builder') => {
-      // 1. Intentar carga inmediata desde caché local (Solo para vista de cliente)
+      // 1. Intentar carga inmediata desde caché local (para cliente y builder)
       const fullCacheKey = `full_routine_cache_${routineId}`;
       const fullCachedRoutine = localStorage.getItem(fullCacheKey);
       let cacheFound = false;
+      let cachedData: Routine | null = null;
       
-      if (targetView === 'client' && fullCachedRoutine) {
+      if (fullCachedRoutine) {
         try {
-          const parsed = JSON.parse(fullCachedRoutine);
-          setCurrentRoutine(parsed);
-          setView(targetView);
-          cacheFound = true;
+          cachedData = JSON.parse(fullCachedRoutine);
+          if (cachedData && cachedData.id === routineId) {
+            setCurrentRoutine(cachedData);
+            setView(targetView);
+            cacheFound = true;
+          }
         } catch (e) {
           console.error('Error parsing full routine cache:', e);
         }
@@ -131,25 +134,34 @@ const App: React.FC = () => {
       }
 
       // 2. Cargar/Actualizar desde Supabase
-      const { data, error } = await supabase
-        .from('routines')
-        .select('*')
-        .eq('id', routineId)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('routines')
+          .select('*')
+          .eq('id', routineId)
+          .single();
 
-      if (error) {
-        console.error('Error loading routine:', error);
-        if (!cacheFound) alert('No se pudo cargar la rutina. Verifique el enlace.');
-      } else if (data) {
-        const freshRoutine = { ...data.data, id: data.id };
-        
-        setCurrentRoutine(freshRoutine);
-        setView(targetView);
-        
-        // Guardar en caché para la próxima vez
-        localStorage.setItem(fullCacheKey, JSON.stringify(freshRoutine));
+        if (error) {
+          console.error('Error loading routine from Supabase:', error);
+          if (!cacheFound) alert('No se pudo cargar la rutina. Verifique el enlace.');
+        } else if (data && data.data) {
+          const freshRoutine = { ...data.data, id: data.id };
+          
+          const remoteHasWeeks = freshRoutine.weeks && freshRoutine.weeks.length > 0;
+          const localHasWeeks = cachedData && cachedData.weeks && cachedData.weeks.length > 0;
+
+          // Solo actualizar si Supabase tiene semanas armadas o si no teníamos contenido local
+          if (!localHasWeeks || remoteHasWeeks) {
+            setCurrentRoutine(freshRoutine);
+            setView(targetView);
+            localStorage.setItem(fullCacheKey, JSON.stringify(freshRoutine));
+          }
+        }
+      } catch (e) {
+        console.error('Network or Supabase error during load:', e);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     handleHashChange();
@@ -172,26 +184,28 @@ const App: React.FC = () => {
       }
     }
 
-    // Guardar en Supabase primero para asegurar la persistencia
-    const { error } = await supabase
-      .from('routines')
-      .upsert({
-        id: updatedRoutine.id,
-        name: updatedRoutine.name,
-        client_name: updatedRoutine.clientName,
-        data: updatedRoutine
-      });
-
-    if (error) {
-      console.error('Error saving routine:', error);
-      alert(`Error al guardar la rutina: ${error.message}`);
-      return '';
-    }
-
-    // Solo actualizar estado y caché si el guardado fue exitoso
+    // Actualizar estado local y caché de inmediato para que la vista del cliente siempre tenga los datos más recientes
     setCurrentRoutine(updatedRoutine);
     const fullCacheKey = `full_routine_cache_${updatedRoutine.id}`;
     localStorage.setItem(fullCacheKey, JSON.stringify(updatedRoutine));
+
+    // Guardar en Supabase para la persistencia en la nube
+    try {
+      const { error } = await supabase
+        .from('routines')
+        .upsert({
+          id: updatedRoutine.id,
+          name: updatedRoutine.name,
+          client_name: updatedRoutine.clientName,
+          data: updatedRoutine
+        });
+
+      if (error) {
+        console.error('Error saving routine to Supabase:', error);
+      }
+    } catch (e) {
+      console.error('Network or Supabase error:', e);
+    }
 
     return updatedRoutine.id;
   };
