@@ -38,7 +38,10 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
       ...routine,
       enabledMetrics: routine.enabledMetrics || { reps: true, kg: true, rir: true, rmPercentage: false, rest: true, tempo: false }
     });
-  }, [routine.id]);
+  // Sincronizar en tiempo real los cambios del builder hacia la app principal y la caché
+  useEffect(() => {
+    onSave(currentRoutine);
+  }, [currentRoutine]);
 
   // Asegurar que activeWeekId sea válido y no quede en null si hay semanas disponibles
   useEffect(() => {
@@ -669,7 +672,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
               <div className="p-8 bg-green-500 text-white rounded-[2.5rem] shadow-2xl">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-black uppercase tracking-widest">Link Cliente (Solo Ver)</h3>
-                  <button onClick={() => { window.location.hash = `routine/${routine.id}`; onGoToClient(); }} className="px-6 py-3 bg-white text-green-600 rounded-2xl font-black uppercase text-xs">Ir</button>
+                  <button onClick={async () => { await onSave(currentRoutine); window.location.hash = `routine/${currentRoutine.id}`; onGoToClient(); }} className="px-6 py-3 bg-white text-green-600 rounded-2xl font-black uppercase text-xs">Ir</button>
                 </div>
                 <div className="bg-white/10 p-4 rounded-2xl flex items-center justify-between gap-4">
                   <p className="text-xs font-bold truncate">{shareLinks.client}</p>
@@ -715,6 +718,26 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     onChange={e => setCurrentRoutine({ ...currentRoutine, clientName: e.target.value })}
                     placeholder="NOMBRE DEL ASESORADO"
                   />
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1 flex items-center gap-3">
+                    <span className="text-blue-500 font-black text-[10px] uppercase tracking-widest bg-blue-500/10 px-3 py-1 rounded-lg">OBJETIVO</span>
+                    <input
+                      className="flex-1 bg-transparent text-blue-500 font-black text-xs lg:text-sm uppercase tracking-widest focus:outline-none border-b border-transparent focus:border-blue-500/30 pb-0.5"
+                      value={currentRoutine.objective || ''}
+                      onChange={e => setCurrentRoutine({ ...currentRoutine, objective: e.target.value })}
+                      placeholder="EJ. HIPERTROFIA"
+                    />
+                  </div>
+                  <div className="flex-1 flex items-center gap-3">
+                    <span className="text-purple-500 font-black text-[10px] uppercase tracking-widest bg-purple-500/10 px-3 py-1 rounded-lg">SPLIT</span>
+                    <input
+                      className="flex-1 bg-transparent text-purple-500 font-black text-xs lg:text-sm uppercase tracking-widest focus:outline-none border-b border-transparent focus:border-purple-500/30 pb-0.5"
+                      value={currentRoutine.split || ''}
+                      onChange={e => setCurrentRoutine({ ...currentRoutine, split: e.target.value })}
+                      placeholder="EJ. PUSH PULL LEGS"
+                    />
+                  </div>
                 </div>
                 <textarea
                   className="w-full bg-transparent text-slate-500 dark:text-slate-400 font-medium text-xs lg:text-sm focus:outline-none border-l-2 border-slate-100 dark:border-slate-800 pl-4 py-1 h-auto resize-none overflow-hidden"

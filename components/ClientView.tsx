@@ -219,7 +219,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         sendSummary: 'Enviar Resumen',
         keepEditing: 'Seguir Editando',
         selectDay: 'Selecciona un día para empezar',
-        noContent: 'Tu coach aún no ha cargado contenido',
+        noContent: 'Esperando a que el coach cargue la rutina',
         pause: 'Pausa',
         tip: 'Tip',
         set: 'SERIE',
@@ -254,7 +254,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         sendSummary: 'Send Summary',
         keepEditing: 'Keep Editing',
         selectDay: 'Select a day to start',
-        noContent: 'Your coach has not uploaded content yet',
+        noContent: 'Waiting for coach to upload the routine',
         pause: 'Rest',
         tip: 'Tip',
         set: 'SET',
@@ -289,7 +289,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         sendSummary: 'Invia Riepilogo',
         keepEditing: 'Continua a Modificare',
         selectDay: 'Seleziona un giorno per iniziare',
-        noContent: 'Il tuo coach non ha ancora caricato contenuti',
+        noContent: 'In attesa che il coach carichi la routine',
         pause: 'Pausa',
         tip: 'Consiglio',
         set: 'SERIE',
@@ -799,6 +799,18 @@ ${feedbackText || 'Sin comentarios adicionales.'}
               )}
             </div>
             <p className="text-yellow-600 font-black text-[10px] lg:text-xs uppercase tracking-widest">{t('hello')}, {routine.clientName}</p>
+          </div>
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {routine.objective && (
+              <span className="bg-blue-500/20 text-blue-100 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
+                OBJ: {routine.objective}
+              </span>
+            )}
+            {routine.split && (
+              <span className="bg-purple-500/20 text-purple-100 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
+                SPLIT: {routine.split}
+              </span>
+            )}
           </div>
         </div>
         <div className="p-6 lg:p-8">
