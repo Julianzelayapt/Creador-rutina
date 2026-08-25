@@ -202,9 +202,11 @@ const App: React.FC = () => {
 
       if (error) {
         console.error('Error saving routine to Supabase:', error);
+        alert(`⚠️ Atención: No se pudo guardar en la nube (Supabase): ${error.message}`);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Network or Supabase error:', e);
+      alert(`⚠️ Error de red/conexión con Supabase: ${e?.message || e}`);
     }
 
     return updatedRoutine.id;
