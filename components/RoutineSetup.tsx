@@ -69,6 +69,8 @@ const generateUUID = () => {
 const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
   const [formData, setFormData] = useState({
     name: '',
+    objective: '',
+    split: '',
     description: '',
     clientName: '',
     image: SAMPLE_IMAGES[0]
@@ -146,15 +148,27 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Descripción</label>
-            <textarea
-              placeholder="Escribe los objetivos o detalles..."
-              rows={2}
-              className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-yellow-600 outline-none transition-all font-medium text-slate-600 dark:text-slate-400 resize-none"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Objetivo</label>
+              <input
+                type="text"
+                placeholder="Ej: Hipertrofia / Fuerza"
+                className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-yellow-600 outline-none transition-all font-bold text-slate-800 dark:text-white"
+                value={formData.objective}
+                onChange={(e) => setFormData({ ...formData, objective: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Split</label>
+              <input
+                type="text"
+                placeholder="Ej: Push Pull Legs"
+                className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-yellow-600 outline-none transition-all font-bold text-slate-800 dark:text-white"
+                value={formData.split}
+                onChange={(e) => setFormData({ ...formData, split: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
