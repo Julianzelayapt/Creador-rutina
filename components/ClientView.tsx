@@ -351,17 +351,13 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   useEffect(() => {
     if (activeWeekId) {
       const week = routine.weeks.find(w => w.id === activeWeekId);
-      if (week && week.workouts.length > 0) {
-        // Solo establecer el primer día si NO hay uno ya seleccionado o cargado
-        if (!activeWorkoutId) {
+      if (week && Array.isArray(week.workouts) && week.workouts.length > 0) {
+        // Solo establecer el primer día si NO hay uno ya seleccionado o cargado en esta semana
+        if (!activeWorkoutId || !week.workouts.some(wk => wk.id === activeWorkoutId)) {
           setActiveWorkoutId(week.workouts[0].id);
-        } else {
-          // Si hay uno seleccionado, verificar que pertenezca a esta semana
-          const belongsToWeek = week.workouts.some(wk => wk.id === activeWorkoutId);
-          if (!belongsToWeek) {
-            setActiveWorkoutId(week.workouts[0].id);
-          }
         }
+      } else {
+        setActiveWorkoutId(null);
       }
     }
   }, [activeWeekId, routine.weeks, activeWorkoutId]);
@@ -1125,7 +1121,7 @@ ${feedbackText || 'Sin comentarios adicionales.'}
                 </div>
               ) : (
                 <div className="text-center py-24 bg-white dark:bg-darkCard rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
-                  <p className="font-bold text-slate-900 uppercase tracking-widest text-sm">{t('selectDay')}</p>
+                  <p className="font-bold text-slate-900 dark:text-slate-200 uppercase tracking-widest text-sm">{t('selectDay')}</p>
                 </div>
               )}
             </div>

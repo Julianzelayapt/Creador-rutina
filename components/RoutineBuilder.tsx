@@ -32,15 +32,21 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   const [showSupersetModal, setShowSupersetModal] = useState(false);
   const [supersetForm, setSupersetForm] = useState<{ ex1Id: string | null, ex2Id: string | null, rest: string }>({ ex1Id: null, ex2Id: null, rest: '2:00' });
 
-  // Sincronizar el estado local cuando la rutina cambia de ID
+  // Sincronizar el estado local únicamente cuando cambia el ID de la rutina recibida por prop
   useEffect(() => {
     setCurrentRoutine({
       ...routine,
       enabledMetrics: routine.enabledMetrics || { reps: true, kg: true, rir: true, rmPercentage: false, rest: true, tempo: false }
     });
-  // Sincronizar en tiempo real los cambios del builder hacia la app principal y la caché
+  }, [routine.id]);
+
+  // Sincronizar en tiempo real los cambios del builder con debounce para evitar bucles y sobreescrituras
   useEffect(() => {
-    onSave(currentRoutine);
+    if (!currentRoutine.id) return;
+    const timer = setTimeout(() => {
+      onSave(currentRoutine);
+    }, 400);
+    return () => clearTimeout(timer);
   }, [currentRoutine]);
 
   // Asegurar que activeWeekId sea válido y no quede en null si hay semanas disponibles
@@ -56,16 +62,16 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   useEffect(() => {
     if (activeWeekId) {
       const week = currentRoutine.weeks.find(w => w.id === activeWeekId);
-      if (week && week.workouts.length > 0) {
+      if (week && Array.isArray(week.workouts) && week.workouts.length > 0) {
         // Si no hay workout seleccionado o el seleccionado no pertenece a esta semana
-        if (!activeWorkoutId || !week.workouts.find(wk => wk.id === activeWorkoutId)) {
+        if (!activeWorkoutId || !week.workouts.some(wk => wk.id === activeWorkoutId)) {
           setActiveWorkoutId(week.workouts[0].id);
         }
       } else {
         setActiveWorkoutId(null);
       }
     }
-  }, [activeWeekId, currentRoutine.weeks]);
+  }, [activeWeekId, currentRoutine.weeks, activeWorkoutId]);
 
   const onDragEnd = (result: any) => {
     if (!result.destination) return;
