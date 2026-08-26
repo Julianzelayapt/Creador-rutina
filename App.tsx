@@ -56,7 +56,7 @@ const compressBase64Image = (base64Str: string, maxWidth = 800, maxHeight = 600,
 
 const parseRoutineData = (rawRecord: any): Routine | null => {
   if (!rawRecord) return null;
-  let payload = rawRecord.data !== undefined ? rawRecord.data : rawRecord;
+  let payload = (rawRecord.data !== undefined && rawRecord.data !== null) ? rawRecord.data : rawRecord;
   if (typeof payload === 'string') {
     try {
       payload = JSON.parse(payload);
@@ -66,12 +66,48 @@ const parseRoutineData = (rawRecord: any): Routine | null => {
     }
   }
   if (typeof payload === 'object' && payload !== null) {
+    const rawWeeks = Array.isArray(payload.weeks) ? payload.weeks : [];
+    const weeks = rawWeeks.map((w: any) => ({
+      id: w.id || Math.random().toString(36).substr(2, 9),
+      name: w.name || 'Semana',
+      workouts: Array.isArray(w.workouts) ? w.workouts.map((wk: any) => ({
+        id: wk.id || Math.random().toString(36).substr(2, 9),
+        name: wk.name || 'Día',
+        warmup: wk.warmup || '',
+        exercises: Array.isArray(wk.exercises) ? wk.exercises.map((ex: any) => ({
+          id: ex.id || Math.random().toString(36).substr(2, 9),
+          libraryExerciseId: ex.libraryExerciseId || '',
+          sets: Array.isArray(ex.sets) ? ex.sets.map((s: any) => ({
+            id: s.id || Math.random().toString(36).substr(2, 9),
+            reps: s.reps ?? '10',
+            kg: s.kg ?? '0',
+            rir: s.rir ?? '2',
+            rmPercentage: s.rmPercentage ?? '-',
+            rest: s.rest ?? '2:00',
+            tempo: s.tempo,
+            dropsets: Array.isArray(s.dropsets) ? s.dropsets : []
+          })) : [],
+          supersetGroupId: ex.supersetGroupId,
+          supersetLabel: ex.supersetLabel,
+          supersetOrder: ex.supersetOrder,
+          supersetRest: ex.supersetRest,
+          supersetFinalRest: ex.supersetFinalRest,
+          customTip: ex.customTip
+        })) : []
+      })) : []
+    }));
+
     return {
       ...payload,
       id: rawRecord.id || payload.id,
       name: payload.name || rawRecord.name || '',
       clientName: payload.clientName || rawRecord.client_name || '',
-      weeks: Array.isArray(payload.weeks) ? payload.weeks : []
+      objective: payload.objective || rawRecord.objective || '',
+      split: payload.split || rawRecord.split || '',
+      description: payload.description || rawRecord.description || '',
+      image: payload.image || rawRecord.image || '',
+      enabledMetrics: payload.enabledMetrics || { reps: true, kg: true, rir: true, rmPercentage: false, rest: true, tempo: false },
+      weeks
     };
   }
   return null;
@@ -171,14 +207,32 @@ const App: React.FC = () => {
           const freshRoutine = parseRoutineData(data);
           
           if (freshRoutine) {
-            const remoteHasWeeks = freshRoutine.weeks && freshRoutine.weeks.length > 0;
-            const localHasWeeks = cachedData && cachedData.weeks && cachedData.weeks.length > 0;
+            const countContent = (r: Routine | null) => {
+              if (!r || !Array.isArray(r.weeks)) return 0;
+              return r.weeks.reduce((acc, w) => {
+                const wks = Array.isArray(w.workouts) ? w.workouts : [];
+                const exCount = wks.reduce((wAcc, wk) => wAcc + (Array.isArray(wk.exercises) ? wk.exercises.length : 0) + 1, 0);
+                return acc + exCount;
+              }, 0);
+            };
 
-            // Solo actualizar si Supabase tiene semanas armadas o si no teníamos contenido local
-            if (!localHasWeeks || remoteHasWeeks) {
+            const remoteCount = countContent(freshRoutine);
+            const localCount = countContent(cachedData);
+
+            if (!cachedData || remoteCount >= localCount) {
               setCurrentRoutine(freshRoutine);
               setView(targetView);
               localStorage.setItem(fullCacheKey, JSON.stringify(freshRoutine));
+            } else if (cachedData) {
+              setCurrentRoutine(cachedData);
+              setView(targetView);
+              // Sincronizar hacia Supabase la versión con contenido local
+              supabase.from('routines').upsert({
+                id: cachedData.id,
+                name: cachedData.name,
+                client_name: cachedData.clientName,
+                data: cachedData
+              }).catch(e => console.error('Error auto-syncing local cache:', e));
             }
           }
         }
