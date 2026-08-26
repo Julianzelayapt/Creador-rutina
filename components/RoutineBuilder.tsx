@@ -121,18 +121,30 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
     });
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
+
   const handleSave = async () => {
     if (currentRoutine.weeks.length === 0) {
       const confirmEmpty = window.confirm('La rutina no tiene semanas ni ejercicios. ¿Quieres guardarla vacía para generar el link de todas formas?');
       if (!confirmEmpty) return;
     }
-    const routineId = await onSave(currentRoutine);
-    const origin = window.location.origin + window.location.pathname;
-    setShareLinks({
-      client: `${origin}#routine/${routineId}`,
-      builder: `${origin}#builder/${routineId}`
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsSaving(true);
+    try {
+      const routineId = await onSave(currentRoutine);
+      const origin = window.location.origin + window.location.pathname;
+      setShareLinks({
+        client: `${origin}#routine/${routineId}`,
+        builder: `${origin}#builder/${routineId}`
+      });
+      setSavedMessage('¡Rutina guardada exitosamente en la nube y lista para compartir! 🚀');
+      setTimeout(() => setSavedMessage(null), 4000);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e: any) {
+      alert(`⚠️ Error al guardar: ${e?.message || e}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const addWeek = () => {
@@ -535,6 +547,14 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
 
   return (
     <div className="flex min-h-screen bg-slate-100 dark:bg-black transition-colors relative">
+      {/* Toast Notificación de Guardado */}
+      {savedMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-green-500 text-white font-black text-xs lg:text-sm px-8 py-4 rounded-[2rem] shadow-2xl z-[200] flex items-center gap-3 animate-in slide-in-from-top-6 duration-300">
+          <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+          <span>{savedMessage}</span>
+        </div>
+      )}
+
       {/* Overlay Móvil */}
       {isSidebarOpen && (
         <div
@@ -761,10 +781,17 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
             
             <button 
               onClick={handleSave} 
-              className="w-full lg:w-auto px-10 py-5 bg-yellow-400 text-black rounded-[1.5rem] font-black text-xs lg:text-sm uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-yellow-500/20 active:shadow-inner flex items-center justify-center gap-3"
+              disabled={isSaving}
+              className="w-full lg:w-auto px-10 py-5 bg-yellow-400 text-black rounded-[1.5rem] font-black text-xs lg:text-sm uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-yellow-500/20 active:shadow-inner flex items-center justify-center gap-3 disabled:opacity-50 cursor-pointer"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-              Guardar Cambios
+              <svg className={`w-5 h-5 ${isSaving ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isSaving ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 12a8 8 0 018-8v8H4z" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                )}
+              </svg>
+              {isSaving ? 'GUARDANDO EN LA NUBE...' : 'GUARDAR CAMBIOS'}
             </button>
           </div>
 
