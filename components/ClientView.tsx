@@ -547,7 +547,7 @@ ${feedbackText || 'Sin comentarios.'}
   if (showFeedbackScreen) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col justify-center px-4 py-12 animate-in fade-in duration-300">
-        <div className="max-w-md mx-auto w-full bg-[#18181b] border border-white/10 rounded-3xl p-8 text-center shadow-2xl">
+        <div className="max-w-md mx-auto w-full bg-[#18181b] border border-white/10 rounded-2xl p-6 sm:p-8 text-center shadow-2xl">
           {!isSubmitted ? (
             <>
               <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-6">
@@ -668,7 +668,7 @@ ${feedbackText || 'Sin comentarios.'}
       {/* History Modal for a specific exercise */}
       {historyExerciseId && (
         <div className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#18181b] border border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-[#18181b] border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg text-white">
                 {library.find(l => l.id === historyExerciseId)?.name || 'Historial'}
@@ -686,7 +686,7 @@ ${feedbackText || 'Sin comentarios.'}
               {routine.weeks.map((week, wIdx) => {
                 const maxInWeek = weeklySnapshots[week.id]?.[historyExerciseId];
                 return (
-                  <div key={week.id} className="flex items-center justify-between p-3.5 bg-zinc-900 rounded-2xl border border-white/5">
+                  <div key={week.id} className="flex items-center justify-between p-3.5 bg-zinc-900 rounded-xl border border-white/5">
                     <span className="text-xs font-semibold text-zinc-400">{week.name || `Semana ${wIdx + 1}`}</span>
                     <span className="text-sm font-bold text-white font-mono">
                       {maxInWeek ? `${maxInWeek} kg (Máx)` : 'Sin registro'}
@@ -702,7 +702,7 @@ ${feedbackText || 'Sin comentarios.'}
       {/* Finish Workout Confirmation Modal (Image 3) */}
       {showFinishModal && (
         <div className="fixed inset-0 z-[220] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#1c1c1e] border border-white/10 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-200 text-center">
+          <div className="bg-[#1c1c1e] border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-200 text-center">
             <div className="w-10 h-1 bg-zinc-600 rounded-full mx-auto mb-6 sm:hidden"></div>
             <h3 className="text-2xl font-bold text-white mb-2">{t('finishTitle')}</h3>
             <p className="text-zinc-400 text-sm leading-relaxed mb-8">{t('finishDesc')}</p>
@@ -728,11 +728,11 @@ ${feedbackText || 'Sin comentarios.'}
       )}
 
       {/* Main Tab Navigation: Training vs Progressive Overload */}
-      <div className="max-w-xl mx-auto px-4 pt-6 pb-4 flex items-center justify-between">
-        <div className="flex gap-2 bg-zinc-900/90 border border-white/10 p-1 rounded-full">
+      <div className="max-w-xl mx-auto px-4 pt-5 pb-3 flex items-center justify-between">
+        <div className="flex gap-1.5 bg-zinc-900 border border-white/10 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab('training')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all ${
               activeTab === 'training' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
             }`}
           >
@@ -740,24 +740,13 @@ ${feedbackText || 'Sin comentarios.'}
           </button>
           <button
             onClick={() => setActiveTab('overload')}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all ${
               activeTab === 'overload' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
             }`}
           >
             Sobrecarga Progresiva
           </button>
         </div>
-
-        {/* Sync Status Badge */}
-        {syncStatus && (
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
-            <span className={`w-2 h-2 rounded-full ${
-              syncStatus === 'syncing' ? 'bg-yellow-400 animate-pulse' :
-              syncStatus === 'synced' ? 'bg-emerald-400' : 'bg-red-400'
-            }`}></span>
-            {t(syncStatus)}
-          </div>
-        )}
       </div>
 
       {activeTab === 'overload' ? (
@@ -775,10 +764,10 @@ ${feedbackText || 'Sin comentarios.'}
           {/* SUBVIEW 1: DASHBOARD (SEMANAS + CAJITAS DE ENFOQUES - Image 4)            */}
           {/* ========================================================================= */}
           {viewMode === 'dashboard' && (
-            <div className="max-w-xl mx-auto px-4 space-y-6 animate-in fade-in duration-300">
+            <div className="max-w-xl mx-auto px-4 space-y-5 animate-in fade-in duration-300">
 
               {/* Routine Cover & Header */}
-              <div className="relative rounded-3xl overflow-hidden bg-zinc-900 border border-white/10 aspect-[16/10] flex flex-col justify-end p-6 shadow-xl">
+              <div className="relative rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 aspect-[16/9] flex flex-col justify-end p-5 shadow-lg">
                 {routine.image && (
                   <img
                     src={routine.image}
@@ -789,32 +778,32 @@ ${feedbackText || 'Sin comentarios.'}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
 
                 <div className="relative z-10">
-                  <h1 className="text-3xl font-black tracking-tight text-white uppercase">{routine.name}</h1>
-                  <p className="text-zinc-300 text-xs font-semibold uppercase tracking-widest mt-1">
+                  <h1 className="text-2xl font-bold tracking-tight text-white uppercase">{routine.name}</h1>
+                  <p className="text-zinc-300 text-xs font-medium tracking-wide mt-0.5">
                     by {routine.clientName || 'COACH'}
                   </p>
                   {routine.description && (
-                    <p className="text-zinc-400 text-xs mt-2 line-clamp-2">{routine.description}</p>
+                    <p className="text-zinc-400 text-xs mt-1.5 line-clamp-2">{routine.description}</p>
                   )}
                 </div>
               </div>
 
               {/* Stats Card: Weeks | Workouts | Completed % */}
-              <div className="bg-[#18181b] border border-white/5 rounded-3xl p-5 flex items-center justify-between shadow-lg">
+              <div className="bg-[#18181b] border border-white/5 rounded-2xl p-4 flex items-center justify-between shadow-md">
                 <div className="flex-1 text-center border-r border-white/5">
-                  <span className="text-2xl font-black text-white leading-none block">{routine.weeks.length}</span>
-                  <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mt-1 block">
+                  <span className="text-xl font-bold text-white leading-none block">{routine.weeks.length}</span>
+                  <span className="text-[11px] font-medium text-zinc-400 mt-1 block">
                     {t('weeks')}
                   </span>
                 </div>
                 <div className="flex-1 text-center border-r border-white/5">
-                  <span className="text-2xl font-black text-white leading-none block">{totalWorkouts}</span>
-                  <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mt-1 block">
+                  <span className="text-xl font-bold text-white leading-none block">{totalWorkouts}</span>
+                  <span className="text-[11px] font-medium text-zinc-400 mt-1 block">
                     {t('workouts')}
                   </span>
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center">
-                  <div className="relative w-11 h-11 flex items-center justify-center">
+                  <div className="relative w-10 h-10 flex items-center justify-center">
                     <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                       <path
                         className="text-zinc-800"
@@ -833,26 +822,26 @@ ${feedbackText || 'Sin comentarios.'}
                         d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       />
                     </svg>
-                    <span className="absolute text-[10px] font-black">{completionPercent}%</span>
+                    <span className="absolute text-[10px] font-bold">{completionPercent}%</span>
                   </div>
-                  <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mt-1">
+                  <span className="text-[10px] font-medium text-zinc-400 mt-1">
                     {totalCompletedSetsInRoutine}/{totalSetsInRoutine} {t('completed')}
                   </span>
                 </div>
               </div>
 
-              {/* Week Pills Selector (ONLY WEEKS, NO DAYS HERE!) */}
+              {/* Week Pills Selector (ONLY WEEKS) */}
               <div>
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                   {routine.weeks.map((week, idx) => {
                     const isSelected = week.id === activeWeekId;
                     return (
                       <button
                         key={week.id}
                         onClick={() => setActiveWeekId(week.id)}
-                        className={`px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                        className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                           isSelected
-                            ? 'bg-white text-black shadow-md scale-100'
+                            ? 'bg-white text-black shadow-sm'
                             : 'bg-[#18181b] text-zinc-400 border border-white/5 hover:text-white'
                         }`}
                       >
@@ -864,7 +853,7 @@ ${feedbackText || 'Sin comentarios.'}
               </div>
 
               {/* Workouts / Focus List for Selected Week */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {currentWeek?.workouts && currentWeek.workouts.length > 0 ? (
                   currentWeek.workouts.map(workout => {
                     const exercisePreview = workout.exercises
@@ -879,24 +868,24 @@ ${feedbackText || 'Sin comentarios.'}
                           setActiveWorkoutId(workout.id);
                           setViewMode('preview');
                         }}
-                        className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-3xl p-5 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all shadow-lg group"
+                        className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-2xl p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
                       >
-                        <div className="flex items-center gap-4 min-w-0 pr-2">
+                        <div className="flex items-center gap-3.5 min-w-0 pr-2">
                           {/* Dumbbell Icon Badge */}
-                          <div className="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-zinc-700/80 transition-colors">
-                            <svg className="w-6 h-6 text-zinc-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <div className="w-11 h-11 rounded-xl bg-zinc-800/80 border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-zinc-700/80 transition-colors">
+                            <svg className="w-5 h-5 text-zinc-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
                             </svg>
                           </div>
 
                           <div className="min-w-0">
-                            <h3 className="font-black text-white text-base tracking-wide uppercase truncate">
+                            <h3 className="font-bold text-white text-sm tracking-tight uppercase truncate">
                               {workout.name}
                             </h3>
                             <p className="text-zinc-400 text-xs truncate mt-0.5">
                               {exercisePreview || 'Sin ejercicios'}
                             </p>
-                            <span className="text-[11px] font-semibold text-zinc-500 mt-1 block">
+                            <span className="text-[11px] font-medium text-zinc-500 mt-0.5 block">
                               {workout.exercises.length} {t('exercisesCount')}
                             </span>
                           </div>
@@ -904,7 +893,7 @@ ${feedbackText || 'Sin comentarios.'}
 
                         {/* Chevron right */}
                         <div className="text-zinc-600 group-hover:text-white transition-colors shrink-0 pl-2">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
                           </svg>
                         </div>
@@ -912,7 +901,7 @@ ${feedbackText || 'Sin comentarios.'}
                     );
                   })
                 ) : (
-                  <div className="p-8 text-center text-zinc-500 bg-[#18181b] rounded-3xl border border-white/5">
+                  <div className="p-8 text-center text-zinc-500 bg-[#18181b] rounded-2xl border border-white/5 text-sm">
                     {t('noWorkouts')}
                   </div>
                 )}
@@ -924,62 +913,76 @@ ${feedbackText || 'Sin comentarios.'}
           {/* SUBVIEW 2: WORKOUT PREVIEW (EXERCISE LIST + START WORKOUT BUTTON - Image 2)*/}
           {/* ========================================================================= */}
           {viewMode === 'preview' && currentWorkout && (
-            <div className="max-w-xl mx-auto px-4 space-y-6 animate-in slide-in-from-right-4 duration-300">
+            <div className="max-w-xl mx-auto px-4 space-y-4 animate-in slide-in-from-right-4 duration-300">
 
               {/* Top Bar with Back Arrow */}
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center justify-between pt-1">
                 <button
                   onClick={() => setViewMode('dashboard')}
-                  className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-xs font-bold uppercase tracking-wider p-2 -ml-2 rounded-full hover:bg-white/5 transition-colors"
+                  className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-xs font-semibold uppercase tracking-wider p-2 -ml-2 rounded-xl hover:bg-white/5 transition-colors"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
                   </svg>
                   Volver
                 </button>
               </div>
 
-              {/* Title */}
+              {/* Title & Workout Instructions */}
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
+                <h1 className="text-2xl font-bold tracking-tight text-white uppercase">
                   {currentWorkout.name}
                 </h1>
+                <p className="text-xs text-zinc-400 font-medium mt-0.5">
+                  {currentWorkout.exercises.length} ejercicios · {activeWorkoutTotalSets} series
+                </p>
                 {currentWorkout.warmup && (
-                  <p className="text-xs text-zinc-400 mt-1 font-medium">
+                  <p className="text-xs text-zinc-300 mt-2 p-3 bg-zinc-900 border border-white/5 rounded-xl font-medium">
                     🔥 {currentWorkout.warmup}
                   </p>
                 )}
               </div>
 
-              {/* Two Stat Cards: Exercises | Total Sets */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#1c1c1e] border border-white/5 rounded-3xl p-4 text-center">
-                  <span className="text-2xl font-black text-white block">{currentWorkout.exercises.length}</span>
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1 block">
-                    {t('exercisesCount').toUpperCase()}
-                  </span>
-                </div>
-                <div className="bg-[#1c1c1e] border border-white/5 rounded-3xl p-4 text-center">
-                  <span className="text-2xl font-black text-white block">{activeWorkoutTotalSets}</span>
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1 block">
-                    {t('totalSets')}
-                  </span>
-                </div>
+              {/* Compact Start Workout Button at Top of List */}
+              <div>
+                <button
+                  onClick={() => {
+                    initAudio();
+                    setViewMode('active');
+                  }}
+                  className="w-full py-3.5 px-6 bg-white text-black font-bold text-sm rounded-xl hover:bg-zinc-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <svg className="w-4 h-4 fill-black" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  {t('startWorkout')}
+                </button>
               </div>
 
-              {/* Exercises Preview List */}
-              <div className="space-y-3">
+              {/* Exercises Preview List (Clicking ANY exercise also starts the workout!) */}
+              <div className="space-y-2 pt-1">
+                <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block ml-1">
+                  Ejercicios (toca para entrenar)
+                </span>
                 {currentWorkout.exercises.map((entry, idx) => {
                   const libEx = library.find(l => l.id === entry.libraryExerciseId);
                   const firstSet = entry.sets[0];
                   return (
                     <div
                       key={entry.id || idx}
-                      className="bg-[#18181b] border border-white/5 rounded-2xl p-3.5 flex items-center justify-between"
+                      onClick={() => {
+                        initAudio();
+                        setViewMode('active');
+                        setTimeout(() => {
+                          const el = document.getElementById(`exercise-${entry.id}`);
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 120);
+                      }}
+                      className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-xl p-3 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all group shadow-sm"
                     >
-                      <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0">
                         {/* Circle Thumbnail */}
-                        <div className="w-12 h-12 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                        <div className="w-11 h-11 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
                           {libEx?.muscleImage ? (
                             <img src={libEx.muscleImage} alt={libEx.name} className="w-full h-full object-cover" />
                           ) : (
@@ -990,7 +993,7 @@ ${feedbackText || 'Sin comentarios.'}
                         </div>
 
                         <div className="min-w-0">
-                          <h4 className="font-bold text-white text-sm truncate">
+                          <h4 className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">
                             {libEx?.name || 'Ejercicio'}
                           </h4>
                           <p className="text-xs text-zinc-400 font-mono mt-0.5">
@@ -999,32 +1002,21 @@ ${feedbackText || 'Sin comentarios.'}
                         </div>
                       </div>
 
-                      {(entry.customTip || libEx?.tip) && (
-                        <div className="p-2 text-zinc-500">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {(entry.customTip || libEx?.tip) && (
+                          <div className="p-1.5 text-zinc-500">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                          </div>
+                        )}
+                        <svg className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </div>
                   );
                 })}
-              </div>
-
-              {/* Start Workout Button (Pill Button at Bottom) */}
-              <div className="pt-4">
-                <button
-                  onClick={() => {
-                    initAudio();
-                    setViewMode('active');
-                  }}
-                  className="w-full py-5 bg-white text-black font-black uppercase tracking-wider text-base rounded-full shadow-[0_15px_35px_rgba(255,255,255,0.15)] hover:bg-zinc-200 active:scale-95 transition-all flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                  {t('startWorkout')}
-                </button>
               </div>
             </div>
           )}
@@ -1075,8 +1067,9 @@ ${feedbackText || 'Sin comentarios.'}
 
                   return (
                     <div
+                      id={`exercise-${entry.id}`}
                       key={entry.id || eIdx}
-                      className="bg-[#18181b] border border-white/5 rounded-3xl p-5 shadow-xl transition-all"
+                      className="bg-[#18181b] border border-white/5 rounded-2xl p-4 sm:p-5 shadow-lg transition-all scroll-mt-6"
                     >
                       {/* Exercise Header */}
                       <div className="flex items-start justify-between gap-3 mb-4">
