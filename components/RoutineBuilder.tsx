@@ -205,7 +205,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
         if (w.id === weekId) {
           const newWorkout: Workout = {
             id: newWorkoutId,
-            name: `Día ${w.workouts.length + 1}`,
+            name: `Enfoque ${w.workouts.length + 1}`,
             warmup: '',
             exercises: []
           };
@@ -866,10 +866,10 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 </button>
               </div>
 
-              {/* TABS DE DÍAS (AHORA DROPBOX) */}
+              {/* TABS DE ENFOQUES (DROPBOX) */}
               <div className="flex flex-col md:flex-row gap-4 mb-10">
                 <div className="relative group flex-1">
-                  <label className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest ml-4 mb-2 block">Seleccionar Día</label>
+                  <label className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest ml-4 mb-2 block">Seleccionar Enfoque</label>
                   <select
                     value={activeWorkoutId || ''}
                     onChange={(e) => setActiveWorkoutId(e.target.value)}
@@ -888,7 +888,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                   className="px-8 py-5 border-2 border-dashed border-slate-300 dark:border-slate-800 text-slate-950 dark:text-white rounded-[2rem] font-black text-[10px] uppercase hover:border-yellow-600 hover:text-yellow-600 transition-all flex items-center justify-center gap-2 h-[66px]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
-                  AGREGAR DÍA
+                  AGREGAR ENFOQUE
                 </button>
               </div>
 
@@ -908,13 +908,13 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                       className="p-3 text-red-400 hover:text-red-600 transition-all flex items-center gap-2 font-black text-[10px] uppercase"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      Borrar Día
+                      Borrar Enfoque
                     </button>
                   </div>
 
                   <div className="mb-10 p-6 bg-orange-50/30 dark:bg-orange-500/10 rounded-[2rem] border-2 border-dashed border-orange-200/50 dark:border-orange-500/40 transition-all focus-within:border-orange-500">
                     <textarea
-                      placeholder="Instrucciones del día (calentamiento, foco, etc.)..."
+                      placeholder="Instrucciones del enfoque (calentamiento, foco, etc.)..."
                       className="w-full bg-transparent p-2 rounded-2xl text-sm font-black outline-none h-20 text-slate-700 dark:text-white placeholder:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
                       value={currentWorkout.warmup || ''}
 onChange={(e) => setCurrentRoutine({
@@ -1140,8 +1140,8 @@ onChange={(e) => setCurrentRoutine({
                 </div>
               ) : (
                 <div className="text-center py-20 bg-white dark:bg-darkCard rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
-                  <p className="font-black text-slate-950 dark:text-white uppercase tracking-widest text-sm mb-6">No hay días creados en esta semana</p>
-                  <button onClick={() => addWorkout(currentWeek.id)} className="px-10 py-5 bg-yellow-400 text-black rounded-3xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">Empezar Día 1</button>
+                  <p className="font-black text-slate-950 dark:text-white uppercase tracking-widest text-sm mb-6">No hay enfoques creados en esta semana</p>
+                  <button onClick={() => addWorkout(currentWeek.id)} className="px-10 py-5 bg-yellow-400 text-black rounded-3xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">Empezar Enfoque 1</button>
                 </div>
               )}
             </div>
