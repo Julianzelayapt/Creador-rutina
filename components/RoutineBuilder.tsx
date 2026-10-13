@@ -1275,6 +1275,9 @@ onChange={(e) => setCurrentRoutine({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
       {/* Modal Reposicionar Portada */}
       {showImageModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
