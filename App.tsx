@@ -122,17 +122,10 @@ const App: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Aplicar modo oscuro al elemento raíz
+  // Forzar modo oscuro siempre
   useEffect(() => {
-    const root = window.document.documentElement;
-    if (isDarkMode) {
-      root.classList.add('dark');
-      localStorage.setItem(THEME_KEY, 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem(THEME_KEY, 'light');
-    }
-  }, [isDarkMode]);
+    window.document.documentElement.classList.add('dark');
+  }, []);
 
   // Cargar biblioteca y detectar ruta por hash inicial y cambios
   useEffect(() => {
@@ -349,23 +342,7 @@ const App: React.FC = () => {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-black text-white' : 'bg-slate-100 text-slate-900'}`}>
-      <div className="fixed top-4 right-4 z-[100] flex gap-2">
-        <button
-          onClick={toggleTheme}
-          className="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white rounded-full shadow-2xl border border-slate-200 dark:border-slate-700 active:scale-90 transition-all font-bold text-xs"
-        >
-          {isDarkMode ? '☀️ CLARO' : '🌙 OSCURO'}
-        </button>
-        {view !== 'setup' && (
-          <button
-            onClick={() => { window.location.hash = ''; window.location.reload(); }}
-            className="p-3 bg-yellow-500 text-black shadow-lg shadow-yellow-500/20 font-bold text-xs active:scale-90"
-          >
-            SALIR
-          </button>
-        )}
-      </div>
+    <div className="min-h-screen bg-black text-white">
 
       {isLoading ? (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 animate-in fade-in duration-500">
