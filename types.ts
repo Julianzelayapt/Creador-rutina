@@ -66,6 +66,7 @@ export interface Routine {
   description: string;
   clientName: string;
   image: string;
+  imagePosition?: string; // e.g. "50%" or "center 30%"
   objective?: string;
   split?: string;
   clientProgress?: ClientProgress;

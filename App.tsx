@@ -347,7 +347,7 @@ const App: React.FC = () => {
       {isLoading ? (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 animate-in fade-in duration-500">
           <div className="w-20 h-20 border-8 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin mb-8 shadow-2xl shadow-yellow-500/20"></div>
-          <h2 className="text-2xl font-['Oswald'] font-black uppercase tracking-tighter animate-pulse text-yellow-400">PREPARANDO RUTINA...</h2>
+          <h2 className="text-xl font-bold uppercase tracking-tight animate-pulse text-white">PREPARANDO RUTINA...</h2>
         </div>
       ) : (
         <>

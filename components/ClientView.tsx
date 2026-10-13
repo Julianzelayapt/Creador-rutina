@@ -772,16 +772,37 @@ ${feedbackText || 'Sin comentarios.'}
                   <img
                     src={routine.image}
                     alt={routine.name}
+                    style={{ objectPosition: `center ${routine.imagePosition || '50%'}` }}
                     className="absolute inset-0 w-full h-full object-cover opacity-60"
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
 
+                {/* Language Switcher Pill */}
+                <div className="absolute top-3.5 right-3.5 z-20 flex gap-1 bg-black/60 backdrop-blur-md p-1 rounded-full border border-white/10">
+                  {(['es', 'en', 'it'] as const).map(lang => (
+                    <button
+                      key={lang}
+                      onClick={() => { isDirtyRef.current = true; setLanguage(lang); }}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase transition-all ${
+                        language === lang ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      {lang}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="relative z-10">
                   <h1 className="text-2xl font-bold tracking-tight text-white uppercase">{routine.name}</h1>
-                  <p className="text-zinc-300 text-xs font-medium tracking-wide mt-0.5">
-                    by {routine.clientName || 'COACH'}
+                  <p className="text-zinc-200 text-xs font-bold tracking-wider uppercase mt-0.5">
+                    by JULIAN
                   </p>
+                  {routine.clientName && (
+                    <p className="text-zinc-400 text-xs font-medium mt-0.5">
+                      Para: {routine.clientName}
+                    </p>
+                  )}
                   {routine.description && (
                     <p className="text-zinc-400 text-xs mt-1.5 line-clamp-2">{routine.description}</p>
                   )}

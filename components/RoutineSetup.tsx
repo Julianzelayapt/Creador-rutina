@@ -132,7 +132,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-['Oswald'] font-black text-slate-900 dark:text-white tracking-tighter uppercase">Generador de Rutinas</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight uppercase">Generador de Rutinas</h1>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-2">Completa los campos para empezar</p>
         </div>
 
@@ -220,7 +220,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
 
           <button
             type="submit"
-            className="w-full py-6 bg-yellow-400 text-black rounded-2xl font-['Oswald'] font-black text-lg uppercase tracking-widest hover:bg-yellow-500 active:scale-95 transition-all shadow-2xl shadow-yellow-500/20 mt-4"
+            className="w-full py-5 bg-white text-black rounded-xl font-bold text-base uppercase tracking-wider hover:bg-zinc-200 active:scale-95 transition-all shadow-lg mt-4"
           >
             Crear Rutina
           </button>
