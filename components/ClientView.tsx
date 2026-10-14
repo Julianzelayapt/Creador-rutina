@@ -98,6 +98,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
 
   const isDirtyRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const timerEndTimeRef = useRef<number | null>(null);
 
   // Translations
   const t = (key: string) => {
@@ -285,24 +286,100 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     }
   };
 
-  // Timer countdown hook
-  useEffect(() => {
-    let interval: number;
-    if (timer !== null && timer > 0) {
-      const endTime = Date.now() + timer * 1000;
-      interval = window.setInterval(() => {
-        const remaining = Math.ceil((endTime - Date.now()) / 1000);
-        if (remaining <= 0) {
-          setTimer(null);
-          playAlarm();
-          clearInterval(interval);
-        } else {
-          setTimer(remaining);
-        }
-      }, 1000);
+  // Funciones de control del cronómetro con reloj real
+  const startTimer = (seconds: number) => {
+    initAudio();
+    if ('Notification' in window && Notification.permission === 'default') {
+      try { Notification.requestPermission(); } catch (e) {}
     }
-    return () => clearInterval(interval);
-  }, [timer]);
+    const endTime = Date.now() + seconds * 1000;
+    timerEndTimeRef.current = endTime;
+    localStorage.setItem('active_timer_end', String(endTime));
+    setTimer(seconds);
+  };
+
+  const addTimerSeconds = (secondsToAdd: number) => {
+    const base = timerEndTimeRef.current && timerEndTimeRef.current > Date.now()
+      ? timerEndTimeRef.current
+      : Date.now();
+    const newEndTime = base + secondsToAdd * 1000;
+    timerEndTimeRef.current = newEndTime;
+    localStorage.setItem('active_timer_end', String(newEndTime));
+    const remaining = Math.ceil((newEndTime - Date.now()) / 1000);
+    setTimer(remaining);
+  };
+
+  const stopTimer = () => {
+    timerEndTimeRef.current = null;
+    localStorage.removeItem('active_timer_end');
+    setTimer(null);
+  };
+
+  // Restaurar timer persistido si la página se recargó
+  useEffect(() => {
+    const saved = localStorage.getItem('active_timer_end');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (parsed > Date.now()) {
+        timerEndTimeRef.current = parsed;
+        setTimer(Math.ceil((parsed - Date.now()) / 1000));
+      } else {
+        localStorage.removeItem('active_timer_end');
+      }
+    }
+  }, []);
+
+  // Timer countdown hook con sincronización de reloj real y soporte de segundo plano (TikTok/otras apps)
+  useEffect(() => {
+    if (timer === null && !timerEndTimeRef.current) return;
+
+    const checkTimer = () => {
+      if (!timerEndTimeRef.current) return;
+      const now = Date.now();
+      const remaining = Math.ceil((timerEndTimeRef.current - now) / 1000);
+
+      if (remaining <= 0) {
+        timerEndTimeRef.current = null;
+        localStorage.removeItem('active_timer_end');
+        setTimer(null);
+        playAlarm();
+
+        // Notificación del sistema si está afuera de la app
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification('¡Descanso terminado! 💪', {
+              body: 'Terminó tu descanso. ¡A darle a la siguiente serie!',
+              icon: '/logo.png',
+              tag: 'workout-timer'
+            });
+          } catch (e) {
+            console.error('Notification error:', e);
+          }
+        }
+      } else {
+        setTimer(remaining);
+      }
+    };
+
+    // 1. Ticker continuo en primer plano
+    const interval = window.setInterval(checkTimer, 500);
+
+    // 2. Al volver de TikTok o de bloquear el teléfono, sincronizar inmediatamente
+    const handleSync = () => {
+      checkTimer();
+    };
+
+    document.addEventListener('visibilitychange', handleSync);
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('pageshow', handleSync);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleSync);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('pageshow', handleSync);
+    };
+  }, [timer !== null]);
 
   // Save progress helper (local + Supabase)
   const saveProgress = async (syncToCloud = false) => {
@@ -406,10 +483,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         seconds = parseInt(restTime, 10) || 0;
       }
       if (seconds > 0) {
-        setTimer(seconds);
+        startTimer(seconds);
       }
     } else {
-      setTimer(null);
+      stopTimer();
     }
   };
 
@@ -652,13 +729,13 @@ ${feedbackText || 'Sin comentarios.'}
             <span className="text-2xl font-black tabular-nums tracking-tight font-mono">{formatTime(timer)}</span>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setTimer(t => (t !== null ? t + 30 : 30))}
+                onClick={() => addTimerSeconds(30)}
                 className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded-full text-xs font-bold transition-colors"
               >
                 +30s
               </button>
               <button
-                onClick={() => setTimer(null)}
+                onClick={stopTimer}
                 className="p-1 hover:bg-white/10 rounded-full text-zinc-400 hover:text-white transition-colors"
                 title="Cancelar"
               >
