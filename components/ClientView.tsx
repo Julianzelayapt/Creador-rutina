@@ -873,14 +873,11 @@ ${feedbackText || 'Sin comentarios.'}
                     onChange={(e) => setActiveWeekId(e.target.value)}
                     className="w-full bg-[#18181b] hover:bg-[#202024] text-white pl-11 pr-10 py-3.5 rounded-2xl font-bold uppercase text-xs tracking-wider border border-white/10 focus:border-yellow-500 outline-none transition-all appearance-none cursor-pointer shadow-md"
                   >
-                    {routine.weeks.map((week, idx) => {
-                      const count = week.workouts?.length || 0;
-                      return (
-                        <option key={week.id} value={week.id} className="bg-[#18181b] text-white py-2">
-                          {week.name || `Semana ${idx + 1}`} ({count} {count === 1 ? 'día' : 'días'})
-                        </option>
-                      );
-                    })}
+                    {routine.weeks.map((week, idx) => (
+                      <option key={week.id} value={week.id} className="bg-[#18181b] text-white py-2">
+                        {week.name || `Semana ${idx + 1}`}
+                      </option>
+                    ))}
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
