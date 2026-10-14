@@ -23,6 +23,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   const [shareLinks, setShareLinks] = useState<{ client: string, builder: string } | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [libraryQuery, setLibraryQuery] = useState('');
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Navegación por ID
   const [activeWeekId, setActiveWeekId] = useState<string | null>(routine.weeks[0]?.id || null);
@@ -31,6 +32,12 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   // Superset Creator Modal
   const [showSupersetModal, setShowSupersetModal] = useState(false);
   const [supersetForm, setSupersetForm] = useState<{ ex1Id: string | null, ex2Id: string | null, rest: string }>({ ex1Id: null, ex2Id: null, rest: '2:00' });
+
+  // Modal personalizado para nombre de enfoque (reemplaza window.prompt)
+  const [showEnfoqueModal, setShowEnfoqueModal] = useState(false);
+  const [enfoqueModalInput, setEnfoqueModalInput] = useState('');
+  const [enfoqueModalWeekId, setEnfoqueModalWeekId] = useState<string | null>(null);
+  const [enfoqueModalDefault, setEnfoqueModalDefault] = useState('');
 
   // Sincronizar el estado local únicamente cuando cambia el ID de la rutina recibida por prop
   useEffect(() => {
@@ -198,14 +205,27 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   };
 
   const addWorkout = (weekId: string) => {
+    const week = currentRoutine.weeks.find(w => w.id === weekId);
+    const dayNumber = (week?.workouts?.length || 0) + 1;
+    const defaultName = `Día ${dayNumber}`;
+    // Abre el modal para asignar título al día
+    setEnfoqueModalWeekId(weekId);
+    setEnfoqueModalDefault(defaultName);
+    setEnfoqueModalInput(''); // Vacío para que el placeholder sea visible y el usuario escriba directamente
+    setShowEnfoqueModal(true);
+  };
+
+  const confirmAddEnfoque = () => {
+    if (!enfoqueModalWeekId) return;
+    const workoutName = enfoqueModalInput.trim() || enfoqueModalDefault;
     const newWorkoutId = Math.random().toString(36).substr(2, 9);
     setCurrentRoutine({
       ...currentRoutine,
       weeks: currentRoutine.weeks.map(w => {
-        if (w.id === weekId) {
+        if (w.id === enfoqueModalWeekId) {
           const newWorkout: Workout = {
             id: newWorkoutId,
-            name: `Día ${w.workouts.length + 1}`,
+            name: workoutName,
             warmup: '',
             exercises: []
           };
@@ -215,6 +235,9 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
       })
     });
     setActiveWorkoutId(newWorkoutId);
+    setShowEnfoqueModal(false);
+    setEnfoqueModalWeekId(null);
+    setEnfoqueModalInput('');
   };
 
   const deleteWorkout = (weekId: string, workoutId: string) => {
@@ -722,10 +745,20 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
           {/* Routine Header (Editables: Nombre, Alumno, Descripción) */}
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10 bg-white dark:bg-darkCard p-6 lg:p-10 rounded-[3rem] shadow-xl border border-slate-100 dark:border-slate-800 transition-all focus-within:ring-2 focus-within:ring-yellow-500/20">
             <div className="flex items-center gap-8 w-full lg:flex-1">
-              <div className="relative group/img cursor-pointer">
-                <img src={currentRoutine.image} className="w-20 h-20 lg:w-24 lg:h-24 rounded-[1.5rem] object-cover shadow-lg border-2 border-slate-100 dark:border-slate-800" alt="" />
-                <div className="absolute inset-0 bg-black/40 rounded-[1.5rem] flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <div
+                onClick={() => setShowImageModal(true)}
+                className="relative group/img cursor-pointer"
+                title="Hacé clic para reposicionar o cambiar la imagen de portada"
+              >
+                <img
+                  src={currentRoutine.image}
+                  style={{ objectPosition: `center ${currentRoutine.imagePosition || '50%'}` }}
+                  className="w-20 h-20 lg:w-24 lg:h-24 rounded-2xl object-cover shadow-lg border-2 border-slate-100 dark:border-slate-800"
+                  alt=""
+                />
+                <div className="absolute inset-0 bg-black/50 rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity text-white text-[10px] font-bold uppercase tracking-wider text-center p-1">
+                  <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Ajustar
                 </div>
               </div>
               
@@ -866,46 +899,88 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 </button>
               </div>
 
-              {/* TABS DE DÍAS (AHORA DROPBOX) */}
-              <div className="flex flex-col md:flex-row gap-4 mb-10">
-                <div className="relative group flex-1">
-                  <label className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest ml-4 mb-2 block">Seleccionar Día</label>
-                  <select
-                    value={activeWorkoutId || ''}
-                    onChange={(e) => setActiveWorkoutId(e.target.value)}
-                    className="w-full bg-slate-100 dark:bg-slate-900/50 px-8 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest border border-transparent focus:border-yellow-600 transition-all outline-none text-slate-950 dark:text-white appearance-none cursor-pointer shadow-inner"
-                  >
-                    {currentWeek.workouts.map(workout => (
-                      <option key={workout.id} value={workout.id}>{workout.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-6 bottom-5 pointer-events-none text-yellow-600">
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+              {/* TABS DE DÍAS (SELECTOR + BOTÓN AGREGAR DÍA) */}
+              <div className="space-y-4 mb-10">
+                <div className="flex flex-col md:flex-row gap-4 items-stretch">
+                  <div className="relative group flex-1">
+                    <label className="text-[10px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest ml-4 mb-2 block">Seleccionar Día</label>
+                    <select
+                      value={activeWorkoutId || ''}
+                      onChange={(e) => setActiveWorkoutId(e.target.value)}
+                      className="w-full bg-slate-100 dark:bg-slate-900/50 px-8 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest border border-transparent focus:border-yellow-600 transition-all outline-none text-slate-950 dark:text-white appearance-none cursor-pointer shadow-inner"
+                    >
+                      {currentWeek.workouts.map((workout, idx) => {
+                        const hasPrefix = /^d[ií]a\s*\d+/i.test(workout.name.trim());
+                        const label = hasPrefix ? workout.name : `Día ${idx + 1} · ${workout.name}`;
+                        return (
+                          <option key={workout.id} value={workout.id}>{label}</option>
+                        );
+                      })}
+                    </select>
+                    <div className="absolute right-6 bottom-5 pointer-events-none text-yellow-600">
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => addWorkout(currentWeek.id)}
+                    className="px-8 py-5 border-2 border-dashed border-slate-300 dark:border-slate-800 text-slate-950 dark:text-white rounded-[2rem] font-black text-[10px] uppercase hover:border-yellow-600 hover:text-yellow-600 transition-all flex items-center justify-center gap-2 h-[66px] shrink-0"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
+                    + AGREGAR DÍA
+                  </button>
                 </div>
-                <button
-                  onClick={() => addWorkout(currentWeek.id)}
-                  className="px-8 py-5 border-2 border-dashed border-slate-300 dark:border-slate-800 text-slate-950 dark:text-white rounded-[2rem] font-black text-[10px] uppercase hover:border-yellow-600 hover:text-yellow-600 transition-all flex items-center justify-center gap-2 h-[66px]"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
-                  AGREGAR DÍA
-                </button>
+
+                {/* Botones rápidos de días de la semana */}
+                {currentWeek.workouts.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                    {currentWeek.workouts.map((wk, idx) => {
+                      const isActive = wk.id === activeWorkoutId;
+                      const hasPrefix = /^d[ií]a\s*\d+/i.test(wk.name.trim());
+                      const pillLabel = hasPrefix ? wk.name : `Día ${idx + 1}: ${wk.name}`;
+                      return (
+                        <button
+                          key={wk.id}
+                          type="button"
+                          onClick={() => setActiveWorkoutId(wk.id)}
+                          className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all border ${
+                            isActive
+                              ? 'bg-yellow-400 text-black border-yellow-400 shadow-md scale-[1.02]'
+                              : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-white/10 hover:border-yellow-500/50'
+                          }`}
+                        >
+                          {pillLabel}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {currentWorkout ? (
                 <div className="bg-white dark:bg-darkCard rounded-[3rem] border-2 border-slate-100 dark:border-slate-800 p-10 shadow-sm animate-in zoom-in-95 duration-200">
-                  <div className="flex justify-between items-center mb-10">
-                    <input
-                      className="bg-transparent font-black text-2xl text-slate-800 dark:text-slate-100 focus:outline-none uppercase"
-                      value={currentWorkout.name}
-                      onChange={e => setCurrentRoutine({
-                        ...currentRoutine,
-                        weeks: currentRoutine.weeks.map(w => w.id === currentWeek.id ? { ...w, workouts: w.workouts.map(wk => wk.id === currentWorkout.id ? { ...wk, name: e.target.value } : wk) } : w)
-                      })}
-                    />
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                    <div className="flex-1 w-full">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5 ml-1">
+                        Título del Día (hacé clic para editar, ej: CHEST DAY, PUSH, TRACCIÓN, PIERNAS)
+                      </label>
+                      <div className="flex items-center gap-3 bg-slate-100 dark:bg-black/50 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-3 focus-within:border-yellow-500 transition-all shadow-inner">
+                        <svg className="w-5 h-5 text-zinc-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        <input
+                          className="bg-transparent font-bold text-xl sm:text-2xl text-slate-800 dark:text-white focus:outline-none uppercase w-full tracking-tight"
+                          value={currentWorkout.name}
+                          onChange={e => setCurrentRoutine({
+                            ...currentRoutine,
+                            weeks: currentRoutine.weeks.map(w => w.id === currentWeek.id ? { ...w, workouts: w.workouts.map(wk => wk.id === currentWorkout.id ? { ...wk, name: e.target.value } : wk) } : w)
+                          })}
+                          placeholder="Ej: CHEST DAY, PUSH, TRACCIÓN, PIERNAS..."
+                        />
+                      </div>
+                    </div>
                     <button
                       onClick={() => deleteWorkout(currentWeek.id, currentWorkout.id)}
-                      className="p-3 text-red-400 hover:text-red-600 transition-all flex items-center gap-2 font-black text-[10px] uppercase"
+                      className="p-3 text-red-400 hover:text-red-600 transition-all flex items-center gap-2 font-black text-[10px] uppercase shrink-0 self-end sm:self-center"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       Borrar Día
@@ -914,7 +989,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
 
                   <div className="mb-10 p-6 bg-orange-50/30 dark:bg-orange-500/10 rounded-[2rem] border-2 border-dashed border-orange-200/50 dark:border-orange-500/40 transition-all focus-within:border-orange-500">
                     <textarea
-                      placeholder="Instrucciones del día (calentamiento, foco, etc.)..."
+                      placeholder="Instrucciones del enfoque (calentamiento, foco, etc.)..."
                       className="w-full bg-transparent p-2 rounded-2xl text-sm font-black outline-none h-20 text-slate-700 dark:text-white placeholder:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
                       value={currentWorkout.warmup || ''}
 onChange={(e) => setCurrentRoutine({
@@ -1141,7 +1216,7 @@ onChange={(e) => setCurrentRoutine({
               ) : (
                 <div className="text-center py-20 bg-white dark:bg-darkCard rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
                   <p className="font-black text-slate-950 dark:text-white uppercase tracking-widest text-sm mb-6">No hay días creados en esta semana</p>
-                  <button onClick={() => addWorkout(currentWeek.id)} className="px-10 py-5 bg-yellow-400 text-black rounded-3xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">Empezar Día 1</button>
+                  <button onClick={() => addWorkout(currentWeek.id)} className="px-10 py-5 bg-yellow-400 text-black rounded-3xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">+ Empezar Día 1</button>
                 </div>
               )}
             </div>
@@ -1266,6 +1341,196 @@ onChange={(e) => setCurrentRoutine({
           </div>
         </div>
       )}
+
+      {/* Modal Reposicionar Portada */}
+      {showImageModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-[#18181b] border border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200 space-y-5">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-white tracking-tight">Portada de la Rutina</h3>
+                <p className="text-xs text-zinc-400">Ajustá la posición vertical para centrar el cuerpo o rostro</p>
+              </div>
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="p-2 text-zinc-400 hover:text-white rounded-full bg-white/5"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Vista Previa en Vivo 16:9 exactamente como la ve el alumno */}
+            <div className="relative rounded-2xl overflow-hidden aspect-[16/9] w-full bg-zinc-900 border border-white/10 shadow-lg">
+              <img
+                src={currentRoutine.image}
+                alt="Vista previa"
+                style={{ objectPosition: `center ${currentRoutine.imagePosition || '50%'}` }}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent"></div>
+              <div className="relative z-10 p-4 flex flex-col justify-end h-full">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Vista previa del alumno</span>
+                <h4 className="text-xl font-bold text-white leading-tight">{currentRoutine.name || 'Título de Rutina'}</h4>
+                <p className="text-xs text-zinc-300 font-bold uppercase mt-0.5">by JULIAN</p>
+              </div>
+            </div>
+
+            {/* Slider de Posición Vertical */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-xs font-semibold">
+                <span className="text-zinc-300">Alineación Vertical (Enfoque)</span>
+                <span className="text-white font-mono bg-zinc-800 px-2 py-0.5 rounded-md">
+                  {currentRoutine.imagePosition || '50%'}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={parseInt((currentRoutine.imagePosition || '50%').replace('%', ''), 10) || 50}
+                onChange={e => setCurrentRoutine({ ...currentRoutine, imagePosition: `${e.target.value}%` })}
+                className="w-full accent-white h-2 bg-zinc-800 rounded-lg cursor-pointer"
+              />
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCurrentRoutine({ ...currentRoutine, imagePosition: '20%' })}
+                  className="flex-1 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-white/10 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white transition-all"
+                >
+                  Arriba (20%)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentRoutine({ ...currentRoutine, imagePosition: '50%' })}
+                  className="flex-1 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-white/10 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white transition-all"
+                >
+                  Centro (50%)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentRoutine({ ...currentRoutine, imagePosition: '80%' })}
+                  className="flex-1 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-white/10 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white transition-all"
+                >
+                  Abajo (80%)
+                </button>
+              </div>
+            </div>
+
+            {/* URL o Cambiar Imagen */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-400">URL de la Imagen</label>
+              <input
+                type="text"
+                value={currentRoutine.image}
+                onChange={e => setCurrentRoutine({ ...currentRoutine, image: e.target.value })}
+                placeholder="https://images.unsplash.com/..."
+                className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30 font-mono"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                setShowImageModal(false);
+                onSave(currentRoutine);
+              }}
+              className="w-full py-3.5 bg-white text-black font-bold text-sm rounded-xl hover:bg-zinc-200 active:scale-95 transition-all shadow-md"
+            >
+              Guardar y Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Nombre del Día / Entrenamiento ── */}
+      {showEnfoqueModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#18181b] border border-white/10 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-black text-white tracking-tight uppercase">Nuevo Día de Entrenamiento</h3>
+                <p className="text-xs text-zinc-400 mt-1">Asignale un título o enfoque (ej: Chest Day, Push, Tracción, Piernas...)</p>
+              </div>
+              <button
+                onClick={() => setShowEnfoqueModal(false)}
+                className="p-2 text-zinc-500 hover:text-white rounded-full hover:bg-white/10 transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Input */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-zinc-400 uppercase tracking-widest block">Título del Día</label>
+              <input
+                type="text"
+                autoFocus
+                value={enfoqueModalInput}
+                onChange={e => setEnfoqueModalInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') confirmAddEnfoque(); if (e.key === 'Escape') setShowEnfoqueModal(false); }}
+                placeholder={`Ej: CHEST DAY, PUSH, TRACCIÓN, PIERNAS (por defecto: ${enfoqueModalDefault})`}
+                className="w-full bg-zinc-900 border-2 border-white/10 focus:border-yellow-500 rounded-2xl px-5 py-4 text-white font-bold text-base focus:outline-none placeholder:text-zinc-500 placeholder:font-normal transition-all"
+              />
+            </div>
+
+            {/* Sugerencias rápidas */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Sugerencias rápidas (tocá para elegir):</span>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  'CHEST DAY',
+                  'PUSH',
+                  'PULL',
+                  'TRACCIÓN',
+                  'PIERNAS',
+                  'LEGS',
+                  'TORSO',
+                  'PIERNA ANTERIOR',
+                  'PIERNA POSTERIOR',
+                  'BRAZOS Y HOMBROS',
+                  'FULL BODY'
+                ].map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setEnfoqueModalInput(s)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                      enfoqueModalInput === s
+                        ? 'bg-yellow-400 text-black border-yellow-400 shadow-md scale-105'
+                        : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border-white/10'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowEnfoqueModal(false)}
+                className="flex-1 py-3.5 bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-white font-bold rounded-2xl text-xs uppercase tracking-wider transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmAddEnfoque}
+                className="flex-1 py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-black rounded-2xl text-xs uppercase tracking-wider active:scale-95 transition-all shadow-lg"
+              >
+                Añadir Día ✓
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
