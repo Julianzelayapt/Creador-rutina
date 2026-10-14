@@ -3,6 +3,7 @@ import emailjs from '@emailjs/browser';
 import { Routine, Exercise } from '../types';
 import { supabase } from '../supabase';
 import ProgressiveOverloadTab from './ProgressiveOverloadTab';
+import { getMuscleGroupImage } from '../muscleGroups';
 
 interface ClientViewProps {
   routine: Routine;
@@ -90,6 +91,42 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const [showFeedbackScreen, setShowFeedbackScreen] = useState<boolean>(false);
   const [historyExerciseId, setHistoryExerciseId] = useState<string | null>(null);
   const [collapsedExercises, setCollapsedExercises] = useState<Record<string, boolean>>({});
+  
+  // Ejercicios sustitutos / alternativas seleccionadas por el alumno
+  const [exerciseOverrides, setExerciseOverrides] = useState<Record<string, string>>(() => {
+    try {
+      const raw = localStorage.getItem(`routine_overrides_${routine.id}`);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [altModalExerciseEntry, setAltModalExerciseEntry] = useState<{
+    entryId: string;
+    originalExercise: Exercise;
+    currentExercise: Exercise;
+    alternatives: Exercise[];
+  } | null>(null);
+
+  const handleChooseAlternative = (entryId: string, alternativeId: string | null) => {
+    setExerciseOverrides(prev => {
+      const updated = { ...prev };
+      if (!alternativeId) {
+        delete updated[entryId];
+      } else {
+        updated[entryId] = alternativeId;
+      }
+      try {
+        localStorage.setItem(`routine_overrides_${routine.id}`, JSON.stringify(updated));
+      } catch (e) {
+        console.error('Error saving overrides:', e);
+      }
+      return updated;
+    });
+    setAltModalExerciseEntry(null);
+  };
+
   const [rating, setRating] = useState<number>(0);
   const [feedbackText, setFeedbackText] = useState<string>('');
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
@@ -782,6 +819,131 @@ ${feedbackText || 'Sin comentarios.'}
         </div>
       )}
 
+      {/* Modal de Ejercicios Alternativos / Máquina Ocupada */}
+      {altModalExerciseEntry && (
+        <div className="fixed inset-0 z-[260] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#18181b] border border-white/10 rounded-3xl max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="p-1 rounded-md bg-amber-500/20 text-amber-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                  </span>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">
+                    ¿Máquina o banco ocupado?
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-white tracking-tight">
+                  Alternativas biomecánicas
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Mismo patrón, ángulo y enfoque muscular aprobado por tu coach.
+                </p>
+              </div>
+              <button
+                onClick={() => setAltModalExerciseEntry(null)}
+                className="p-2 text-zinc-400 hover:text-white rounded-full bg-white/5 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Ejercicio Original Base */}
+            <div className="p-3 bg-zinc-900/90 rounded-2xl border border-white/5 mb-4">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                Ejercicio planificado originalmente
+              </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <img
+                    src={altModalExerciseEntry.originalExercise.muscleImage || getMuscleGroupImage(altModalExerciseEntry.originalExercise.muscleGroup)}
+                    alt=""
+                    className="w-10 h-10 rounded-xl object-cover border border-white/10 bg-black"
+                  />
+                  <div>
+                    <span className="font-bold text-sm text-white block">
+                      {altModalExerciseEntry.originalExercise.name}
+                    </span>
+                    {altModalExerciseEntry.originalExercise.muscleGroup && (
+                      <span className="text-[10px] uppercase font-bold text-zinc-500">
+                        {altModalExerciseEntry.originalExercise.muscleGroup}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {altModalExerciseEntry.currentExercise.id !== altModalExerciseEntry.originalExercise.id && (
+                  <button
+                    onClick={() => handleChooseAlternative(altModalExerciseEntry.entryId, null)}
+                    className="text-xs text-amber-400 hover:text-amber-300 font-bold underline px-2 py-1"
+                  >
+                    Restablecer original
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Lista de Alternativas Aprobadas */}
+            <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+              {altModalExerciseEntry.alternatives.length === 0 ? (
+                <div className="p-6 text-center bg-zinc-900/50 rounded-2xl border border-white/5">
+                  <p className="text-sm text-zinc-400">
+                    No hay sustitutos configurados para este ejercicio.
+                  </p>
+                </div>
+              ) : (
+                altModalExerciseEntry.alternatives.map((alt) => {
+                  const isCurrentlySelected = altModalExerciseEntry.currentExercise.id === alt.id;
+                  return (
+                    <div
+                      key={alt.id}
+                      className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                        isCurrentlySelected
+                          ? 'bg-amber-500/10 border-amber-500/40'
+                          : 'bg-zinc-900 border-white/5 hover:border-amber-500/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img
+                          src={alt.muscleImage || getMuscleGroupImage(alt.muscleGroup)}
+                          alt=""
+                          className="w-11 h-11 rounded-xl object-cover border border-white/10 shrink-0 bg-black"
+                        />
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-sm text-white truncate">
+                            {alt.name}
+                          </h4>
+                          {alt.tip && (
+                            <p className="text-[11px] text-zinc-400 truncate mt-0.5 max-w-[200px]">
+                              {alt.tip}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleChooseAlternative(altModalExerciseEntry.entryId, alt.id)}
+                        disabled={isCurrentlySelected}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 transition-all ${
+                          isCurrentlySelected
+                            ? 'bg-amber-500 text-black font-black cursor-default'
+                            : 'bg-white/10 hover:bg-amber-400 hover:text-black text-white'
+                        }`}
+                      >
+                        {isCurrentlySelected ? 'En uso' : 'Usar este'}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Finish Workout Confirmation Modal (Image 3) */}
       {showFinishModal && (
         <div className="fixed inset-0 z-[220] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-4">
@@ -1080,7 +1242,11 @@ ${feedbackText || 'Sin comentarios.'}
                   Ejercicios (toca para entrenar)
                 </span>
                 {currentWorkout.exercises.map((entry, idx) => {
-                  const libEx = library.find(l => l.id === entry.libraryExerciseId);
+                  const activeLibId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
+                  const originalEx = library.find(l => l.id === entry.libraryExerciseId);
+                  const libEx = library.find(l => l.id === activeLibId) || originalEx;
+                  const isReplaced = activeLibId !== entry.libraryExerciseId;
+                  const muscleImg = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
                   const firstSet = entry.sets[0];
                   return (
                     <div
@@ -1098,8 +1264,8 @@ ${feedbackText || 'Sin comentarios.'}
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Circle Thumbnail */}
                         <div className="w-11 h-11 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
-                          {libEx?.muscleImage ? (
-                            <img src={libEx.muscleImage} alt={libEx.name} className="w-full h-full object-cover" />
+                          {muscleImg ? (
+                            <img src={muscleImg} alt={libEx?.name} className="w-full h-full object-cover" />
                           ) : (
                             <span className="font-bold text-xs text-zinc-400">
                               {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
@@ -1108,9 +1274,16 @@ ${feedbackText || 'Sin comentarios.'}
                         </div>
 
                         <div className="min-w-0">
-                          <h4 className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">
-                            {libEx?.name || 'Ejercicio'}
-                          </h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">
+                              {libEx?.name || 'Ejercicio'}
+                            </h4>
+                            {isReplaced && (
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.2 rounded-md">
+                                Sustituto
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-zinc-400 font-mono mt-0.5">
                             {entry.sets.length} × {firstSet?.reps || '10'} {firstSet?.kg ? `· ${firstSet.kg} kg` : ''}
                           </p>
@@ -1175,10 +1348,14 @@ ${feedbackText || 'Sin comentarios.'}
               {/* Exercise Cards */}
               <div className="space-y-6">
                 {currentWorkout.exercises.map((entry, eIdx) => {
-                  const libEx = library.find(l => l.id === entry.libraryExerciseId);
+                  const activeLibId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
+                  const originalEx = library.find(l => l.id === entry.libraryExerciseId);
+                  const libEx = library.find(l => l.id === activeLibId) || originalEx;
+                  const isReplaced = activeLibId !== entry.libraryExerciseId;
                   const isCollapsed = !!collapsedExercises[entry.id];
                   const embed = getEmbedVideo(libEx?.videoUrl);
                   const tipText = entry.customTip || libEx?.tip;
+                  const hasAlternatives = originalEx?.alternativeExerciseIds && originalEx.alternativeExerciseIds.length > 0;
 
                   return (
                     <div
@@ -1189,18 +1366,60 @@ ${feedbackText || 'Sin comentarios.'}
                       {/* Exercise Header */}
                       <div className="flex items-start justify-between gap-3 mb-4">
                         <div>
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-1">
-                            EJERCICIO {eIdx + 1}
-                          </span>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block">
+                              EJERCICIO {eIdx + 1}
+                            </span>
+                            {isReplaced && (
+                              <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                                Sustituto activo
+                              </span>
+                            )}
+                          </div>
                           <h3 className="text-xl font-bold text-white tracking-tight leading-snug">
                             {libEx?.name || 'Ejercicio'}
                           </h3>
+                          {isReplaced && originalEx && (
+                            <span className="text-[11px] text-zinc-400 block mt-0.5">
+                              Reemplaza a: <strong className="text-zinc-300">{originalEx.name}</strong>
+                            </span>
+                          )}
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                          {/* Botón ¿Máquina ocupada? si tiene alternativas */}
+                          {hasAlternatives && (
+                            <button
+                              onClick={() => {
+                                if (!originalEx) return;
+                                const alts = (originalEx.alternativeExerciseIds || [])
+                                  .map(altId => library.find(l => l.id === altId))
+                                  .filter((l): l is Exercise => Boolean(l));
+
+                                setAltModalExerciseEntry({
+                                  entryId: entry.id,
+                                  originalExercise: originalEx,
+                                  currentExercise: libEx || originalEx,
+                                  alternatives: alts
+                                });
+                              }}
+                              className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-full border transition-all ${
+                                isReplaced
+                                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                                  : 'bg-zinc-800/80 text-amber-400 hover:text-amber-300 hover:bg-zinc-700/80 border-amber-500/25'
+                              }`}
+                              title="Ver alternativas con el mismo enfoque si la máquina está ocupada"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                              </svg>
+                              <span>{isReplaced ? 'Cambiar alt' : '¿Ocupada?'}</span>
+                            </button>
+                          )}
+
                           {/* View History Button */}
                           <button
-                            onClick={() => setHistoryExerciseId(entry.libraryExerciseId)}
+                            onClick={() => setHistoryExerciseId(libEx?.id || entry.libraryExerciseId)}
                             className="flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 px-2.5 py-1.5 rounded-full border border-white/5 transition-colors"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Routine, Exercise, Week, Workout, ExerciseEntry, TrainingSet } from '../types';
+import { DEFAULT_MUSCLE_GROUPS, getMuscleGroupImage, findMuscleGroupById, getCustomMuscleImages, setCustomMuscleImage } from '../muscleGroups';
 
 interface RoutineBuilderProps {
   routine: Routine;
@@ -19,11 +20,28 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
     enabledMetrics: routine.enabledMetrics || { reps: true, kg: true, rir: true, rmPercentage: false, rest: true, tempo: false }
   }));
   const [showLibraryForm, setShowLibraryForm] = useState(false);
-  const [newExercise, setNewExercise] = useState<{ id?: string, name: string, videoUrl: string, muscleImage: string, tip: string }>({ name: '', videoUrl: '', muscleImage: '', tip: '' });
+  const [newExercise, setNewExercise] = useState<{
+    id?: string;
+    name: string;
+    videoUrl: string;
+    muscleImage: string;
+    muscleGroup: string;
+    alternativeExerciseIds: string[];
+    tip: string;
+  }>({
+    name: '',
+    videoUrl: '',
+    muscleImage: getMuscleGroupImage('pecho'),
+    muscleGroup: 'pecho',
+    alternativeExerciseIds: [],
+    tip: ''
+  });
   const [shareLinks, setShareLinks] = useState<{ client: string, builder: string } | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [libraryQuery, setLibraryQuery] = useState('');
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showMusclePhotosModal, setShowMusclePhotosModal] = useState(false);
+  const [customMuscleImagesMap, setCustomMuscleImagesMap] = useState<Record<string, string>>(() => getCustomMuscleImages());
 
   // Navegación por ID
   const [activeWeekId, setActiveWeekId] = useState<string | null>(routine.weeks[0]?.id || null);
@@ -593,7 +611,14 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
             <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Biblioteca</h2>
             <button
               onClick={() => {
-                setNewExercise({ name: '', videoUrl: '', muscleImage: '', tip: '' });
+                setNewExercise({
+                  name: '',
+                  videoUrl: '',
+                  muscleImage: getMuscleGroupImage('pecho'),
+                  muscleGroup: 'pecho',
+                  alternativeExerciseIds: [],
+                  tip: ''
+                });
                 setShowLibraryForm(!showLibraryForm);
               }}
               className="p-2.5 bg-yellow-400 text-black rounded-2xl hover:bg-yellow-500 shadow-md transition-all active:scale-90"
@@ -604,40 +629,184 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
 
           {showLibraryForm && (
             <div className="space-y-3 mb-6 bg-slate-100 dark:bg-slate-900 p-5 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 animate-in slide-in-from-top-4 duration-200">
-              <input
-                placeholder="Nombre ejercicio"
-                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none font-bold text-slate-800 dark:text-white"
-                value={newExercise.name}
-                onChange={e => setNewExercise({ ...newExercise, name: e.target.value })}
-              />
-              <input
-                placeholder="URL Video"
-                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none font-medium text-slate-800 dark:text-white"
-                value={newExercise.videoUrl}
-                onChange={e => setNewExercise({ ...newExercise, videoUrl: e.target.value })}
-              />
-              <input
-                placeholder="URL Foto Músculo (Opcional)"
-                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none font-medium text-slate-800 dark:text-white"
-                value={newExercise.muscleImage}
-                onChange={e => setNewExercise({ ...newExercise, muscleImage: e.target.value })}
-              />
-              <textarea
-                placeholder="Tip (opcional)"
-                className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none h-20 resize-none font-medium"
-                value={newExercise.tip}
-                onChange={e => setNewExercise({ ...newExercise, tip: e.target.value })}
-              />
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1 block">
+                  Nombre del ejercicio
+                </label>
+                <input
+                  placeholder="Ej: Press Inclinado con Mancuernas 45°"
+                  className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none font-bold text-slate-800 dark:text-white"
+                  value={newExercise.name}
+                  onChange={e => setNewExercise({ ...newExercise, name: e.target.value })}
+                />
+              </div>
+
+              {/* Selector de Grupo Muscular con Foto Automática */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+                    Grupo Muscular (foto automática)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowMusclePhotosModal(true)}
+                    className="text-[10px] text-amber-500 hover:text-amber-400 font-bold underline flex items-center gap-1"
+                  >
+                    ⚙️ Cambiar fotos
+                  </button>
+                </div>
+                <div className="flex items-center gap-3 bg-white dark:bg-black p-2 rounded-xl border border-slate-200 dark:border-zinc-800">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 bg-zinc-900 flex items-center justify-center">
+                    <img
+                      src={newExercise.muscleImage || getMuscleGroupImage(newExercise.muscleGroup)}
+                      alt="Músculo"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <select
+                    className="flex-1 bg-transparent text-sm font-bold text-slate-800 dark:text-white outline-none cursor-pointer"
+                    value={newExercise.muscleGroup}
+                    onChange={(e) => {
+                      const selectedGroup = e.target.value;
+                      const autoImage = getMuscleGroupImage(selectedGroup);
+                      setNewExercise({
+                        ...newExercise,
+                        muscleGroup: selectedGroup,
+                        muscleImage: autoImage
+                      });
+                    }}
+                  >
+                    {DEFAULT_MUSCLE_GROUPS.map((g) => (
+                      <option key={g.id} value={g.id} className="bg-zinc-900 text-white">
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1 block">
+                  URL Video demostrativo
+                </label>
+                <input
+                  placeholder="URL Video (YouTube, Vimeo, etc.)"
+                  className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none font-medium text-slate-800 dark:text-white"
+                  value={newExercise.videoUrl}
+                  onChange={e => setNewExercise({ ...newExercise, videoUrl: e.target.value })}
+                />
+              </div>
+
+              {/* Selector de Alternativas con Vinculación Recíproca */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+                    Sustitutos / Máquina ocupada (mismo enfoque)
+                  </label>
+                  <span className="text-[9px] text-amber-500 font-bold uppercase tracking-wider">
+                    Bidireccional
+                  </span>
+                </div>
+
+                {/* Chips de alternativas seleccionadas */}
+                {newExercise.alternativeExerciseIds && newExercise.alternativeExerciseIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2 p-2 bg-white/50 dark:bg-black/50 rounded-xl border border-slate-200 dark:border-zinc-800">
+                    {newExercise.alternativeExerciseIds.map((altId) => {
+                      const altEx = library.find(l => l.id === altId);
+                      return (
+                        <span
+                          key={altId}
+                          className="inline-flex items-center gap-1.5 text-xs bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-lg font-bold"
+                        >
+                          <span className="truncate max-w-[150px]">{altEx?.name || 'Ejercicio'}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewExercise({
+                                ...newExercise,
+                                alternativeExerciseIds: newExercise.alternativeExerciseIds.filter(id => id !== altId)
+                              });
+                            }}
+                            className="hover:text-red-500 font-black text-xs ml-0.5"
+                            title="Quitar sustituto"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Desplegable para sumar alternativas */}
+                <select
+                  className="w-full px-3 py-2.5 text-xs rounded-xl bg-white dark:bg-black border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-semibold outline-none focus:border-amber-500 cursor-pointer"
+                  value=""
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    if (selectedId && !newExercise.alternativeExerciseIds.includes(selectedId)) {
+                      setNewExercise({
+                        ...newExercise,
+                        alternativeExerciseIds: [...newExercise.alternativeExerciseIds, selectedId]
+                      });
+                    }
+                  }}
+                >
+                  <option value="" disabled>
+                    ➕ Agregar ejercicio sustituto compatible...
+                  </option>
+                  {library
+                    .filter(ex => ex.id !== newExercise.id && !newExercise.alternativeExerciseIds.includes(ex.id))
+                    .map(ex => (
+                      <option key={ex.id} value={ex.id} className="bg-zinc-900 text-white">
+                        {ex.name} {ex.muscleGroup ? `(${ex.muscleGroup})` : ''}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[10px] text-zinc-500 mt-1 leading-tight">
+                  💡 <strong>Recíproco automático:</strong> al guardar, estos ejercicios también tendrán a este como sustituto.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1 block">
+                  Tips y recomendaciones (opcional)
+                </label>
+                <textarea
+                  placeholder="Ej: Banco a 45°, retracción escapular, bajar controlado"
+                  className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none h-20 resize-none font-medium"
+                  value={newExercise.tip}
+                  onChange={e => setNewExercise({ ...newExercise, tip: e.target.value })}
+                />
+              </div>
+
               <button
                 onClick={(e) => {
                   e.preventDefault();
                   if (newExercise.name) {
+                    const payload: Exercise = {
+                      id: newExercise.id || Math.random().toString(36).substr(2, 9),
+                      name: newExercise.name,
+                      videoUrl: newExercise.videoUrl,
+                      muscleGroup: newExercise.muscleGroup,
+                      muscleImage: newExercise.muscleImage || getMuscleGroupImage(newExercise.muscleGroup),
+                      alternativeExerciseIds: newExercise.alternativeExerciseIds,
+                      tip: newExercise.tip
+                    };
+
                     if (newExercise.id) {
-                      onEditLibrary(newExercise as Exercise);
+                      onEditLibrary(payload);
                     } else {
-                      onAddToLibrary({ id: Math.random().toString(36).substr(2, 9), ...newExercise });
+                      onAddToLibrary(payload);
                     }
-                    setNewExercise({ name: '', videoUrl: '', muscleImage: '', tip: '' });
+                    setNewExercise({
+                      name: '',
+                      videoUrl: '',
+                      muscleImage: getMuscleGroupImage('pecho'),
+                      muscleGroup: 'pecho',
+                      alternativeExerciseIds: [],
+                      tip: ''
+                    });
                     setShowLibraryForm(false);
                   }
                 }}
@@ -661,7 +830,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
           {library.filter(ex => ex.name.toLowerCase().includes(libraryQuery.toLowerCase())).map(ex => (
             <div 
               key={ex.id}
-              className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent hover:border-yellow-600 transition-all cursor-pointer group relative flex justify-between items-center text-slate-800 dark:text-slate-100"
+              className="p-3 bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent hover:border-yellow-600 transition-all cursor-pointer group relative flex justify-between items-center text-slate-800 dark:text-slate-100"
               onClick={() => {
                 if (!activeWeekId || !activeWorkoutId) {
                   alert('Primero selecciona una semana y un día');
@@ -671,13 +840,41 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
               }}
             >
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="font-bold text-sm truncate">{ex.name}</div>
+                <img
+                  src={ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
+                  alt={ex.name}
+                  className="w-10 h-10 rounded-xl object-cover shrink-0 bg-zinc-900 border border-slate-300 dark:border-white/10"
+                />
+                <div className="min-w-0">
+                  <div className="font-bold text-sm truncate">{ex.name}</div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {ex.muscleGroup && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+                        {ex.muscleGroup}
+                      </span>
+                    )}
+                    {ex.alternativeExerciseIds && ex.alternativeExerciseIds.length > 0 && (
+                      <span className="text-[9px] bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold px-1.5 py-0.2 rounded-md">
+                        🔀 {ex.alternativeExerciseIds.length} alt
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="flex shrink-0">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setNewExercise({ id: ex.id, name: ex.name, videoUrl: ex.videoUrl || '', muscleImage: ex.muscleImage || '', tip: ex.tip || '' });
+                    const group = ex.muscleGroup || 'pecho';
+                    setNewExercise({
+                      id: ex.id,
+                      name: ex.name,
+                      videoUrl: ex.videoUrl || '',
+                      muscleImage: ex.muscleImage || getMuscleGroupImage(group),
+                      muscleGroup: group,
+                      alternativeExerciseIds: ex.alternativeExerciseIds || [],
+                      tip: ex.tip || ''
+                    });
                     setShowLibraryForm(true);
                   }}
                   className="p-2 text-slate-950 dark:text-white hover:text-yellow-600 transition-all shrink-0"
@@ -1439,6 +1636,98 @@ onChange={(e) => setCurrentRoutine({
             >
               Guardar y Cerrar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Personalizar Fotos de Grupos Musculares ── */}
+      {showMusclePhotosModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[300] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#18181b] border border-white/10 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 shrink-0">
+              <div>
+                <h3 className="text-xl font-black text-white tracking-tight uppercase flex items-center gap-2">
+                  <span>🎨</span> Fotos de Grupos Musculares
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Pegá el link de cualquier foto que te guste o dejalo vacío para usar la ilustración anatómica.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowMusclePhotosModal(false)}
+                className="p-2 text-zinc-400 hover:text-white rounded-full bg-white/5"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Lista con scroll de grupos musculares */}
+            <div className="space-y-3 overflow-y-auto pr-1 flex-1">
+              {DEFAULT_MUSCLE_GROUPS.map((group) => {
+                const customUrl = customMuscleImagesMap[group.id] || '';
+                const currentImg = customUrl || group.defaultImage;
+
+                return (
+                  <div
+                    key={group.id}
+                    className="p-3.5 bg-zinc-900 rounded-2xl border border-white/5 flex items-center gap-3.5"
+                  >
+                    <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 bg-black flex items-center justify-center">
+                      <img src={currentImg} alt={group.name} className="w-full h-full object-cover" />
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-white">{group.name}</span>
+                        {customUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomMuscleImage(group.id, '');
+                              setCustomMuscleImagesMap(getCustomMuscleImages());
+                              if (newExercise.muscleGroup === group.id) {
+                                setNewExercise(prev => ({ ...prev, muscleImage: group.defaultImage }));
+                              }
+                            }}
+                            className="text-[10px] text-amber-400 hover:text-amber-300 underline font-semibold"
+                          >
+                            Restablecer
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        placeholder="Pegar link de foto (URL)..."
+                        value={customUrl}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          setCustomMuscleImage(group.id, val);
+                          setCustomMuscleImagesMap(getCustomMuscleImages());
+                          if (newExercise.muscleGroup === group.id) {
+                            setNewExercise(prev => ({
+                              ...prev,
+                              muscleImage: val || group.defaultImage
+                            }));
+                          }
+                        }}
+                        className="w-full px-3 py-1.5 text-xs rounded-lg bg-black border border-white/10 text-white focus:border-amber-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="shrink-0 pt-2 border-t border-white/5">
+              <button
+                type="button"
+                onClick={() => setShowMusclePhotosModal(false)}
+                className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-black uppercase text-xs tracking-wider rounded-xl transition-all"
+              >
+                Listo / Guardar
+              </button>
+            </div>
           </div>
         </div>
       )}

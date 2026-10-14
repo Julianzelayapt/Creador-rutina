@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routine, Exercise } from '../types';
+import { getMuscleGroupImage } from '../muscleGroups';
 
 interface ProgressiveOverloadTabProps {
   routine: Routine;
@@ -112,9 +113,9 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
             {/* Header: Thumbnail al lado del texto del ejercicio */}
             <div className="flex items-center gap-3.5 pb-3 border-b border-white/5">
               <div className="w-12 h-12 rounded-xl bg-zinc-800 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-1">
-                {libEx.muscleImage ? (
+                {(libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '')) ? (
                   <img
-                    src={libEx.muscleImage}
+                    src={libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '')}
                     alt={libEx.name}
                     className="w-full h-full object-contain"
                   />

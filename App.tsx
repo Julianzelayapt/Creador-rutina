@@ -5,6 +5,7 @@ import { supabase } from './supabase';
 import RoutineSetup from './components/RoutineSetup';
 import RoutineBuilder from './components/RoutineBuilder';
 import ClientView from './components/ClientView';
+import { extractExerciseMeta, embedExerciseMeta, getMuscleGroupImage } from './muscleGroups';
 
 const LOCAL_STORAGE_KEY = 'coach_routines_data_v3';
 const LIBRARY_STORAGE_KEY = 'coach_exercise_library_v3';
@@ -134,13 +135,22 @@ const App: React.FC = () => {
       if (error) console.error('Error loading library:', error);
       else if (data) {
         // Map snake_case database fields to camelCase app properties
-        const mappedData: Exercise[] = data.map((ex: any) => ({
-          id: ex.id,
-          name: ex.name,
-          videoUrl: ex.video_url, // Map video_url to videoUrl
-          muscleImage: ex.muscle_image,
-          tip: ex.tip
-        }));
+        const mappedData: Exercise[] = data.map((ex: any) => {
+          const { cleanTip, meta } = extractExerciseMeta(ex.tip);
+          const muscleGroup = ex.muscle_group || meta.muscleGroup || '';
+          const alternativeExerciseIds = ex.alternatives || meta.alternativeExerciseIds || [];
+          const muscleImage = ex.muscle_image || (muscleGroup ? getMuscleGroupImage(muscleGroup) : '');
+
+          return {
+            id: ex.id,
+            name: ex.name,
+            videoUrl: ex.video_url,
+            muscleImage,
+            muscleGroup,
+            alternativeExerciseIds,
+            tip: cleanTip
+          };
+        });
         setExerciseLibrary(mappedData);
       }
     };
@@ -284,35 +294,125 @@ const App: React.FC = () => {
     return updatedRoutine.id;
   };
 
-  const addToLibrary = async (exercise: Exercise) => {
-    // Optimistic update
-    const updated = [...exerciseLibrary, exercise];
-    setExerciseLibrary(updated);
+  // Sincronización bidireccional recíproca para ejercicios sustitutos
+  const syncReciprocalAlternatives = (
+    library: Exercise[],
+    savedExercise: Exercise
+  ): { updatedLibrary: Exercise[]; affectedOthers: Exercise[] } => {
+    const currentAlts = new Set(savedExercise.alternativeExerciseIds || []);
+    const oldExercise = library.find(e => e.id === savedExercise.id);
+    const oldAlts = new Set(oldExercise?.alternativeExerciseIds || []);
 
-    // Persist to Supabase
-    const { error } = await supabase.from('exercises').insert({
-      id: exercise.id,
-      name: exercise.name,
-      video_url: exercise.videoUrl,
-      muscle_image: exercise.muscleImage,
-      tip: exercise.tip
+    const affected: Exercise[] = [];
+
+    const updatedLibrary = library.map(ex => {
+      if (ex.id === savedExercise.id) {
+        return savedExercise;
+      }
+
+      const exAlts = new Set(ex.alternativeExerciseIds || []);
+      let changed = false;
+
+      // Si ex fue seleccionado como alternativa por savedExercise -> debe tener a savedExercise
+      if (currentAlts.has(ex.id)) {
+        if (!exAlts.has(savedExercise.id)) {
+          exAlts.add(savedExercise.id);
+          changed = true;
+        }
+      } else if (oldAlts.has(ex.id)) {
+        // Si antes era alternativa pero fue removido -> quitarlo
+        if (exAlts.has(savedExercise.id)) {
+          exAlts.delete(savedExercise.id);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        const updatedEx = { ...ex, alternativeExerciseIds: Array.from(exAlts) };
+        affected.push(updatedEx);
+        return updatedEx;
+      }
+      return ex;
     });
 
+    if (!updatedLibrary.some(e => e.id === savedExercise.id)) {
+      updatedLibrary.push(savedExercise);
+    }
+
+    return { updatedLibrary, affectedOthers: affected };
+  };
+
+  const persistExerciseToSupabase = async (ex: Exercise, isNew: boolean) => {
+    const preparedTip = embedExerciseMeta(ex.tip, {
+      muscleGroup: ex.muscleGroup,
+      alternativeExerciseIds: ex.alternativeExerciseIds
+    });
+    const muscleImage = ex.muscleImage || (ex.muscleGroup ? getMuscleGroupImage(ex.muscleGroup) : '');
+
+    const payload = {
+      id: ex.id,
+      name: ex.name,
+      video_url: ex.videoUrl,
+      muscle_image: muscleImage,
+      tip: preparedTip
+    };
+
+    if (isNew) {
+      return await supabase.from('exercises').insert(payload);
+    } else {
+      return await supabase.from('exercises').update({
+        name: payload.name,
+        video_url: payload.video_url,
+        muscle_image: payload.muscle_image,
+        tip: payload.tip
+      }).eq('id', ex.id);
+    }
+  };
+
+  const addToLibrary = async (exercise: Exercise) => {
+    // Resolver imagen de grupo si no tiene una
+    const completeEx: Exercise = {
+      ...exercise,
+      muscleImage: exercise.muscleImage || (exercise.muscleGroup ? getMuscleGroupImage(exercise.muscleGroup) : '')
+    };
+
+    // Sincronización recíproca con otros ejercicios
+    const { updatedLibrary, affectedOthers } = syncReciprocalAlternatives(exerciseLibrary, completeEx);
+    setExerciseLibrary(updatedLibrary);
+
+    // Persistir nuevo ejercicio
+    const { error } = await persistExerciseToSupabase(completeEx, true);
     if (error) {
       console.error('Error adding to library:', error);
       alert('Error al guardar ejercicio en la nube');
+      return;
     }
+
+    // Persistir actualizaciones recíprocas en background
+    affectedOthers.forEach(aff => {
+      persistExerciseToSupabase(aff, false).catch(e => console.error('Error syncing alt:', e));
+    });
   };
 
   const removeFromLibrary = async (id: string) => {
     if (confirm('¿Eliminar ejercicio de la biblioteca?')) {
-      // Optimistic update
-      const updated = exerciseLibrary.filter(ex => ex.id !== id);
+      // Optimistic update removiendo también las referencias cruzadas
+      const updated = exerciseLibrary
+        .filter(ex => ex.id !== id)
+        .map(ex => {
+          if (ex.alternativeExerciseIds && ex.alternativeExerciseIds.includes(id)) {
+            const cleanedAlts = ex.alternativeExerciseIds.filter(altId => altId !== id);
+            const cleanedEx = { ...ex, alternativeExerciseIds: cleanedAlts };
+            persistExerciseToSupabase(cleanedEx, false).catch(e => console.error('Error updating after delete:', e));
+            return cleanedEx;
+          }
+          return ex;
+        });
+
       setExerciseLibrary(updated);
 
       // Remove from Supabase
       const { error } = await supabase.from('exercises').delete().eq('id', id);
-
       if (error) {
         console.error('Error deleting from library:', error);
         alert('Error al eliminar de la nube');
@@ -321,22 +421,27 @@ const App: React.FC = () => {
   };
 
   const editInLibrary = async (exercise: Exercise) => {
-    // Optimistic update
-    const updated = exerciseLibrary.map(ex => ex.id === exercise.id ? exercise : ex);
-    setExerciseLibrary(updated);
+    const completeEx: Exercise = {
+      ...exercise,
+      muscleImage: exercise.muscleImage || (exercise.muscleGroup ? getMuscleGroupImage(exercise.muscleGroup) : '')
+    };
 
-    // Update in Supabase
-    const { error } = await supabase.from('exercises').update({
-      name: exercise.name,
-      video_url: exercise.videoUrl,
-      muscle_image: exercise.muscleImage,
-      tip: exercise.tip
-    }).eq('id', exercise.id);
+    // Sincronización recíproca bidireccional
+    const { updatedLibrary, affectedOthers } = syncReciprocalAlternatives(exerciseLibrary, completeEx);
+    setExerciseLibrary(updatedLibrary);
 
+    // Persistir ejercicio editado
+    const { error } = await persistExerciseToSupabase(completeEx, false);
     if (error) {
       console.error('Error updating library:', error);
       alert('Error al actualizar ejercicio en la nube');
+      return;
     }
+
+    // Persistir ejercicios afectados por el cambio de sustitutos
+    affectedOthers.forEach(aff => {
+      persistExerciseToSupabase(aff, false).catch(e => console.error('Error syncing alt:', e));
+    });
   };
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);

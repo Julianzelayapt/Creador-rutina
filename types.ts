@@ -4,6 +4,8 @@ export interface Exercise {
   name: string;
   videoUrl: string;
   muscleImage?: string;
+  muscleGroup?: string;
+  alternativeExerciseIds?: string[];
   tip: string;
 }
 
