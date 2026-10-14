@@ -857,25 +857,36 @@ ${feedbackText || 'Sin comentarios.'}
                 </div>
               </div>
 
-              {/* Week Pills Selector (ONLY WEEKS) */}
-              <div>
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                  {routine.weeks.map((week, idx) => {
-                    const isSelected = week.id === activeWeekId;
-                    return (
-                      <button
-                        key={week.id}
-                        onClick={() => setActiveWeekId(week.id)}
-                        className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                          isSelected
-                            ? 'bg-white text-black shadow-sm'
-                            : 'bg-[#18181b] text-zinc-400 border border-white/5 hover:text-white'
-                        }`}
-                      >
-                        {week.name || `Week ${idx + 1}`}
-                      </button>
-                    );
-                  })}
+              {/* Selector de Semana tipo Dropbox / Menú desplegable estético */}
+              <div className="relative">
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1 mb-2 block">
+                  {t('weeks')}
+                </label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none flex items-center gap-2">
+                    <svg className="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <select
+                    value={activeWeekId || ''}
+                    onChange={(e) => setActiveWeekId(e.target.value)}
+                    className="w-full bg-[#18181b] hover:bg-[#202024] text-white pl-11 pr-10 py-3.5 rounded-2xl font-bold uppercase text-xs tracking-wider border border-white/10 focus:border-yellow-500 outline-none transition-all appearance-none cursor-pointer shadow-md"
+                  >
+                    {routine.weeks.map((week, idx) => {
+                      const count = week.workouts?.length || 0;
+                      return (
+                        <option key={week.id} value={week.id} className="bg-[#18181b] text-white py-2">
+                          {week.name || `Semana ${idx + 1}`} ({count} {count === 1 ? 'día' : 'días'})
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
