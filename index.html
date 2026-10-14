@@ -8,7 +8,9 @@
   <link rel="icon" type="image/png" href="/logo.png">
   <link rel="apple-touch-icon" href="/logo.png">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -16,6 +18,7 @@
         extend: {
           fontFamily: {
             sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['Inter', 'sans-serif'],
           },
           colors: {
             hevyBlue: '#3b82f6',
@@ -27,12 +30,26 @@
     }
   </script>
   <style>
-    * {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    /* ── Tipografía Global Absoluta: INTER en todo el sistema ── */
+    html, body, *, *::before, *::after, input, button, select, textarea {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      -webkit-font-smoothing: antialiased !important;
+      -moz-osx-font-smoothing: grayscale !important;
+      text-rendering: optimizeLegibility !important;
     }
+
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      /* Características tipográficas avanzadas de Inter: números tabulares para pesas/tiempos y máxima legibilidad */
+      font-feature-settings: 'cv02' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1, 'tnum' 1;
       transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Asegurar que las clases mono sigan usando Inter con números tabulares perfectos */
+    .font-mono {
+      font-family: 'Inter', sans-serif !important;
+      font-variant-numeric: tabular-nums !important;
+      font-feature-settings: 'tnum' 1 !important;
     }
 
     /* Forzar fondos en modo oscuro si Tailwind no lo detecta en el body */
