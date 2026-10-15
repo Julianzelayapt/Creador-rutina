@@ -303,28 +303,33 @@ const App: React.FC = () => {
     const oldExercise = library.find(e => e.id === savedExercise.id);
     const oldAlts = new Set(oldExercise?.alternativeExerciseIds || []);
 
+    // Grupo completo: el ejercicio guardado + todas sus alternativas actuales
+    const fullGroup = new Set([savedExercise.id, ...currentAlts]);
+    // Ejercicios que fueron quitados del grupo
+    const removedIds = [...oldAlts].filter(id => !currentAlts.has(id));
+
     const affected: Exercise[] = [];
 
     const updatedLibrary = library.map(ex => {
-      if (ex.id === savedExercise.id) {
-        return savedExercise;
-      }
+      if (ex.id === savedExercise.id) return savedExercise;
 
       const exAlts = new Set(ex.alternativeExerciseIds || []);
       let changed = false;
 
-      // Si ex fue seleccionado como alternativa por savedExercise -> debe tener a savedExercise
-      if (currentAlts.has(ex.id)) {
-        if (!exAlts.has(savedExercise.id)) {
-          exAlts.add(savedExercise.id);
-          changed = true;
+      if (fullGroup.has(ex.id)) {
+        // Este ejercicio es parte del grupo → agregar todos los demás miembros del grupo
+        for (const memberId of fullGroup) {
+          if (memberId !== ex.id && !exAlts.has(memberId)) {
+            exAlts.add(memberId);
+            changed = true;
+          }
         }
-      } else if (oldAlts.has(ex.id)) {
-        // Si antes era alternativa pero fue removido -> quitarlo
-        if (exAlts.has(savedExercise.id)) {
-          exAlts.delete(savedExercise.id);
-          changed = true;
-        }
+      }
+
+      // Si este ejercicio fue removido del grupo → quitarle el vínculo con savedExercise
+      if (removedIds.includes(ex.id) && exAlts.has(savedExercise.id)) {
+        exAlts.delete(savedExercise.id);
+        changed = true;
       }
 
       if (changed) {

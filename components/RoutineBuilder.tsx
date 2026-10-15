@@ -699,36 +699,48 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
 
               {/* Selector de Alternativas con Vinculación Recíproca */}
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-                    Sustitutos / Máquina ocupada (mismo enfoque)
+                    🔀 Sustitutos compatibles
                   </label>
-                  <span className="text-[9px] text-amber-500 font-bold uppercase tracking-wider">
-                    Bidireccional
+                  <span className="text-[9px] text-amber-500 font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                    ⚡ Recíproco auto
                   </span>
                 </div>
 
+                {/* Buscador de sustitutos */}
+                <AltSearch
+                  library={library}
+                  excludeIds={[newExercise.id, ...(newExercise.alternativeExerciseIds || [])]}
+                  onSelect={(id) => {
+                    if (!newExercise.alternativeExerciseIds.includes(id)) {
+                      setNewExercise({
+                        ...newExercise,
+                        alternativeExerciseIds: [...newExercise.alternativeExerciseIds, id]
+                      });
+                    }
+                  }}
+                />
+
                 {/* Chips de alternativas seleccionadas */}
-                {newExercise.alternativeExerciseIds && newExercise.alternativeExerciseIds.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-2 p-2 bg-white/50 dark:bg-black/50 rounded-xl border border-slate-200 dark:border-zinc-800">
+                {newExercise.alternativeExerciseIds && newExercise.alternativeExerciseIds.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {newExercise.alternativeExerciseIds.map((altId) => {
                       const altEx = library.find(l => l.id === altId);
                       return (
                         <span
                           key={altId}
-                          className="inline-flex items-center gap-1.5 text-xs bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-lg font-bold"
+                          className="inline-flex items-center gap-1.5 text-xs bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25 px-3 py-1.5 rounded-full font-semibold"
                         >
-                          <span className="truncate max-w-[150px]">{altEx?.name || 'Ejercicio'}</span>
+                          <span className="truncate max-w-[160px]">{altEx?.name || 'Ejercicio'}</span>
                           <button
                             type="button"
-                            onClick={() => {
-                              setNewExercise({
-                                ...newExercise,
-                                alternativeExerciseIds: newExercise.alternativeExerciseIds.filter(id => id !== altId)
-                              });
-                            }}
-                            className="hover:text-red-500 font-black text-xs ml-0.5"
-                            title="Quitar sustituto"
+                            onClick={() => setNewExercise({
+                              ...newExercise,
+                              alternativeExerciseIds: newExercise.alternativeExerciseIds.filter(id => id !== altId)
+                            })}
+                            className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 text-zinc-400 transition-colors font-black text-[11px]"
+                            title="Quitar"
                           >
                             ×
                           </button>
@@ -736,36 +748,9 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                       );
                     })}
                   </div>
+                ) : (
+                  <p className="text-[11px] text-zinc-500 mt-2 italic">Sin sustitutos asignados aún.</p>
                 )}
-
-                {/* Desplegable para sumar alternativas */}
-                <select
-                  className="w-full px-3 py-2.5 text-xs rounded-xl bg-white dark:bg-black border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 font-semibold outline-none focus:border-amber-500 cursor-pointer"
-                  value=""
-                  onChange={(e) => {
-                    const selectedId = e.target.value;
-                    if (selectedId && !newExercise.alternativeExerciseIds.includes(selectedId)) {
-                      setNewExercise({
-                        ...newExercise,
-                        alternativeExerciseIds: [...newExercise.alternativeExerciseIds, selectedId]
-                      });
-                    }
-                  }}
-                >
-                  <option value="" disabled>
-                    ➕ Agregar ejercicio sustituto compatible...
-                  </option>
-                  {library
-                    .filter(ex => ex.id !== newExercise.id && !newExercise.alternativeExerciseIds.includes(ex.id))
-                    .map(ex => (
-                      <option key={ex.id} value={ex.id} className="bg-zinc-900 text-white">
-                        {ex.name} {ex.muscleGroup ? `(${ex.muscleGroup})` : ''}
-                      </option>
-                    ))}
-                </select>
-                <p className="text-[10px] text-zinc-500 mt-1 leading-tight">
-                  💡 <strong>Recíproco automático:</strong> al guardar, estos ejercicios también tendrán a este como sustituto.
-                </p>
               </div>
 
               <div>
@@ -1829,7 +1814,7 @@ const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => 
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
-  const filtered = query.length >= 3
+  const filtered = query.length >= 1
     ? library.filter(e => e.name.toLowerCase().includes(query.toLowerCase()))
     : [];
 
@@ -1838,7 +1823,7 @@ const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => 
       <div className="flex items-center w-full px-8 py-5 bg-slate-900 dark:bg-black border border-slate-800 rounded-[2rem] text-white font-black uppercase text-[10px] tracking-widest shadow-2xl group">
         <svg className="w-5 h-5 mr-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
         <input
-          placeholder="Escribe 3 letras para buscar ejercicio..."
+          placeholder="Buscar ejercicio..."
           className="bg-transparent outline-none w-full text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
           value={query}
           onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
@@ -1846,7 +1831,7 @@ const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => 
         />
       </div>
 
-      {isOpen && query.length >= 3 && (
+      {isOpen && query.length >= 1 && (
         <div className="absolute bottom-full left-0 w-full mb-4 bg-white dark:bg-darkCard border-2 border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-2xl z-50 max-h-72 overflow-y-auto p-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
           {filtered.length > 0 ? filtered.map(ex => (
             <div
@@ -1869,5 +1854,64 @@ const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => 
     </div>
   );
 }
+
+// Buscador compacto para sustitutos (dentro del formulario de ejercicio)
+const AltSearch: React.FC<{
+  library: Exercise[];
+  excludeIds: string[];
+  onSelect: (id: string) => void;
+}> = ({ library, excludeIds, onSelect }) => {
+  const [query, setQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+
+  const filtered = query.length >= 1
+    ? library.filter(e => !excludeIds.includes(e.id) && e.name.toLowerCase().includes(query.toLowerCase()))
+    : [];
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2 px-3 py-2 bg-black/30 border border-zinc-700/50 rounded-xl focus-within:border-amber-500/60 transition-colors">
+        <svg className="w-3.5 h-3.5 text-zinc-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          placeholder="Buscar ejercicio sustituto..."
+          className="bg-transparent outline-none w-full text-xs text-white placeholder:text-zinc-600 font-medium"
+          value={query}
+          onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => setTimeout(() => setIsOpen(false), 150)}
+        />
+        {query && (
+          <button onClick={() => setQuery('')} className="text-zinc-600 hover:text-zinc-300 text-xs font-black shrink-0">×</button>
+        )}
+      </div>
+
+      {isOpen && query.length >= 1 && (
+        <div className="absolute top-full left-0 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto">
+          {filtered.length > 0 ? filtered.map(ex => (
+            <button
+              key={ex.id}
+              type="button"
+              className="w-full text-left px-3 py-2.5 hover:bg-amber-500/10 text-xs text-zinc-200 hover:text-amber-300 transition-colors flex items-center justify-between gap-2 border-b border-zinc-800/50 last:border-0"
+              onMouseDown={() => {
+                onSelect(ex.id);
+                setQuery('');
+                setIsOpen(false);
+              }}
+            >
+              <span className="font-semibold truncate">{ex.name}</span>
+              {ex.muscleGroup && (
+                <span className="text-[10px] text-zinc-500 shrink-0">{ex.muscleGroup}</span>
+              )}
+            </button>
+          )) : (
+            <div className="px-3 py-3 text-xs text-zinc-600 text-center italic">Sin resultados</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default RoutineBuilder;
