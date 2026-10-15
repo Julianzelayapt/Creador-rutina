@@ -626,6 +626,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   // Find active items
   const currentWeek = routine.weeks.find(w => w.id === activeWeekId);
   const currentWorkout = currentWeek?.workouts.find(wk => wk.id === activeWorkoutId);
+  const currentWorkoutIndex = currentWeek?.workouts.findIndex(wk => wk.id === activeWorkoutId) ?? 0;
   // Formateadores dinámicos según idioma
   const formatWorkoutTitle = (name: string, index: number) => {
     if (!name) return `${t('day')} ${index + 1}`;
