@@ -2,7 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Routine, Exercise, Week, Workout, ExerciseEntry, TrainingSet } from '../types';
-import { DEFAULT_MUSCLE_GROUPS, getMuscleGroupImage, findMuscleGroupById, getCustomMuscleImages, setCustomMuscleImage } from '../muscleGroups';
+import { 
+  DEFAULT_MUSCLE_GROUPS, 
+  getMuscleGroupImage, 
+  findMuscleGroupById, 
+  getCustomMuscleImages, 
+  setCustomMuscleImage,
+  SUPPORTED_LANGUAGES,
+  matchesSearchQuery
+} from '../muscleGroups';
 
 interface RoutineBuilderProps {
   routine: Routine;
@@ -27,6 +35,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
     muscleImage: string;
     muscleGroup: string;
     alternativeExerciseIds: string[];
+    language: 'es' | 'en' | 'it';
     tip: string;
   }>({
     name: '',
@@ -34,11 +43,14 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
     muscleImage: getMuscleGroupImage('pecho'),
     muscleGroup: 'pecho',
     alternativeExerciseIds: [],
+    language: 'es',
     tip: ''
   });
   const [shareLinks, setShareLinks] = useState<{ client: string, builder: string } | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [libraryQuery, setLibraryQuery] = useState('');
+  const [libraryMuscleFilter, setLibraryMuscleFilter] = useState('');
+  const [libraryLangFilter, setLibraryLangFilter] = useState('');
   const [showImageModal, setShowImageModal] = useState(false);
   const [showMusclePhotosModal, setShowMusclePhotosModal] = useState(false);
   const [customMuscleImagesMap, setCustomMuscleImagesMap] = useState<Record<string, string>>(() => getCustomMuscleImages());
@@ -605,10 +617,18 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
       )}
 
       {/* Sidebar Biblioteca */}
-      <div className={`w-80 bg-white dark:bg-darkCard border-r border-slate-200 dark:border-slate-800 flex flex-col fixed h-full z-30 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Biblioteca</h2>
+      <div className={`w-96 bg-white dark:bg-darkCard border-r border-slate-200 dark:border-slate-800 flex flex-col fixed h-full z-30 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-5 border-b border-slate-200 dark:border-slate-800 space-y-3 shrink-0 bg-slate-50/50 dark:bg-black/20">
+          {/* Header Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight uppercase">
+                Biblioteca
+              </h2>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-700 dark:text-yellow-400 font-black">
+                {library.length}
+              </span>
+            </div>
             <button
               onClick={() => {
                 setNewExercise({
@@ -617,272 +637,256 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                   muscleImage: getMuscleGroupImage('pecho'),
                   muscleGroup: 'pecho',
                   alternativeExerciseIds: [],
+                  language: (libraryLangFilter as 'es' | 'en' | 'it') || 'es',
                   tip: ''
                 });
-                setShowLibraryForm(!showLibraryForm);
+                setShowLibraryForm(true);
               }}
-              className="p-2.5 bg-yellow-400 text-black rounded-2xl hover:bg-yellow-500 shadow-md transition-all active:scale-90"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-400 text-black font-black text-xs uppercase tracking-wider rounded-xl hover:bg-yellow-500 shadow-sm transition-all active:scale-95"
+              title="Añadir nuevo ejercicio a la biblioteca"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>Nuevo</span>
             </button>
           </div>
 
-          {showLibraryForm && (
-            <div className="space-y-3 mb-6 bg-slate-100 dark:bg-slate-900 p-5 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 animate-in slide-in-from-top-4 duration-200">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1 block">
-                  Nombre del ejercicio
-                </label>
-                <input
-                  placeholder="Ej: Press Inclinado con Mancuernas 45°"
-                  className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none font-bold text-slate-800 dark:text-white"
-                  value={newExercise.name}
-                  onChange={e => setNewExercise({ ...newExercise, name: e.target.value })}
-                />
-              </div>
-
-              {/* Selector de Grupo Muscular con Foto Automática */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-                    Grupo Muscular (foto automática)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowMusclePhotosModal(true)}
-                    className="text-[10px] text-amber-500 hover:text-amber-400 font-bold underline flex items-center gap-1"
-                  >
-                    ⚙️ Cambiar fotos
-                  </button>
-                </div>
-                <div className="flex items-center gap-3 bg-white dark:bg-black p-2 rounded-xl border border-slate-200 dark:border-zinc-800">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 bg-zinc-900 flex items-center justify-center">
-                    <img
-                      src={newExercise.muscleImage || getMuscleGroupImage(newExercise.muscleGroup)}
-                      alt="Músculo"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <select
-                    className="flex-1 bg-transparent text-sm font-bold text-slate-800 dark:text-white outline-none cursor-pointer"
-                    value={newExercise.muscleGroup}
-                    onChange={(e) => {
-                      const selectedGroup = e.target.value;
-                      const autoImage = getMuscleGroupImage(selectedGroup);
-                      setNewExercise({
-                        ...newExercise,
-                        muscleGroup: selectedGroup,
-                        muscleImage: autoImage
-                      });
-                    }}
-                  >
-                    {DEFAULT_MUSCLE_GROUPS.map((g) => (
-                      <option key={g.id} value={g.id} className="bg-zinc-900 text-white">
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1 block">
-                  URL Video demostrativo
-                </label>
-                <input
-                  placeholder="URL Video (YouTube, Vimeo, etc.)"
-                  className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none font-medium text-slate-800 dark:text-white"
-                  value={newExercise.videoUrl}
-                  onChange={e => setNewExercise({ ...newExercise, videoUrl: e.target.value })}
-                />
-              </div>
-
-              {/* Selector de Alternativas con Vinculación Recíproca */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-                    🔀 Sustitutos compatibles
-                  </label>
-                  <span className="text-[9px] text-amber-500 font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                    ⚡ Recíproco auto
-                  </span>
-                </div>
-
-                {/* Buscador de sustitutos */}
-                <AltSearch
-                  library={library}
-                  excludeIds={[newExercise.id, ...(newExercise.alternativeExerciseIds || [])]}
-                  onSelect={(id) => {
-                    if (!newExercise.alternativeExerciseIds.includes(id)) {
-                      setNewExercise({
-                        ...newExercise,
-                        alternativeExerciseIds: [...newExercise.alternativeExerciseIds, id]
-                      });
-                    }
-                  }}
-                />
-
-                {/* Chips de alternativas seleccionadas */}
-                {newExercise.alternativeExerciseIds && newExercise.alternativeExerciseIds.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {newExercise.alternativeExerciseIds.map((altId) => {
-                      const altEx = library.find(l => l.id === altId);
-                      return (
-                        <span
-                          key={altId}
-                          className="inline-flex items-center gap-1.5 text-xs bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25 px-3 py-1.5 rounded-full font-semibold"
-                        >
-                          <span className="truncate max-w-[160px]">{altEx?.name || 'Ejercicio'}</span>
-                          <button
-                            type="button"
-                            onClick={() => setNewExercise({
-                              ...newExercise,
-                              alternativeExerciseIds: newExercise.alternativeExerciseIds.filter(id => id !== altId)
-                            })}
-                            className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 text-zinc-400 transition-colors font-black text-[11px]"
-                            title="Quitar"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-zinc-500 mt-2 italic">Sin sustitutos asignados aún.</p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1 block">
-                  Tips y recomendaciones (opcional)
-                </label>
-                <textarea
-                  placeholder="Ej: Banco a 45°, retracción escapular, bajar controlado"
-                  className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-black border-2 border-transparent focus:border-yellow-600 outline-none h-20 resize-none font-medium"
-                  value={newExercise.tip}
-                  onChange={e => setNewExercise({ ...newExercise, tip: e.target.value })}
-                />
-              </div>
-
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (newExercise.name) {
-                    const payload: Exercise = {
-                      id: newExercise.id || Math.random().toString(36).substr(2, 9),
-                      name: newExercise.name,
-                      videoUrl: newExercise.videoUrl,
-                      muscleGroup: newExercise.muscleGroup,
-                      muscleImage: newExercise.muscleImage || getMuscleGroupImage(newExercise.muscleGroup),
-                      alternativeExerciseIds: newExercise.alternativeExerciseIds,
-                      tip: newExercise.tip
-                    };
-
-                    if (newExercise.id) {
-                      onEditLibrary(payload);
-                    } else {
-                      onAddToLibrary(payload);
-                    }
-                    setNewExercise({
-                      name: '',
-                      videoUrl: '',
-                      muscleImage: getMuscleGroupImage('pecho'),
-                      muscleGroup: 'pecho',
-                      alternativeExerciseIds: [],
-                      tip: ''
-                    });
-                    setShowLibraryForm(false);
-                  }
-                }}
-                className={`w-full py-3 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-colors ${newExercise.id ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-400 text-black hover:bg-yellow-500'}`}
-              >
-                {newExercise.id ? 'Actualizar Ejercicio' : 'Guardar Nuevo'}
-              </button>
+          {/* Buscador Inteligente */}
+          <div className="relative">
+            <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-900 border-2 border-transparent focus-within:border-yellow-500 rounded-xl transition-all">
+              <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                placeholder="Buscar por nombre, técnica..."
+                value={libraryQuery}
+                onChange={(e) => setLibraryQuery(e.target.value)}
+                className="w-full bg-transparent outline-none text-xs font-bold text-slate-800 dark:text-white placeholder:text-slate-400"
+              />
+              {libraryQuery && (
+                <button
+                  type="button"
+                  onClick={() => setLibraryQuery('')}
+                  className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs font-bold px-1"
+                >
+                  ✕
+                </button>
+              )}
             </div>
-          )}
-
-          {/* Search Bar */}
-          <div className="mb-4">
-            <input
-              placeholder="Buscar ejercicio..."
-              value={libraryQuery}
-              onChange={(e) => setLibraryQuery(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-900 border-2 border-transparent focus:border-yellow-600 outline-none text-sm font-bold text-slate-800 dark:text-white"
-            />
           </div>
-               <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {library.filter(ex => ex.name.toLowerCase().includes(libraryQuery.toLowerCase())).map(ex => (
-            <div 
-              key={ex.id}
-              className="p-3 bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-2 border-transparent hover:border-yellow-600 transition-all cursor-pointer group relative flex justify-between items-center text-slate-800 dark:text-slate-100"
-              onClick={() => {
-                if (!activeWeekId || !activeWorkoutId) {
-                  alert('Primero selecciona una semana y un día');
-                  return;
-                }
-                addExerciseToWorkout(activeWeekId, activeWorkoutId, ex.id);
-              }}
+
+          {/* Segmentación por Idioma */}
+          <div className="flex items-center gap-1 bg-slate-200/70 dark:bg-slate-900/90 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setLibraryLangFilter('')}
+              className={`flex-1 py-1 px-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all text-center ${
+                !libraryLangFilter
+                  ? 'bg-yellow-400 text-black shadow-sm font-black'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
             >
-              <div className="flex items-center gap-3 overflow-hidden">
-                <img
-                  src={ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
-                  alt={ex.name}
-                  className="w-10 h-10 rounded-xl object-cover shrink-0 bg-zinc-900 border border-slate-300 dark:border-white/10"
-                />
-                <div className="min-w-0">
-                  <div className="font-bold text-sm truncate">{ex.name}</div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {ex.muscleGroup && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-                        {ex.muscleGroup}
-                      </span>
-                    )}
-                    {ex.alternativeExerciseIds && ex.alternativeExerciseIds.length > 0 && (
-                      <span className="text-[9px] bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold px-1.5 py-0.2 rounded-md">
-                        🔀 {ex.alternativeExerciseIds.length} alt
-                      </span>
-                    )}
+              Todos ({library.length})
+            </button>
+            {SUPPORTED_LANGUAGES.map(lang => {
+              const count = library.filter(e => (e.language || 'es') === lang.code).length;
+              const isSelected = libraryLangFilter === lang.code;
+              return (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => setLibraryLangFilter(isSelected ? '' : lang.code)}
+                  className={`flex-1 py-1 px-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${
+                    isSelected
+                      ? 'bg-yellow-400 text-black shadow-sm font-black'
+                      : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title={`Filtrar ejercicios en ${lang.name}`}
+                >
+                  <span>{lang.flag}</span>
+                  <span>{lang.code.toUpperCase()}</span>
+                  <span className="opacity-70 text-[9px]">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Segmentación por Grupo Muscular (Pills horizontales) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] no-scrollbar">
+            <button
+              type="button"
+              onClick={() => setLibraryMuscleFilter('')}
+              className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all shrink-0 ${
+                !libraryMuscleFilter
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-black shadow-sm'
+                  : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-300 dark:hover:bg-slate-700'
+              }`}
+            >
+              Todos ({library.filter(e => !libraryLangFilter || (e.language || 'es') === libraryLangFilter).length})
+            </button>
+            {DEFAULT_MUSCLE_GROUPS.map(g => {
+              const count = library.filter(e => {
+                const matchesMuscle = (e.muscleGroup || '').toLowerCase() === g.id.toLowerCase();
+                const matchesLang = !libraryLangFilter || (e.language || 'es') === libraryLangFilter;
+                return matchesMuscle && matchesLang;
+              }).length;
+
+              const isSelected = libraryMuscleFilter === g.id;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => setLibraryMuscleFilter(isSelected ? '' : g.id)}
+                  className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all shrink-0 flex items-center gap-1 ${
+                    isSelected
+                      ? 'bg-yellow-400 text-black shadow-sm'
+                      : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-300 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <span>{g.name}</span>
+                  {count > 0 && (
+                    <span className={`text-[9px] px-1 rounded-full ${isSelected ? 'bg-black/20 text-black font-black' : 'bg-black/10 dark:bg-white/10 text-slate-600 dark:text-zinc-400'}`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Listado de Ejercicios Filtrados */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {(() => {
+            const filtered = library.filter(ex => {
+              if (libraryLangFilter && (ex.language || 'es') !== libraryLangFilter) return false;
+              if (libraryMuscleFilter && (ex.muscleGroup || '').toLowerCase() !== libraryMuscleFilter.toLowerCase()) return false;
+              if (libraryQuery.trim()) {
+                const combined = `${ex.name} ${ex.muscleGroup || ''} ${ex.tip || ''}`;
+                return matchesSearchQuery(combined, libraryQuery);
+              }
+              return true;
+            });
+
+            if (filtered.length === 0) {
+              return (
+                <div className="p-8 text-center space-y-3">
+                  <div className="text-3xl">🔍</div>
+                  <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
+                    No se encontraron ejercicios
+                  </p>
+                  {(libraryQuery || libraryMuscleFilter || libraryLangFilter) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLibraryQuery('');
+                        setLibraryMuscleFilter('');
+                        setLibraryLangFilter('');
+                      }}
+                      className="text-xs text-yellow-600 dark:text-yellow-400 underline font-bold"
+                    >
+                      Restablecer todos los filtros
+                    </button>
+                  )}
+                </div>
+              );
+            }
+
+            return filtered.map(ex => {
+              const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === (ex.language || 'es'));
+              return (
+                <div
+                  key={ex.id}
+                  className="p-3 bg-slate-50 dark:bg-slate-800/60 hover:bg-yellow-50 dark:hover:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-yellow-500/50 transition-all cursor-pointer group relative flex justify-between items-center text-slate-800 dark:text-slate-100 shadow-sm"
+                  onClick={() => {
+                    if (!activeWeekId || !activeWorkoutId) {
+                      alert('Primero selecciona una semana y un día en el constructor');
+                      return;
+                    }
+                    addExerciseToWorkout(activeWeekId, activeWorkoutId, ex.id);
+                  }}
+                  title="Haz clic para añadir al día activo"
+                >
+                  <div className="flex items-center gap-3 overflow-hidden min-w-0 pr-2">
+                    <img
+                      src={ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
+                      alt={ex.name}
+                      className="w-11 h-11 rounded-xl object-cover shrink-0 bg-zinc-900 border border-slate-200 dark:border-white/10"
+                    />
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs truncate group-hover:text-yellow-600 dark:group-hover:text-yellow-400">
+                        {ex.name}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        {/* Language Tag */}
+                        <span className="text-[9px] bg-slate-200 dark:bg-zinc-700/80 text-slate-700 dark:text-zinc-200 font-extrabold px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                          <span>{langInfo?.flag || '🌐'}</span>
+                          <span>{(ex.language || 'es').toUpperCase()}</span>
+                        </span>
+
+                        {/* Muscle Tag */}
+                        {ex.muscleGroup && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-900 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-zinc-800">
+                            {ex.muscleGroup}
+                          </span>
+                        )}
+
+                        {/* Substitutes Badge */}
+                        {ex.alternativeExerciseIds && ex.alternativeExerciseIds.length > 0 && (
+                          <span className="text-[9px] bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold px-1.5 py-0.5 rounded-md">
+                            🔀 {ex.alternativeExerciseIds.length} alt
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const group = ex.muscleGroup || 'pecho';
+                        setNewExercise({
+                          id: ex.id,
+                          name: ex.name,
+                          videoUrl: ex.videoUrl || '',
+                          muscleImage: ex.muscleImage || getMuscleGroupImage(group),
+                          muscleGroup: group,
+                          alternativeExerciseIds: ex.alternativeExerciseIds || [],
+                          language: ex.language || 'es',
+                          tip: ex.tip || ''
+                        });
+                        setShowLibraryForm(true);
+                      }}
+                      className="p-2 text-slate-500 dark:text-zinc-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-500/10 rounded-xl transition-all"
+                      title="Modificar ejercicio (pantalla completa)"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onRemoveFromLibrary(ex.id); }}
+                      className="p-2 text-slate-500 dark:text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                      title="Eliminar de la biblioteca"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
-              </div>
-              <div className="flex shrink-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const group = ex.muscleGroup || 'pecho';
-                    setNewExercise({
-                      id: ex.id,
-                      name: ex.name,
-                      videoUrl: ex.videoUrl || '',
-                      muscleImage: ex.muscleImage || getMuscleGroupImage(group),
-                      muscleGroup: group,
-                      alternativeExerciseIds: ex.alternativeExerciseIds || [],
-                      tip: ex.tip || ''
-                    });
-                    setShowLibraryForm(true);
-                  }}
-                  className="p-2 text-slate-950 dark:text-white hover:text-yellow-600 transition-all shrink-0"
-                  title="Editar ejercicio"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onRemoveFromLibrary(ex.id); }}
-                  className="p-2 text-slate-950 dark:text-white hover:text-red-500 transition-all shrink-0"
-                  title="Eliminar de la biblioteca"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
-              </div>
-            </div>
-          ))}
+              );
+            });
+          })()}
         </div>
-   </div>
       </div>
 
       {/* Main Builder Area */}
-      <div className="flex-1 lg:ml-80 p-4 lg:p-8 pt-20 lg:pt-8">
+      <div className="flex-1 lg:ml-96 p-4 lg:p-8 pt-20 lg:pt-8">
         <div className="max-w-4xl mx-auto pb-32">
 
           {/* Mobile Header Toggle */}
@@ -1805,111 +1809,545 @@ onChange={(e) => setCurrentRoutine({
         </div>
       )}
 
+      {/* ── Modal Espacioso: Añadir / Modificar Ejercicio en la Biblioteca ── */}
+      {showLibraryForm && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 text-white">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950/60">
+              <div>
+                <h2 className="text-lg font-black tracking-tight uppercase flex items-center gap-2">
+                  <span>{newExercise.id ? '✏️ Modificar Ejercicio' : '✨ Nuevo Ejercicio'}</span>
+                </h2>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Segmentá por grupo muscular, idioma y asigná sustitutos compatibles con búsqueda inteligente.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLibraryForm(false)}
+                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Cerrar"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body con scroll */}
+            <div className="p-6 overflow-y-auto space-y-5 flex-1">
+              {/* Nombre del ejercicio */}
+              <div>
+                <label className="text-[11px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
+                  Nombre del ejercicio *
+                </label>
+                <input
+                  placeholder="Ej: Press Smith Inclinado, Squat con Barra, etc."
+                  className="w-full px-4 py-3 text-sm rounded-xl bg-black/60 border border-slate-700 focus:border-yellow-500 outline-none font-bold text-white transition-colors"
+                  value={newExercise.name}
+                  onChange={e => setNewExercise({ ...newExercise, name: e.target.value })}
+                  autoFocus
+                />
+              </div>
+
+              {/* Segmentación por Idioma */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-400">
+                    Idioma del Ejercicio
+                  </label>
+                  <span className="text-[10px] text-zinc-500 font-medium">
+                    Segmentá según el idioma de tu rutina
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {SUPPORTED_LANGUAGES.map(l => (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => setNewExercise({ ...newExercise, language: l.code })}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                        newExercise.language === l.code
+                          ? 'bg-yellow-400 text-black border-yellow-400 shadow-md font-black scale-[1.02]'
+                          : 'bg-black/40 text-zinc-300 border-slate-800 hover:border-slate-700 hover:bg-slate-800'
+                      }`}
+                    >
+                      <span className="text-base">{l.flag}</span>
+                      <span>{l.name} ({l.code.toUpperCase()})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Grupo Muscular con Foto Automática */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-400">
+                    Grupo Muscular (foto anatómica automática)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowMusclePhotosModal(true)}
+                    className="text-[11px] text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1"
+                  >
+                    ⚙️ Cambiar fotos
+                  </button>
+                </div>
+                <div className="flex items-center gap-4 bg-black/60 p-3 rounded-2xl border border-slate-700">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 bg-zinc-900 flex items-center justify-center">
+                    <img
+                      src={newExercise.muscleImage || getMuscleGroupImage(newExercise.muscleGroup)}
+                      alt="Músculo"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <select
+                      className="w-full bg-slate-900 text-white text-sm font-bold px-3 py-2 rounded-xl border border-slate-700 outline-none cursor-pointer"
+                      value={newExercise.muscleGroup}
+                      onChange={(e) => {
+                        const selectedGroup = e.target.value;
+                        const autoImage = getMuscleGroupImage(selectedGroup);
+                        setNewExercise({
+                          ...newExercise,
+                          muscleGroup: selectedGroup,
+                          muscleImage: autoImage
+                        });
+                      }}
+                    >
+                      {DEFAULT_MUSCLE_GROUPS.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-zinc-500 mt-1 font-medium">
+                      La foto se actualiza automáticamente al cambiar el grupo muscular.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* URL Video Demostrativo */}
+              <div>
+                <label className="text-[11px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
+                  URL Video demostrativo
+                </label>
+                <input
+                  placeholder="URL Video (YouTube, Vimeo, etc.)"
+                  className="w-full px-4 py-3 text-sm rounded-xl bg-black/60 border border-slate-700 focus:border-yellow-500 outline-none font-medium text-white transition-colors"
+                  value={newExercise.videoUrl}
+                  onChange={e => setNewExercise({ ...newExercise, videoUrl: e.target.value })}
+                />
+              </div>
+
+              {/* Sustitutos Compatibles (Recíprocos) */}
+              <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-[11px] font-black uppercase tracking-wider text-zinc-300 block">
+                      🔀 Sustitutos compatibles
+                    </label>
+                    <p className="text-[10px] text-zinc-500">
+                      Buscador flexible por palabras clave, grupo muscular e idioma.
+                    </p>
+                  </div>
+                  <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                    ⚡ Recíproco auto
+                  </span>
+                </div>
+
+                <AltSearch
+                  library={library}
+                  excludeIds={[newExercise.id || '', ...(newExercise.alternativeExerciseIds || [])]}
+                  targetMuscleGroup={newExercise.muscleGroup}
+                  targetLanguage={newExercise.language}
+                  onSelect={(id) => {
+                    if (!newExercise.alternativeExerciseIds.includes(id)) {
+                      setNewExercise({
+                        ...newExercise,
+                        alternativeExerciseIds: [...newExercise.alternativeExerciseIds, id]
+                      });
+                    }
+                  }}
+                />
+
+                {/* Chips de alternativas seleccionadas */}
+                {newExercise.alternativeExerciseIds && newExercise.alternativeExerciseIds.length > 0 ? (
+                  <div className="space-y-1.5 pt-2">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                      Sustitutos vinculados ({newExercise.alternativeExerciseIds.length}):
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {newExercise.alternativeExerciseIds.map((altId) => {
+                        const altEx = library.find(l => l.id === altId);
+                        const altLang = SUPPORTED_LANGUAGES.find(l => l.code === (altEx?.language || 'es'));
+                        return (
+                          <span
+                            key={altId}
+                            className="inline-flex items-center gap-2 text-xs bg-amber-500/10 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl font-bold"
+                          >
+                            <span>{altLang?.flag}</span>
+                            <span className="truncate max-w-[200px]">{altEx?.name || 'Ejercicio'}</span>
+                            <span className="text-[10px] text-zinc-400">({altEx?.muscleGroup || 'General'})</span>
+                            <button
+                              type="button"
+                              onClick={() => setNewExercise({
+                                ...newExercise,
+                                alternativeExerciseIds: newExercise.alternativeExerciseIds.filter(id => id !== altId)
+                              })}
+                              className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 text-zinc-400 transition-colors font-black text-xs ml-1"
+                              title="Quitar sustituto"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-zinc-500 italic">
+                    Sin sustitutos asignados aún. Seleccioná de la lista o buscá arriba.
+                  </p>
+                )}
+              </div>
+
+              {/* Tips y Recomendaciones */}
+              <div>
+                <label className="text-[11px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
+                  Tips y recomendaciones de técnica (opcional)
+                </label>
+                <textarea
+                  placeholder="Ej: Banco a 45°, retracción escapular, bajar controlado hasta rozar el pecho..."
+                  className="w-full px-4 py-3 text-sm rounded-xl bg-black/60 border border-slate-700 focus:border-yellow-500 outline-none h-24 resize-none font-medium text-white transition-colors"
+                  value={newExercise.tip}
+                  onChange={e => setNewExercise({ ...newExercise, tip: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-end gap-3 bg-slate-950/60 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowLibraryForm(false)}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-zinc-400 hover:text-white hover:bg-slate-800 transition-colors uppercase tracking-wider"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (!newExercise.name.trim()) {
+                    alert('Por favor ingresá un nombre para el ejercicio');
+                    return;
+                  }
+                  const payload: Exercise = {
+                    id: newExercise.id || Math.random().toString(36).substr(2, 9),
+                    name: newExercise.name.trim(),
+                    videoUrl: newExercise.videoUrl.trim(),
+                    muscleGroup: newExercise.muscleGroup,
+                    muscleImage: newExercise.muscleImage || getMuscleGroupImage(newExercise.muscleGroup),
+                    alternativeExerciseIds: newExercise.alternativeExerciseIds,
+                    language: newExercise.language || 'es',
+                    tip: newExercise.tip.trim()
+                  };
+
+                  if (newExercise.id) {
+                    onEditLibrary(payload);
+                  } else {
+                    onAddToLibrary(payload);
+                  }
+                  setShowLibraryForm(false);
+                }}
+                className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg ${
+                  newExercise.id
+                    ? 'bg-green-600 hover:bg-green-500 text-white'
+                    : 'bg-yellow-400 hover:bg-yellow-500 text-black'
+                }`}
+              >
+                {newExercise.id ? 'Actualizar Ejercicio' : 'Guardar Ejercicio'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
 
-// Componente de Búsqueda Mejorado
+// Componente de Búsqueda Mejorado para agregar ejercicios al día de entrenamiento
 const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => void }> = ({ library, onSelect }) => {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedMuscle, setSelectedMuscle] = useState('');
+  const [selectedLang, setSelectedLang] = useState('');
 
-  const filtered = query.length >= 1
-    ? library.filter(e => e.name.toLowerCase().includes(query.toLowerCase()))
-    : [];
+  const filtered = library.filter(e => {
+    if (selectedLang && (e.language || 'es') !== selectedLang) return false;
+    if (selectedMuscle && (e.muscleGroup || '').toLowerCase() !== selectedMuscle.toLowerCase()) return false;
+    if (query.trim()) {
+      const combined = `${e.name} ${e.muscleGroup || ''}`;
+      return matchesSearchQuery(combined, query);
+    }
+    return true;
+  });
 
   return (
     <div className="relative">
       <div className="flex items-center w-full px-8 py-5 bg-slate-900 dark:bg-black border border-slate-800 rounded-[2rem] text-white font-black uppercase text-[10px] tracking-widest shadow-2xl group">
-        <svg className="w-5 h-5 mr-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+        <svg className="w-5 h-5 mr-4 text-yellow-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
         <input
-          placeholder="Buscar ejercicio..."
-          className="bg-transparent outline-none w-full text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+          placeholder="Buscar ejercicio para añadir al día..."
+          className="bg-transparent outline-none w-full text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs font-bold"
           value={query}
           onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
           onFocus={() => setIsOpen(true)}
         />
+        {query && (
+          <button type="button" onClick={() => setQuery('')} className="text-zinc-400 hover:text-white text-xs font-bold px-2">✕</button>
+        )}
       </div>
 
-      {isOpen && query.length >= 1 && (
-        <div className="absolute bottom-full left-0 w-full mb-4 bg-white dark:bg-darkCard border-2 border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-2xl z-50 max-h-72 overflow-y-auto p-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
-          {filtered.length > 0 ? filtered.map(ex => (
-            <div
-              key={ex.id}
-              className="p-5 hover:bg-yellow-400 hover:text-black cursor-pointer rounded-2xl text-sm font-black text-slate-800 dark:text-slate-100 transition-all flex items-center justify-between uppercase"
-              onClick={() => {
-                onSelect(ex.id);
-                setQuery('');
-                setIsOpen(false);
-              }}
-            >
-              <span>{ex.name}</span>
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+      {isOpen && (
+        <div className="absolute bottom-full left-0 w-full mb-4 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-2xl z-50 max-h-80 overflow-hidden flex flex-col p-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          {/* Header filtros dentro de ExerciseSearch */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 gap-2 shrink-0">
+            <div className="flex items-center gap-1 overflow-x-auto text-[10px]">
+              <button
+                type="button"
+                onClick={() => setSelectedMuscle('')}
+                className={`px-2 py-0.5 rounded-lg font-bold uppercase transition-all ${
+                  !selectedMuscle ? 'bg-yellow-400 text-black' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                }`}
+              >
+                Todos
+              </button>
+              {DEFAULT_MUSCLE_GROUPS.slice(0, 6).map(g => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => setSelectedMuscle(selectedMuscle === g.id ? '' : g.id)}
+                  className={`px-2 py-0.5 rounded-lg font-bold uppercase transition-all ${
+                    selectedMuscle === g.id ? 'bg-yellow-400 text-black' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                  }`}
+                >
+                  {g.name}
+                </button>
+              ))}
             </div>
-          )) : (
-            <div className="p-8 text-center text-slate-950 dark:text-white font-bold uppercase text-[10px] tracking-widest">No se encontraron resultados</div>
-          )}
+
+            <div className="flex items-center gap-1 shrink-0">
+              {SUPPORTED_LANGUAGES.map(l => (
+                <button
+                  key={l.code}
+                  type="button"
+                  onClick={() => setSelectedLang(selectedLang === l.code ? '' : l.code)}
+                  className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold ${
+                    selectedLang === l.code ? 'bg-yellow-400 text-black' : 'text-slate-400'
+                  }`}
+                >
+                  {l.flag}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="text-slate-400 hover:text-white text-xs font-bold px-2 py-0.5"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Listado */}
+          <div className="overflow-y-auto space-y-1 mt-2 flex-1 max-h-60">
+            {filtered.length > 0 ? filtered.map(ex => (
+              <div
+                key={ex.id}
+                className="p-3 hover:bg-yellow-400 hover:text-black cursor-pointer rounded-2xl text-xs font-bold text-slate-800 dark:text-slate-100 transition-all flex items-center justify-between group"
+                onClick={() => {
+                  onSelect(ex.id);
+                  setQuery('');
+                  setIsOpen(false);
+                }}
+              >
+                <div className="flex items-center gap-2.5 overflow-hidden">
+                  <img
+                    src={ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
+                    alt=""
+                    className="w-7 h-7 rounded-lg object-cover shrink-0 bg-black"
+                  />
+                  <div className="truncate">
+                    <span className="font-extrabold uppercase">{ex.name}</span>
+                    <span className="text-[10px] opacity-70 ml-2">({ex.muscleGroup} • {(ex.language || 'es').toUpperCase()})</span>
+                  </div>
+                </div>
+                <span className="text-yellow-600 group-hover:text-black font-black text-xs shrink-0">+ Añadir</span>
+              </div>
+            )) : (
+              <div className="p-6 text-center text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] tracking-widest">
+                No se encontraron ejercicios
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
-}
+};
 
-// Buscador compacto para sustitutos (dentro del formulario de ejercicio)
+// Buscador inteligente para sustitutos con filtro de grupo muscular e idioma
 const AltSearch: React.FC<{
   library: Exercise[];
   excludeIds: string[];
+  targetMuscleGroup?: string;
+  targetLanguage?: 'es' | 'en' | 'it';
   onSelect: (id: string) => void;
-}> = ({ library, excludeIds, onSelect }) => {
+}> = ({ library, excludeIds, targetMuscleGroup, targetLanguage, onSelect }) => {
   const [query, setQuery] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
+  const [selectedMuscle, setSelectedMuscle] = useState<string>(targetMuscleGroup || '');
+  const [selectedLang, setSelectedLang] = useState<string>(targetLanguage || '');
 
-  const filtered = query.length >= 1
-    ? library.filter(e => !excludeIds.includes(e.id) && e.name.toLowerCase().includes(query.toLowerCase()))
-    : [];
+  useEffect(() => {
+    if (targetMuscleGroup) setSelectedMuscle(targetMuscleGroup);
+  }, [targetMuscleGroup]);
+
+  useEffect(() => {
+    if (targetLanguage) setSelectedLang(targetLanguage);
+  }, [targetLanguage]);
+
+  const candidates = library.filter(e => {
+    if (excludeIds.includes(e.id)) return false;
+    if (selectedLang && (e.language || 'es') !== selectedLang) return false;
+    if (selectedMuscle && (e.muscleGroup || '').toLowerCase() !== selectedMuscle.toLowerCase()) return false;
+    if (query.trim()) {
+      const combined = `${e.name} ${e.muscleGroup || ''}`;
+      return matchesSearchQuery(combined, query);
+    }
+    return true;
+  });
 
   return (
-    <div className="relative">
-      <div className="flex items-center gap-2 px-3 py-2 bg-black/30 border border-zinc-700/50 rounded-xl focus-within:border-amber-500/60 transition-colors">
-        <svg className="w-3.5 h-3.5 text-zinc-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    <div className="space-y-2.5 bg-black/40 p-3 rounded-2xl border border-slate-700/60">
+      {/* Input de Búsqueda Flexible */}
+      <div className="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl focus-within:border-yellow-500 transition-colors">
+        <svg className="w-4 h-4 text-yellow-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
-          placeholder="Buscar ejercicio sustituto..."
-          className="bg-transparent outline-none w-full text-xs text-white placeholder:text-zinc-600 font-medium"
+          placeholder="Buscar por nombre (ej: smith, prensa, mancuerna)..."
+          className="bg-transparent outline-none w-full text-xs text-white placeholder:text-zinc-500 font-medium"
           value={query}
-          onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
-          onFocus={() => setIsOpen(true)}
-          onBlur={() => setTimeout(() => setIsOpen(false), 150)}
+          onChange={e => setQuery(e.target.value)}
         />
         {query && (
-          <button onClick={() => setQuery('')} className="text-zinc-600 hover:text-zinc-300 text-xs font-black shrink-0">×</button>
+          <button type="button" onClick={() => setQuery('')} className="text-zinc-400 hover:text-white text-xs font-bold px-1">✕</button>
         )}
       </div>
 
-      {isOpen && query.length >= 1 && (
-        <div className="absolute top-full left-0 w-full mt-1 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto">
-          {filtered.length > 0 ? filtered.map(ex => (
-            <button
-              key={ex.id}
-              type="button"
-              className="w-full text-left px-3 py-2.5 hover:bg-amber-500/10 text-xs text-zinc-200 hover:text-amber-300 transition-colors flex items-center justify-between gap-2 border-b border-zinc-800/50 last:border-0"
-              onMouseDown={() => {
-                onSelect(ex.id);
-                setQuery('');
-                setIsOpen(false);
-              }}
-            >
-              <span className="font-semibold truncate">{ex.name}</span>
-              {ex.muscleGroup && (
-                <span className="text-[10px] text-zinc-500 shrink-0">{ex.muscleGroup}</span>
-              )}
-            </button>
-          )) : (
-            <div className="px-3 py-3 text-xs text-zinc-600 text-center italic">Sin resultados</div>
-          )}
+      {/* Filtros rápidos: Grupo Muscular e Idioma */}
+      <div className="flex items-center justify-between gap-2 flex-wrap text-[11px]">
+        {/* Selector de Músculo */}
+        <div className="flex items-center gap-1.5 flex-1 min-w-[160px]">
+          <span className="text-zinc-400 font-bold shrink-0">Músculo:</span>
+          <select
+            value={selectedMuscle}
+            onChange={e => setSelectedMuscle(e.target.value)}
+            className="bg-slate-900 text-zinc-200 text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-700 outline-none cursor-pointer w-full"
+          >
+            <option value="">Todos los músculos ({library.filter(e => !excludeIds.includes(e.id)).length})</option>
+            {DEFAULT_MUSCLE_GROUPS.map(g => {
+              const count = library.filter(e => !excludeIds.includes(e.id) && (e.muscleGroup || '').toLowerCase() === g.id.toLowerCase()).length;
+              return (
+                <option key={g.id} value={g.id}>
+                  {g.name} ({count})
+                </option>
+              );
+            })}
+          </select>
         </div>
-      )}
+
+        {/* Selector de Idioma */}
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-zinc-400 font-bold mr-0.5">Idioma:</span>
+          <button
+            type="button"
+            onClick={() => setSelectedLang('')}
+            className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase transition-all ${
+              !selectedLang ? 'bg-yellow-400 text-black shadow-sm' : 'bg-slate-800 text-zinc-400 hover:text-white'
+            }`}
+          >
+            Todos
+          </button>
+          {SUPPORTED_LANGUAGES.map(l => (
+            <button
+              key={l.code}
+              type="button"
+              onClick={() => setSelectedLang(selectedLang === l.code ? '' : l.code)}
+              className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1 ${
+                selectedLang === l.code ? 'bg-yellow-400 text-black shadow-sm' : 'bg-slate-800 text-zinc-400 hover:text-white'
+              }`}
+            >
+              <span>{l.flag}</span>
+              <span>{l.code.toUpperCase()}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Lista de Sugerencias y Resultados */}
+      <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 mt-1">
+        {candidates.length > 0 ? (
+          candidates.map(ex => (
+            <div
+              key={ex.id}
+              className="flex items-center justify-between p-2 rounded-xl bg-slate-900/90 hover:bg-yellow-400/10 border border-slate-800 hover:border-yellow-500/40 transition-all group"
+            >
+              <div className="flex items-center gap-2.5 overflow-hidden min-w-0 pr-2">
+                <img
+                  src={ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
+                  alt=""
+                  className="w-8 h-8 rounded-lg object-cover shrink-0 bg-black border border-white/10"
+                />
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-white group-hover:text-yellow-400 truncate">
+                    {ex.name}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-0.5">
+                    {ex.muscleGroup && (
+                      <span className="font-semibold text-zinc-300">{ex.muscleGroup}</span>
+                    )}
+                    <span className="text-zinc-600">•</span>
+                    <span className="uppercase text-yellow-500 font-extrabold">{ex.language || 'es'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onSelect(ex.id);
+                  setQuery('');
+                }}
+                className="shrink-0 px-2.5 py-1 bg-yellow-400/20 hover:bg-yellow-400 text-yellow-400 hover:text-black rounded-lg text-[11px] font-black transition-all flex items-center gap-1"
+                title="Añadir como sustituto compatible"
+              >
+                <span>+</span>
+                <span>Añadir</span>
+              </button>
+            </div>
+          ))
+        ) : (
+          <div className="p-4 text-center text-xs text-zinc-500 italic">
+            No se encontraron sustitutos con estos filtros.
+          </div>
+        )}
+      </div>
     </div>
   );
 };

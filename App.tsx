@@ -140,6 +140,7 @@ const App: React.FC = () => {
           const muscleGroup = ex.muscle_group || meta.muscleGroup || '';
           const alternativeExerciseIds = ex.alternatives || meta.alternativeExerciseIds || [];
           const muscleImage = ex.muscle_image || (muscleGroup ? getMuscleGroupImage(muscleGroup) : '');
+          const language = (ex.language || meta.language || 'es') as 'es' | 'en' | 'it';
 
           return {
             id: ex.id,
@@ -148,6 +149,7 @@ const App: React.FC = () => {
             muscleImage,
             muscleGroup,
             alternativeExerciseIds,
+            language,
             tip: cleanTip
           };
         });
@@ -350,7 +352,8 @@ const App: React.FC = () => {
   const persistExerciseToSupabase = async (ex: Exercise, isNew: boolean) => {
     const preparedTip = embedExerciseMeta(ex.tip, {
       muscleGroup: ex.muscleGroup,
-      alternativeExerciseIds: ex.alternativeExerciseIds
+      alternativeExerciseIds: ex.alternativeExerciseIds,
+      language: ex.language || 'es'
     });
     const muscleImage = ex.muscleImage || (ex.muscleGroup ? getMuscleGroupImage(ex.muscleGroup) : '');
 
@@ -378,6 +381,7 @@ const App: React.FC = () => {
     // Resolver imagen de grupo si no tiene una
     const completeEx: Exercise = {
       ...exercise,
+      language: exercise.language || 'es',
       muscleImage: exercise.muscleImage || (exercise.muscleGroup ? getMuscleGroupImage(exercise.muscleGroup) : '')
     };
 
@@ -428,6 +432,7 @@ const App: React.FC = () => {
   const editInLibrary = async (exercise: Exercise) => {
     const completeEx: Exercise = {
       ...exercise,
+      language: exercise.language || 'es',
       muscleImage: exercise.muscleImage || (exercise.muscleGroup ? getMuscleGroupImage(exercise.muscleGroup) : '')
     };
 

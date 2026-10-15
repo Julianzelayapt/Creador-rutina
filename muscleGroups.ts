@@ -32,6 +32,7 @@ const ICONS = {
   cuadriceps: `<path d="M12 6 C18 6, 20 16, 18 32 C14 30, 10 24, 10 14 Z M28 6 C22 6, 20 16, 22 32 C26 30, 30 24, 30 14 Z" fill="currentColor"/>`,
   isquios: `<path d="M14 8 C18 10, 18 20, 16 32 C12 28, 12 18, 14 8 Z M26 8 C22 10, 22 20, 24 32 C28 28, 28 18, 26 8 Z" fill="currentColor"/>`,
   gluteos: `<path d="M8 16 C12 8, 18 10, 20 20 C18 26, 12 28, 8 22 Z M32 16 C28 8, 22 10, 20 20 C22 26, 28 28, 32 22 Z" fill="currentColor"/>`,
+  aductores: `<path d="M16 10 C18 14, 19 22, 18 32 C16 28, 15 20, 14 12 Z M24 10 C22 14, 21 22, 22 32 C24 28, 25 20, 26 12 Z" fill="currentColor"/>`,
   gemelos: `<path d="M14 10 C18 12, 18 24, 16 32 C12 28, 12 20, 14 10 Z M26 10 C22 12, 22 24, 24 32 C28 28, 28 20, 26 10 Z" fill="currentColor"/>`,
   abdomen: `<path d="M14 6 H26 V12 H14 Z M14 14 H26 V20 H14 Z M14 22 H26 V28 H14 Z" fill="currentColor"/>`,
   general: `<path d="M20 4 C14 12, 14 28, 20 36 C26 28, 26 12, 20 4 Z" fill="currentColor"/>`
@@ -46,6 +47,7 @@ export const DEFAULT_MUSCLE_GROUPS: MuscleGroupInfo[] = [
   { id: 'cuadriceps', name: 'Cuádriceps', category: 'tren_inferior', defaultImage: createMuscleSvg('Cuádriceps', ICONS.cuadriceps, '#EF4444') },
   { id: 'isquios', name: 'Isquios / Femorales', category: 'tren_inferior', defaultImage: createMuscleSvg('Femorales', ICONS.isquios, '#F97316') },
   { id: 'gluteos', name: 'Glúteos', category: 'tren_inferior', defaultImage: createMuscleSvg('Glúteos', ICONS.gluteos, '#D946EF') },
+  { id: 'aductores', name: 'Aductores', category: 'tren_inferior', defaultImage: createMuscleSvg('Aductores', ICONS.aductores, '#14B8A6') },
   { id: 'gemelos', name: 'Gemelos / Pantorrillas', category: 'tren_inferior', defaultImage: createMuscleSvg('Gemelos', ICONS.gemelos, '#06B6D4') },
   { id: 'abdomen', name: 'Abdomen / Core', category: 'core', defaultImage: createMuscleSvg('Abdomen', ICONS.abdomen, '#EAB308') },
   { id: 'general', name: 'Cuerpo Completo / Otro', category: 'otro', defaultImage: createMuscleSvg('General', ICONS.general, '#9CA3AF') }
@@ -97,6 +99,7 @@ const META_TAG_REGEX = /<!--\s*meta:({.*?})\s*-->/s;
 export interface ExerciseMeta {
   muscleGroup?: string;
   alternativeExerciseIds?: string[];
+  language?: 'es' | 'en' | 'it';
 }
 
 export const extractExerciseMeta = (rawTip?: string): { cleanTip: string; meta: ExerciseMeta } => {
@@ -115,8 +118,37 @@ export const extractExerciseMeta = (rawTip?: string): { cleanTip: string; meta: 
 
 export const embedExerciseMeta = (tip: string, meta: ExerciseMeta): string => {
   const cleanTip = tip.replace(META_TAG_REGEX, '').trim();
-  const hasMeta = meta.muscleGroup || (meta.alternativeExerciseIds && meta.alternativeExerciseIds.length > 0);
+  const hasMeta = meta.muscleGroup || meta.language || (meta.alternativeExerciseIds && meta.alternativeExerciseIds.length > 0);
   if (!hasMeta) return cleanTip;
   const metaString = `<!-- meta:${JSON.stringify(meta)} -->`;
   return cleanTip ? `${cleanTip}\n\n${metaString}` : metaString;
+};
+
+export interface LanguageOption {
+  code: 'es' | 'en' | 'it';
+  name: string;
+  flag: string;
+}
+
+export const SUPPORTED_LANGUAGES: LanguageOption[] = [
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'it', name: 'Italiano', flag: '🇮🇹' }
+];
+
+export const normalizeSearchText = (str?: string): string => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+};
+
+export const matchesSearchQuery = (text: string, query: string): boolean => {
+  if (!query || !query.trim()) return true;
+  const normText = normalizeSearchText(text);
+  const tokens = normalizeSearchText(query).split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+  return tokens.every(token => normText.includes(token));
 };

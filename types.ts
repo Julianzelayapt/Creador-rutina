@@ -6,6 +6,7 @@ export interface Exercise {
   muscleImage?: string;
   muscleGroup?: string;
   alternativeExerciseIds?: string[];
+  language?: 'es' | 'en' | 'it';
   tip: string;
 }
 
