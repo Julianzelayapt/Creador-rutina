@@ -20,6 +20,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
         progress: 'PROGRESO',
         noData: 'Completá las series con peso para ver el progreso histórico',
         selectExercise: 'Seleccionar Ejercicio',
+        weeklyProgress: 'Progreso por semana',
       },
       en: {
         week: 'Week',
@@ -29,6 +30,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
         progress: 'PROGRESS',
         noData: 'Complete sets with weight to view progress history',
         selectExercise: 'Select Exercise',
+        weeklyProgress: 'Weekly progress',
       },
       it: {
         week: 'Settimana',
@@ -38,6 +40,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
         progress: 'PROGRESSO',
         noData: 'Completa le serie con peso per vedere i progressi',
         selectExercise: 'Seleziona Esercizio',
+        weeklyProgress: 'Progresso settimanale',
       }
     };
     return translations[language][key] || key;
@@ -60,12 +63,16 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
     }
   }, [uniqueExerciseIds, selectedExId]);
 
-  const getTranslatedWeekName = (name: string) => {
-    const numMatch = name.match(/\d+/);
-    if (numMatch && name.toLowerCase().includes('week')) {
-      return `${t('week')} ${numMatch[0]}`;
+  const getTranslatedWeekName = (name: string, fallbackIdx?: number) => {
+    if (!name) return `${t('week')} ${(fallbackIdx ?? 0) + 1}`;
+    const trimmed = name.trim();
+    const match = trimmed.match(/^(?:semana|week|settimana)\s*(\d+)\s*(?:[·\-:]\s*(.*))?$/i);
+    if (match) {
+      const num = match[1];
+      const rest = match[2];
+      return rest ? `${t('week')} ${num} · ${rest}` : `${t('week')} ${num}`;
     }
-    return name;
+    return trimmed;
   };
 
   return (
@@ -131,7 +138,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                   {libEx.name}
                 </h3>
                 <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mt-0.5">
-                  Progreso por semana
+                  {t('weeklyProgress')}
                 </p>
               </div>
             </div>
@@ -149,7 +156,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {routine.weeks.map((week) => {
+                  {routine.weeks.map((week, wIdx) => {
                     const avgKg = weeklySnapshots[week.id]?.[exId];
                     if (avgKg === undefined) return null;
 
@@ -174,7 +181,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                     return (
                       <tr key={week.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3.5 text-left pl-2 font-medium text-xs text-zinc-200">
-                          {getTranslatedWeekName(week.name)}
+                          {getTranslatedWeekName(week.name, wIdx)}
                         </td>
                         <td className="py-3.5 font-bold text-sm text-white font-mono">
                           {avgKg} <span className="text-[10px] font-normal text-zinc-400">kg</span>
