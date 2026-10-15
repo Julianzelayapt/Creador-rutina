@@ -141,10 +141,14 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       es: {
+        training: 'Entrenamiento',
+        overload: 'Sobrecarga Progresiva',
         weeks: 'Semanas',
+        week: 'Semana',
         workouts: 'Días',
+        day: 'Día',
         completed: 'Completado',
-        startWorkout: 'Start Workout',
+        startWorkout: 'Iniciar Entrenamiento',
         keepTraining: 'Seguir Entrenando',
         finishAnyway: 'Terminar de Todos Modos',
         finishWorkout: 'Terminar',
@@ -180,11 +184,35 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         noWorkouts: 'No hay días cargados en esta semana.',
         coachMode: 'Coach Mode',
         setsLogged: 'series registradas',
-        of: 'de'
+        of: 'de',
+        back: 'Volver',
+        exercisesTapToTrain: 'Ejercicios (toca para entrenar)',
+        exercisePrefix: 'EJERCICIO',
+        busyMachine: '¿Máquina ocupada?',
+        busyShort: '¿Ocupada?',
+        substituteActive: 'Sustituto activo',
+        substitute: 'Sustituto',
+        replaces: 'Reemplaza a',
+        changeAlt: 'Cambiar alt',
+        busyModalTitle: '¿Máquina o banco ocupado?',
+        busyModalSubtitle: 'Mismo patrón, ángulo y enfoque muscular aprobado por tu coach.',
+        originalPlannedExercise: 'Ejercicio planificado originalmente',
+        restoreOriginal: 'Restablecer original',
+        noAlternatives: 'No hay sustitutos configurados para este ejercicio.',
+        inUse: 'En uso',
+        useThis: 'Usar este',
+        forClient: 'Para',
+        noExercises: 'Sin ejercicios',
+        series: 'series',
+        watchVideo: 'Ver video instructivo'
       },
       en: {
+        training: 'Training',
+        overload: 'Progressive Overload',
         weeks: 'Weeks',
+        week: 'Week',
         workouts: 'Workouts',
+        day: 'Day',
         completed: 'Completed',
         startWorkout: 'Start Workout',
         keepTraining: 'Keep Training',
@@ -210,7 +238,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         howWasWorkout: 'How was your workout today?',
         comments: 'Comments for your coach',
         sendSummary: 'Send Summary',
-        keepEditing: 'Keep Editing',
+        keepEditing: 'Back to routine',
         closeSession: 'Close Session',
         feedbackSent: 'Feedback Sent!',
         feedbackDesc: 'Your coach will receive your progress report. Great job today!',
@@ -222,13 +250,37 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         noWorkouts: 'No workouts in this week.',
         coachMode: 'Coach Mode',
         setsLogged: 'sets logged',
-        of: 'of'
+        of: 'of',
+        back: 'Back',
+        exercisesTapToTrain: 'Exercises (tap to train)',
+        exercisePrefix: 'EXERCISE',
+        busyMachine: 'Machine busy?',
+        busyShort: 'Busy?',
+        substituteActive: 'Substitute active',
+        substitute: 'Substitute',
+        replaces: 'Replaces',
+        changeAlt: 'Change alt',
+        busyModalTitle: 'Machine or bench busy?',
+        busyModalSubtitle: 'Same pattern, angle and muscle focus approved by your coach.',
+        originalPlannedExercise: 'Originally planned exercise',
+        restoreOriginal: 'Reset to original',
+        noAlternatives: 'No substitutes configured for this exercise.',
+        inUse: 'In use',
+        useThis: 'Use this',
+        forClient: 'For',
+        noExercises: 'No exercises',
+        series: 'sets',
+        watchVideo: 'Watch instructional video'
       },
       it: {
+        training: 'Allenamento',
+        overload: 'Sovraccarico Progressivo',
         weeks: 'Settimane',
+        week: 'Settimana',
         workouts: 'Allenamenti',
+        day: 'Giorno',
         completed: 'Completato',
-        startWorkout: 'Start Workout',
+        startWorkout: 'Inizia Allenamento',
         keepTraining: 'Continua ad allenarti',
         finishAnyway: 'Termina comunque',
         finishWorkout: 'Termina',
@@ -252,7 +304,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         howWasWorkout: "Com'è andato l'allenamento di oggi?",
         comments: 'Commenti per il tuo coach',
         sendSummary: 'Invia Riepilogo',
-        keepEditing: 'Continua Modifica',
+        keepEditing: 'Torna alla scheda',
         closeSession: 'Chiudi Sessione',
         feedbackSent: 'Feedback Inviato!',
         feedbackDesc: 'Il tuo coach riceverà il tuo report dettagliato. Ottimo lavoro!',
@@ -264,10 +316,30 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         noWorkouts: 'Nessun allenamento in questa settimana.',
         coachMode: 'Coach Mode',
         setsLogged: 'serie registrate',
-        of: 'di'
+        of: 'di',
+        back: 'Indietro',
+        exercisesTapToTrain: 'Esercizi (tocca per allenarti)',
+        exercisePrefix: 'ESERCIZIO',
+        busyMachine: 'Attrezzo occupato?',
+        busyShort: 'Occupato?',
+        substituteActive: 'Sostituto attivo',
+        substitute: 'Sostituto',
+        replaces: 'Sostituisce',
+        changeAlt: 'Cambia alt',
+        busyModalTitle: 'Attrezzo o panca occupata?',
+        busyModalSubtitle: 'Stesso schema, angolo e focus muscolare approvato dal tuo coach.',
+        originalPlannedExercise: 'Esercizio originariamente pianificato',
+        restoreOriginal: 'Ripristina originale',
+        noAlternatives: 'Nessun sostituto configurato per questo esercizio.',
+        inUse: 'In uso',
+        useThis: 'Usa questo',
+        forClient: 'Per',
+        noExercises: 'Senza esercizi',
+        series: 'serie',
+        watchVideo: 'Guarda video istruttivo'
       }
     };
-    return translations[language][key] || key;
+    return translations[language]?.[key] || translations['es']?.[key] || key;
   };
 
   // Keep activeWeekId valid
@@ -554,11 +626,33 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   // Find active items
   const currentWeek = routine.weeks.find(w => w.id === activeWeekId);
   const currentWorkout = currentWeek?.workouts.find(wk => wk.id === activeWorkoutId);
-  const currentWorkoutIndex = currentWeek?.workouts.findIndex(wk => wk.id === activeWorkoutId) ?? -1;
+  // Formateadores dinámicos según idioma
+  const formatWorkoutTitle = (name: string, index: number) => {
+    if (!name) return `${t('day')} ${index + 1}`;
+    const trimmed = name.trim();
+    const match = trimmed.match(/^(?:d[ií]a|day|giorno)\s*(\d+)\s*(?:[·\-:]\s*(.*))?$/i);
+    if (match) {
+      const num = match[1];
+      const rest = match[2];
+      return rest ? `${t('day')} ${num} · ${rest}` : `${t('day')} ${num}`;
+    }
+    return index >= 0 ? `${t('day')} ${index + 1} · ${trimmed}` : trimmed;
+  };
+
+  const formatWeekTitle = (name: string, index: number) => {
+    if (!name) return `${t('week')} ${index + 1}`;
+    const trimmed = name.trim();
+    const match = trimmed.match(/^(?:semana|week|settimana)\s*(\d+)\s*(?:[·\-:]\s*(.*))?$/i);
+    if (match) {
+      const num = match[1];
+      const rest = match[2];
+      return rest ? `${t('week')} ${num} · ${rest}` : `${t('week')} ${num}`;
+    }
+    return trimmed;
+  };
+
   const currentWorkoutDisplayTitle = currentWorkout
-    ? (/^d[ií]a\s*\d+/i.test(currentWorkout.name.trim())
-      ? currentWorkout.name
-      : (currentWorkoutIndex >= 0 ? `Día ${currentWorkoutIndex + 1} · ${currentWorkout.name}` : currentWorkout.name))
+    ? formatWorkoutTitle(currentWorkout.name, currentWorkoutIndex)
     : '';
 
   // Compute total stats across the routine
@@ -701,7 +795,13 @@ ${feedbackText || 'Sin comentarios.'}
               <div className="space-y-4 text-left">
                 <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block ml-1">{t('comments')}</label>
                 <textarea
-                  placeholder={language === 'es' ? 'Contanos qué tal las cargas, sensaciones...' : 'Leave any comments for your coach...'}
+                  placeholder={
+                    language === 'es'
+                      ? 'Contanos qué tal las cargas, sensaciones...'
+                      : language === 'it'
+                      ? 'Raccontaci com’è andata con i carichi, sensazioni...'
+                      : 'Leave any comments for your coach...'
+                  }
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
                   className="w-full bg-zinc-900 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 resize-none h-32"
@@ -832,14 +932,14 @@ ${feedbackText || 'Sin comentarios.'}
                     </svg>
                   </span>
                   <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">
-                    ¿Máquina o banco ocupado?
+                    {t('busyModalTitle')}
                   </span>
                 </div>
                 <h3 className="text-xl font-bold text-white tracking-tight">
-                  Alternativas biomecánicas
+                  {t('overload')}
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Mismo patrón, ángulo y enfoque muscular aprobado por tu coach.
+                  {t('busyModalSubtitle')}
                 </p>
               </div>
               <button
@@ -855,7 +955,7 @@ ${feedbackText || 'Sin comentarios.'}
             {/* Ejercicio Original Base */}
             <div className="p-3 bg-zinc-900/90 rounded-2xl border border-white/5 mb-4">
               <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
-                Ejercicio planificado originalmente
+                {t('originalPlannedExercise')}
               </span>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -880,7 +980,7 @@ ${feedbackText || 'Sin comentarios.'}
                     onClick={() => handleChooseAlternative(altModalExerciseEntry.entryId, null)}
                     className="text-xs text-amber-400 hover:text-amber-300 font-bold underline px-2 py-1"
                   >
-                    Restablecer original
+                    {t('restoreOriginal')}
                   </button>
                 )}
               </div>
@@ -891,7 +991,7 @@ ${feedbackText || 'Sin comentarios.'}
               {altModalExerciseEntry.alternatives.length === 0 ? (
                 <div className="p-6 text-center bg-zinc-900/50 rounded-2xl border border-white/5">
                   <p className="text-sm text-zinc-400">
-                    No hay sustitutos configurados para este ejercicio.
+                    {t('noAlternatives')}
                   </p>
                 </div>
               ) : (
@@ -933,7 +1033,7 @@ ${feedbackText || 'Sin comentarios.'}
                             : 'bg-white/10 hover:bg-amber-400 hover:text-black text-white'
                         }`}
                       >
-                        {isCurrentlySelected ? 'En uso' : 'Usar este'}
+                        {isCurrentlySelected ? t('inUse') : t('useThis')}
                       </button>
                     </div>
                   );
@@ -981,7 +1081,7 @@ ${feedbackText || 'Sin comentarios.'}
               activeTab === 'training' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
             }`}
           >
-            Entrenamiento
+            {t('training')}
           </button>
           <button
             onClick={() => setActiveTab('overload')}
@@ -989,7 +1089,7 @@ ${feedbackText || 'Sin comentarios.'}
               activeTab === 'overload' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
             }`}
           >
-            Sobrecarga Progresiva
+            {t('overload')}
           </button>
         </div>
       </div>
@@ -1045,7 +1145,7 @@ ${feedbackText || 'Sin comentarios.'}
                   </p>
                   {routine.clientName && (
                     <p className="text-zinc-400 text-xs font-medium mt-0.5">
-                      Para: {routine.clientName}
+                      {t('forClient')}: {routine.clientName}
                     </p>
                   )}
                   {routine.description && (
@@ -1114,7 +1214,7 @@ ${feedbackText || 'Sin comentarios.'}
                   >
                     {routine.weeks.map((week, idx) => (
                       <option key={week.id} value={week.id} className="bg-[#18181b] text-white py-2">
-                        {week.name || `Semana ${idx + 1}`}
+                        {formatWeekTitle(week.name, idx)}
                       </option>
                     ))}
                   </select>
@@ -1135,8 +1235,7 @@ ${feedbackText || 'Sin comentarios.'}
                       .filter(Boolean)
                       .join(', ');
 
-                    const hasDiaPrefix = /^d[ií]a\s*\d+/i.test(workout.name.trim());
-                    const displayTitle = hasDiaPrefix ? workout.name : `Día ${idx + 1} · ${workout.name}`;
+                    const displayTitle = formatWorkoutTitle(workout.name, idx);
 
                     return (
                       <div
@@ -1160,7 +1259,7 @@ ${feedbackText || 'Sin comentarios.'}
                               {displayTitle}
                             </h3>
                             <p className="text-zinc-400 text-xs truncate mt-0.5">
-                              {exercisePreview || 'Sin ejercicios'}
+                              {exercisePreview || t('noExercises')}
                             </p>
                             <span className="text-[11px] font-medium text-zinc-500 mt-0.5 block">
                               {workout.exercises.length} {t('exercisesCount')}
@@ -1201,7 +1300,7 @@ ${feedbackText || 'Sin comentarios.'}
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
                   </svg>
-                  Volver
+                  {t('back')}
                 </button>
               </div>
 
@@ -1211,7 +1310,7 @@ ${feedbackText || 'Sin comentarios.'}
                   {currentWorkoutDisplayTitle}
                 </h1>
                 <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                  {currentWorkout.exercises.length} ejercicios · {activeWorkoutTotalSets} series
+                  {currentWorkout.exercises.length} {t('exercisesCount')} · {activeWorkoutTotalSets} {t('series')}
                 </p>
                 {currentWorkout.warmup && (
                   <p className="text-xs text-zinc-300 mt-2 p-3 bg-zinc-900 border border-white/5 rounded-xl font-medium">
@@ -1239,7 +1338,7 @@ ${feedbackText || 'Sin comentarios.'}
               {/* Exercises Preview List (Clicking ANY exercise also starts the workout!) */}
               <div className="space-y-2 pt-1">
                 <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block ml-1">
-                  Ejercicios (toca para entrenar)
+                  {t('exercisesTapToTrain')}
                 </span>
                 {currentWorkout.exercises.map((entry, idx) => {
                   const activeLibId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
@@ -1280,7 +1379,7 @@ ${feedbackText || 'Sin comentarios.'}
                             </h4>
                             {isReplaced && (
                               <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.2 rounded-md">
-                                Sustituto
+                                {t('substitute')}
                               </span>
                             )}
                           </div>
@@ -1368,11 +1467,11 @@ ${feedbackText || 'Sin comentarios.'}
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block">
-                              EJERCICIO {eIdx + 1}
+                              {t('exercisePrefix')} {eIdx + 1}
                             </span>
                             {isReplaced && (
                               <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                                Sustituto activo
+                                {t('substituteActive')}
                               </span>
                             )}
                           </div>
@@ -1381,7 +1480,7 @@ ${feedbackText || 'Sin comentarios.'}
                           </h3>
                           {isReplaced && originalEx && (
                             <span className="text-[11px] text-zinc-400 block mt-0.5">
-                              Reemplaza a: <strong className="text-zinc-300">{originalEx.name}</strong>
+                              {t('replaces')}: <strong className="text-zinc-300">{originalEx.name}</strong>
                             </span>
                           )}
                         </div>
@@ -1408,12 +1507,12 @@ ${feedbackText || 'Sin comentarios.'}
                                   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
                                   : 'bg-zinc-800/80 text-amber-400 hover:text-amber-300 hover:bg-zinc-700/80 border-amber-500/25'
                               }`}
-                              title="Ver alternativas con el mismo enfoque si la máquina está ocupada"
+                              title={t('busyMachine')}
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                               </svg>
-                              <span>{isReplaced ? 'Cambiar alt' : '¿Ocupada?'}</span>
+                              <span>{isReplaced ? t('changeAlt') : t('busyShort')}</span>
                             </button>
                           )}
 
@@ -1475,7 +1574,7 @@ ${feedbackText || 'Sin comentarios.'}
                                   <svg className="w-10 h-10 mb-2 text-zinc-300" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M8 5v14l11-7z" />
                                   </svg>
-                                  <span className="text-xs font-semibold">Ver video instructivo</span>
+                                  <span className="text-xs font-semibold">{t('watchVideo')}</span>
                                 </a>
                               )}
                             </div>
