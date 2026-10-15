@@ -720,7 +720,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
               className="w-full bg-slate-100 dark:bg-slate-900 border-2 border-transparent focus:border-yellow-500 text-slate-800 dark:text-white text-xs font-bold px-3 py-2 rounded-xl outline-none cursor-pointer appearance-none transition-all pr-8"
             >
               <option value="">
-                🏋️ Todos los músculos ({library.filter(e => !libraryLangFilter || (e.language || 'es') === libraryLangFilter).length})
+                🏋️ Todos los grupos musculares
               </option>
               <optgroup label="── Tren Superior ──">
                 {DEFAULT_MUSCLE_GROUPS.filter(g => g.category === 'tren_superior').map(g => {
@@ -2263,7 +2263,7 @@ const AltSearch: React.FC<{
             onChange={e => setSelectedMuscle(e.target.value)}
             className="bg-slate-900 text-zinc-200 text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-700 outline-none cursor-pointer w-full"
           >
-            <option value="">Todos los músculos ({library.filter(e => !excludeIds.includes(e.id)).length})</option>
+            <option value="">Todos los grupos musculares</option>
             {DEFAULT_MUSCLE_GROUPS.map(g => {
               const count = library.filter(e => !excludeIds.includes(e.id) && (e.muscleGroup || '').toLowerCase() === g.id.toLowerCase()).length;
               return (
