@@ -712,47 +712,52 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
             })}
           </div>
 
-          {/* Segmentación por Grupo Muscular (Pills horizontales) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] no-scrollbar">
-            <button
-              type="button"
-              onClick={() => setLibraryMuscleFilter('')}
-              className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all shrink-0 ${
-                !libraryMuscleFilter
-                  ? 'bg-slate-900 dark:bg-white text-white dark:text-black shadow-sm'
-                  : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-300 dark:hover:bg-slate-700'
-              }`}
+          {/* Segmentación por Grupo Muscular (Menú Desplegable) */}
+          <div className="relative">
+            <select
+              value={libraryMuscleFilter}
+              onChange={(e) => setLibraryMuscleFilter(e.target.value)}
+              className="w-full bg-slate-100 dark:bg-slate-900 border-2 border-transparent focus:border-yellow-500 text-slate-800 dark:text-white text-xs font-bold px-3 py-2 rounded-xl outline-none cursor-pointer appearance-none transition-all pr-8"
             >
-              Todos ({library.filter(e => !libraryLangFilter || (e.language || 'es') === libraryLangFilter).length})
-            </button>
-            {DEFAULT_MUSCLE_GROUPS.map(g => {
-              const count = library.filter(e => {
-                const matchesMuscle = (e.muscleGroup || '').toLowerCase() === g.id.toLowerCase();
-                const matchesLang = !libraryLangFilter || (e.language || 'es') === libraryLangFilter;
-                return matchesMuscle && matchesLang;
-              }).length;
-
-              const isSelected = libraryMuscleFilter === g.id;
-              return (
-                <button
-                  key={g.id}
-                  type="button"
-                  onClick={() => setLibraryMuscleFilter(isSelected ? '' : g.id)}
-                  className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap transition-all shrink-0 flex items-center gap-1 ${
-                    isSelected
-                      ? 'bg-yellow-400 text-black shadow-sm'
-                      : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-300 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  <span>{g.name}</span>
-                  {count > 0 && (
-                    <span className={`text-[9px] px-1 rounded-full ${isSelected ? 'bg-black/20 text-black font-black' : 'bg-black/10 dark:bg-white/10 text-slate-600 dark:text-zinc-400'}`}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+              <option value="">
+                🏋️ Todos los músculos ({library.filter(e => !libraryLangFilter || (e.language || 'es') === libraryLangFilter).length})
+              </option>
+              <optgroup label="── Tren Superior ──">
+                {DEFAULT_MUSCLE_GROUPS.filter(g => g.category === 'tren_superior').map(g => {
+                  const count = library.filter(e => (e.muscleGroup || '').toLowerCase() === g.id.toLowerCase() && (!libraryLangFilter || (e.language || 'es') === libraryLangFilter)).length;
+                  return (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({count})
+                    </option>
+                  );
+                })}
+              </optgroup>
+              <optgroup label="── Tren Inferior ──">
+                {DEFAULT_MUSCLE_GROUPS.filter(g => g.category === 'tren_inferior').map(g => {
+                  const count = library.filter(e => (e.muscleGroup || '').toLowerCase() === g.id.toLowerCase() && (!libraryLangFilter || (e.language || 'es') === libraryLangFilter)).length;
+                  return (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({count})
+                    </option>
+                  );
+                })}
+              </optgroup>
+              <optgroup label="── Core y Otros ──">
+                {DEFAULT_MUSCLE_GROUPS.filter(g => g.category === 'core' || g.category === 'otro').map(g => {
+                  const count = library.filter(e => (e.muscleGroup || '').toLowerCase() === g.id.toLowerCase() && (!libraryLangFilter || (e.language || 'es') === libraryLangFilter)).length;
+                  return (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({count})
+                    </option>
+                  );
+                })}
+              </optgroup>
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
         </div>
 
@@ -794,7 +799,6 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
             }
 
             return filtered.map(ex => {
-              const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === (ex.language || 'es'));
               return (
                 <div
                   key={ex.id}
@@ -812,7 +816,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     <img
                       src={ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
                       alt={ex.name}
-                      className="w-11 h-11 rounded-xl object-cover shrink-0 bg-zinc-900 border border-slate-200 dark:border-white/10"
+                      className="w-10 h-10 rounded-xl object-cover shrink-0 bg-zinc-900 border border-slate-200 dark:border-white/10"
                     />
                     <div className="min-w-0">
                       <div className="font-bold text-xs truncate group-hover:text-yellow-600 dark:group-hover:text-yellow-400">
@@ -820,9 +824,8 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                       </div>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         {/* Language Tag */}
-                        <span className="text-[9px] bg-slate-200 dark:bg-zinc-700/80 text-slate-700 dark:text-zinc-200 font-extrabold px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
-                          <span>{langInfo?.flag || '🌐'}</span>
-                          <span>{(ex.language || 'es').toUpperCase()}</span>
+                        <span className="text-[9px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                          {(ex.language || 'es').toUpperCase()}
                         </span>
 
                         {/* Muscle Tag */}
@@ -842,7 +845,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-0.5 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -860,21 +863,21 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                         });
                         setShowLibraryForm(true);
                       }}
-                      className="p-2 text-slate-500 dark:text-zinc-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-500/10 rounded-xl transition-all"
-                      title="Modificar ejercicio (pantalla completa)"
+                      className="p-1.5 text-slate-400 hover:text-yellow-400 hover:bg-yellow-400/10 rounded-lg transition-colors"
+                      title="Modificar ejercicio"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onRemoveFromLibrary(ex.id); }}
-                      className="p-2 text-slate-500 dark:text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                      className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                       title="Eliminar de la biblioteca"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </button>
                   </div>
