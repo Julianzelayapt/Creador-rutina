@@ -1387,9 +1387,12 @@ ${feedbackText || 'Sin comentarios.'}
                   {currentWorkout.exercises.length} {t('exercisesCount')} · {activeWorkoutTotalSets} {t('series')}
                 </p>
                 {currentWorkout.warmup && (
-                  <p className="text-xs text-zinc-300 mt-2 p-3 bg-zinc-900 border border-white/5 rounded-xl font-medium">
-                    🔥 {currentWorkout.warmup}
-                  </p>
+                  <div className="mt-2 px-3 py-2 bg-zinc-900 border border-white/5 rounded-xl flex items-start gap-2.5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-400/80 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md shrink-0 mt-px">
+                      {t('warmup')}
+                    </span>
+                    <p className="text-xs text-zinc-300 font-medium leading-relaxed">{currentWorkout.warmup}</p>
+                  </div>
                 )}
               </div>
 
@@ -1478,12 +1481,9 @@ ${feedbackText || 'Sin comentarios.'}
                             )}
                           </div>
 
-                          <div className="mt-1 space-y-0.5 text-left">
+                          <div className="mt-1 text-left">
                             <p className="text-[11px] font-bold text-zinc-400 tracking-wider uppercase">
                               SETS: <span className="text-zinc-200 font-mono font-bold">{entry.sets.length}</span>
-                            </p>
-                            <p className="text-[11px] font-medium text-zinc-400 truncate">
-                              REPS: <span className="text-zinc-300 font-mono">{repsList || '10'}</span>
                             </p>
                           </div>
                         </div>
@@ -1596,12 +1596,11 @@ ${feedbackText || 'Sin comentarios.'}
 
               {/* Warmup notice if exists */}
               {currentWorkout.warmup && (
-                <div className="p-4 bg-zinc-900 border border-white/10 rounded-2xl flex items-start gap-3">
-                  <span className="text-lg">🔥</span>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider block">{t('warmup')}</span>
-                    <p className="text-xs text-white font-medium mt-0.5">{currentWorkout.warmup}</p>
-                  </div>
+                <div className="px-3 py-2.5 bg-zinc-900 border border-white/10 rounded-2xl flex items-start gap-2.5">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-amber-400/80 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md shrink-0 mt-px">
+                    {t('warmup')}
+                  </span>
+                  <p className="text-xs text-white font-medium leading-relaxed">{currentWorkout.warmup}</p>
                 </div>
               )}
 
