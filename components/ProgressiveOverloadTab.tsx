@@ -120,8 +120,8 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
 
             {/* Header: Thumbnail al lado del texto del ejercicio */}
             <div className="flex items-center gap-3.5 pb-3 border-b border-white/5">
-              {/* Thumbnail 16:9 con miniatura de YouTube */}
-              <div className="w-24 h-14 rounded-lg overflow-hidden shrink-0 bg-zinc-900 border border-white/10 relative shadow-md">
+              {/* Thumbnail cuadrado - mismo estilo que tarjeta del día y ejercicios */}
+              <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-zinc-900 border border-white/10 shadow-md">
                 {getExerciseCoverImage(libEx) ? (
                   <img
                     src={getExerciseCoverImage(libEx)}
