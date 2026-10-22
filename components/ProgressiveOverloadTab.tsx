@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routine, Exercise } from '../types';
 import { getMuscleGroupImage } from '../muscleGroups';
+import { getExerciseCoverImage } from './ClientView';
 
 interface ProgressiveOverloadTabProps {
   routine: Routine;
@@ -119,17 +120,20 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
 
             {/* Header: Thumbnail al lado del texto del ejercicio */}
             <div className="flex items-center gap-3.5 pb-3 border-b border-white/5">
-              <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-1.5 shadow-md">
-                {(libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '')) ? (
+              {/* Thumbnail 16:9 con miniatura de YouTube */}
+              <div className="w-24 h-14 rounded-lg overflow-hidden shrink-0 bg-zinc-900 border border-white/10 relative shadow-md">
+                {getExerciseCoverImage(libEx) ? (
                   <img
-                    src={libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '')}
+                    src={getExerciseCoverImage(libEx)}
                     alt={libEx.name}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="font-bold text-xs text-zinc-400">
-                    {(libEx.name || 'EX').substring(0, 2).toUpperCase()}
-                  </span>
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="font-bold text-xs text-zinc-400">
+                      {(libEx.name || 'EX').substring(0, 2).toUpperCase()}
+                    </span>
+                  </div>
                 )}
               </div>
 

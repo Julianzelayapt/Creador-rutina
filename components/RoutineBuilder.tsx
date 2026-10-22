@@ -12,6 +12,16 @@ import {
   matchesSearchQuery
 } from '../muscleGroups';
 
+const getYouTubeThumbnail = (url: string | undefined): string | null => {
+  if (!url) return null;
+  const trimmed = url.trim();
+  const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+  if (ytMatch && ytMatch[1]) {
+    return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+  }
+  return null;
+};
+
 interface RoutineBuilderProps {
   routine: Routine;
   library: Exercise[];
@@ -814,7 +824,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 >
                   <div className="flex items-center gap-3 overflow-hidden min-w-0 pr-2">
                     <img
-                      src={ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
+                      src={getYouTubeThumbnail(ex.videoUrl) || ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
                       alt={ex.name}
                       className="w-10 h-10 rounded-xl object-cover shrink-0 bg-zinc-900 border border-slate-200 dark:border-white/10"
                     />
@@ -1299,7 +1309,7 @@ onChange={(e) => setCurrentRoutine({
                                       <div className="space-y-10 ml-6">
                                         {group.exercises.map((entry, entryIdx) => {
                                           const libEx = library.find(l => l.id === entry.libraryExerciseId);
-                                          const exImg = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
+                                          const exImg = getYouTubeThumbnail(libEx?.videoUrl) || libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
                                           return (
                                             <div key={entry.id} className={`${entryIdx > 0 ? 'pt-10 border-t border-blue-100/50 dark:border-blue-900/20' : ''}`}>
                                               <div className="flex justify-between items-center mb-4">

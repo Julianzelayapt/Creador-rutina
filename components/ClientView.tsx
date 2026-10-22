@@ -10,6 +10,25 @@ interface ClientViewProps {
   library: Exercise[];
 }
 
+// Helper to extract YouTube video ID and thumbnail
+export const getYouTubeThumbnail = (url: string | undefined): string | null => {
+  if (!url) return null;
+  const trimmed = url.trim();
+  const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+  if (ytMatch && ytMatch[1]) {
+    return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+  }
+  return null;
+};
+
+// Helper to get exercise cover image (prefers YouTube thumbnail, falls back to custom/muscle group)
+export const getExerciseCoverImage = (libEx?: Exercise): string => {
+  if (!libEx) return '';
+  const ytThumb = getYouTubeThumbnail(libEx.videoUrl);
+  if (ytThumb) return ytThumb;
+  return libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
+};
+
 // Helper to convert any video URL into an embedded player
 const getEmbedVideo = (url: string | undefined) => {
   if (!url) return null;
@@ -18,9 +37,12 @@ const getEmbedVideo = (url: string | undefined) => {
   // YouTube detection (watch, share, shorts, embed)
   const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
   if (ytMatch && ytMatch[1]) {
+    const videoId = ytMatch[1];
     return {
       type: 'youtube' as const,
-      src: `https://www.youtube.com/embed/${ytMatch[1]}?playsinline=1&modestbranding=1&rel=0`
+      videoId,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+      src: `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&modestbranding=1&rel=0`
     };
   }
 
@@ -29,7 +51,8 @@ const getEmbedVideo = (url: string | undefined) => {
   if (vimeoMatch && vimeoMatch[1]) {
     return {
       type: 'vimeo' as const,
-      src: `https://player.vimeo.com/video/${vimeoMatch[1]}`
+      thumbnail: null,
+      src: `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`
     };
   }
 
@@ -37,6 +60,7 @@ const getEmbedVideo = (url: string | undefined) => {
   if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(trimmed)) {
     return {
       type: 'direct' as const,
+      thumbnail: null,
       src: trimmed
     };
   }
@@ -44,6 +68,7 @@ const getEmbedVideo = (url: string | undefined) => {
   // Fallback
   return {
     type: 'link' as const,
+    thumbnail: null,
     src: trimmed
   };
 };
@@ -91,6 +116,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const [showFeedbackScreen, setShowFeedbackScreen] = useState<boolean>(false);
   const [historyExerciseId, setHistoryExerciseId] = useState<string | null>(null);
   const [collapsedExercises, setCollapsedExercises] = useState<Record<string, boolean>>({});
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   
   // Ejercicios sustitutos / alternativas seleccionadas por el alumno (TEMPORAL SOLO POR SESIÓN)
   const [exerciseOverrides, setExerciseOverrides] = useState<Record<string, string>>(() => {
@@ -641,15 +667,14 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const currentWorkoutIndex = currentWeek?.workouts.findIndex(wk => wk.id === activeWorkoutId) ?? 0;
   // Formateadores dinámicos según idioma
   const formatWorkoutTitle = (name: string, index: number) => {
-    if (!name) return `${t('day')} ${index + 1}`;
+    if (!name || !name.trim()) return `${t('day')} ${index + 1}`;
     const trimmed = name.trim();
-    const match = trimmed.match(/^(?:d[ií]a|day|giorno)\s*(\d+)\s*(?:[·\-:]\s*(.*))?$/i);
-    if (match) {
-      const num = match[1];
-      const rest = match[2];
-      return rest ? `${t('day')} ${num} · ${rest}` : `${t('day')} ${num}`;
+    // Si el nombre fue escrito como "Día 1 · Chest Day" o similar, extrae solo "Chest Day"
+    const match = trimmed.match(/^(?:d[ií]a|day|giorno)\s*\d*\s*(?:[·\-:]\s*(.*))?$/i);
+    if (match && match[1]) {
+      return match[1].trim();
     }
-    return index >= 0 ? `${t('day')} ${index + 1} · ${trimmed}` : trimmed;
+    return trimmed;
   };
 
   const formatWeekTitle = (name: string, index: number) => {
@@ -1247,12 +1272,10 @@ ${feedbackText || 'Sin comentarios.'}
               <div className="space-y-2.5">
                 {currentWeek?.workouts && currentWeek.workouts.length > 0 ? (
                   currentWeek.workouts.map((workout, idx) => {
-                    const exercisePreview = workout.exercises
-                      .map(e => library.find(l => l.id === e.libraryExerciseId)?.name)
-                      .filter(Boolean)
-                      .join(', ');
-
                     const displayTitle = formatWorkoutTitle(workout.name, idx);
+                    const firstEx = workout.exercises[0] ? library.find(l => l.id === workout.exercises[0].libraryExerciseId) : undefined;
+                    const dayCover = workout.image || getExerciseCoverImage(firstEx);
+                    const totalWorkoutSets = workout.exercises.reduce((acc, e) => acc + (e.sets?.length || 0), 0);
 
                     return (
                       <div
@@ -1261,20 +1284,20 @@ ${feedbackText || 'Sin comentarios.'}
                           setActiveWorkoutId(workout.id);
                           setViewMode('preview');
                         }}
-                        className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-2xl p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
+                        className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
                       >
-                        <div className="flex items-center gap-3.5 min-w-0 pr-2">
-                          {/* Dumbbell Icon Badge or Custom Day Cover Photo */}
-                          {workout.image ? (
-                            <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-zinc-900 shadow-md">
+                        <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 pr-2">
+                          {/* Day Cover Photo or YouTube Thumbnail of First Exercise */}
+                          {dayCover ? (
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-zinc-900 shadow-md">
                               <img
-                                src={workout.image}
+                                src={dayCover}
                                 alt={displayTitle}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             </div>
                           ) : (
-                            <div className="w-11 h-11 rounded-xl bg-zinc-800/80 border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-zinc-700/80 transition-colors">
+                            <div className="w-12 h-12 rounded-xl bg-zinc-800/80 border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-zinc-700/80 transition-colors">
                               <svg className="w-5 h-5 text-zinc-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
                               </svg>
@@ -1282,15 +1305,16 @@ ${feedbackText || 'Sin comentarios.'}
                           )}
 
                           <div className="min-w-0">
-                            <h3 className="font-bold text-white text-sm tracking-tight uppercase truncate">
+                            <h3 className="font-bold text-white text-base tracking-tight uppercase truncate group-hover:text-yellow-400 transition-colors">
                               {displayTitle}
                             </h3>
-                            <p className="text-zinc-400 text-xs truncate mt-0.5">
-                              {exercisePreview || t('noExercises')}
+                            <p className="text-zinc-400 text-xs font-medium truncate mt-0.5 flex items-center gap-1.5">
+                              <span>⏱️ 40-50 min</span>
+                              <span className="text-zinc-600">·</span>
+                              <span>{workout.exercises.length} {t('exercisesCount')}</span>
+                              <span className="text-zinc-600">·</span>
+                              <span>{totalWorkoutSets} {t('series')}</span>
                             </p>
-                            <span className="text-[11px] font-medium text-zinc-500 mt-0.5 block">
-                              {workout.exercises.length} {t('exercisesCount')}
-                            </span>
                           </div>
                         </div>
 
@@ -1384,61 +1408,143 @@ ${feedbackText || 'Sin comentarios.'}
                   const originalEx = library.find(l => l.id === entry.libraryExerciseId);
                   const libEx = library.find(l => l.id === activeLibId) || originalEx;
                   const isReplaced = activeLibId !== entry.libraryExerciseId;
-                  const muscleImg = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
-                  const firstSet = entry.sets[0];
+                  const coverImg = getExerciseCoverImage(libEx);
+                  const repsList = entry.sets.map(s => s.reps || '10').join(', ');
+                  const hasAlternatives = originalEx?.alternativeExerciseIds && originalEx.alternativeExerciseIds.length > 0;
+                  const hasTip = Boolean(entry.customTip || libEx?.tip);
+
                   return (
                     <div
                       key={entry.id || idx}
-                      onClick={() => {
-                        initAudio();
-                        setViewMode('active');
-                        setTimeout(() => {
-                          const el = document.getElementById(`exercise-${entry.id}`);
-                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 120);
-                      }}
-                      className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all group shadow-sm"
+                      className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between transition-all group shadow-md"
                     >
-                      <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
-                        {/* Rectangular / subtle rounded larger thumbnail for full anatomical illustration */}
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-zinc-900 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-1 shadow-inner">
-                          {muscleImg ? (
-                            <img src={muscleImg} alt={libEx?.name} className="w-full h-full object-contain" />
+                      {/* Left & Center: Click to train this exercise */}
+                      <div
+                        onClick={() => {
+                          initAudio();
+                          setViewMode('active');
+                          setTimeout(() => {
+                            const el = document.getElementById(`exercise-${entry.id}`);
+                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 120);
+                        }}
+                        className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1 cursor-pointer pr-2"
+                      >
+                        {/* 16:9 Video Thumbnail with Center Play Button (Morsia Style) */}
+                        <div className="w-24 h-16 sm:w-28 sm:h-18 rounded-xl bg-zinc-900 border border-white/10 overflow-hidden shrink-0 relative shadow-inner group-hover:border-white/30 transition-all">
+                          {coverImg ? (
+                            <img src={coverImg} alt={libEx?.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                           ) : (
-                            <span className="font-bold text-xs text-zinc-400">
+                            <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500 font-bold text-xs">
                               {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
-                            </span>
+                            </div>
                           )}
+                          {/* Translucent center play button */}
+                          <div className="absolute inset-0 bg-black/25 flex items-center justify-center group-hover:bg-black/10 transition-colors">
+                            <div className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm border border-white/40 flex items-center justify-center text-white shadow-md">
+                              <svg className="w-3.5 h-3.5 fill-white ml-0.5" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="min-w-0">
+                        {/* Center Column: Title, SETS, REPS */}
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-white text-sm sm:text-base truncate group-hover:text-yellow-400 transition-colors">
+                            <h4 className="font-bold text-white text-sm sm:text-base leading-snug truncate group-hover:text-yellow-400 transition-colors">
                               {libEx?.name || 'Ejercicio'}
                             </h4>
                             {isReplaced && (
-                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30">
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.5 rounded-md border border-amber-500/30 uppercase shrink-0">
                                 {t('substitute')}
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-zinc-400 font-mono mt-1">
-                            {entry.sets.length} × {firstSet?.reps || '10'} {firstSet?.kg ? `· ${firstSet.kg} kg` : ''}
-                          </p>
+
+                          <div className="mt-1 space-y-0.5 text-left">
+                            <p className="text-[11px] font-bold text-zinc-400 tracking-wider uppercase">
+                              SETS: <span className="text-zinc-200 font-mono font-bold">{entry.sets.length}</span>
+                            </p>
+                            <p className="text-[11px] font-medium text-zinc-400 truncate">
+                              REPS: <span className="text-zinc-300 font-mono">{repsList || '10'}</span>
+                            </p>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        {(entry.customTip || libEx?.tip) && (
-                          <div className="p-1.5 text-zinc-500">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      {/* Right Column: Actions (Chevron, Swap/Replace, Tip) */}
+                      <div className="flex flex-col items-center justify-between gap-1.5 shrink-0 pl-2 border-l border-white/5 self-stretch py-0.5">
+                        {/* Chevron right */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            initAudio();
+                            setViewMode('active');
+                            setTimeout(() => {
+                              const el = document.getElementById(`exercise-${entry.id}`);
+                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 120);
+                          }}
+                          className="p-1 text-zinc-500 group-hover:text-white transition-colors"
+                          title="Entrenar ejercicio"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+
+                        {/* Swap / Alternative icon */}
+                        {hasAlternatives ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!originalEx) return;
+                              const alts = (originalEx.alternativeExerciseIds || [])
+                                .map(altId => library.find(l => l.id === altId))
+                                .filter((l): l is Exercise => Boolean(l));
+
+                              setAltModalExerciseEntry({
+                                entryId: entry.id,
+                                originalExercise: originalEx,
+                                currentExercise: libEx || originalEx,
+                                alternatives: alts
+                              });
+                            }}
+                            className={`p-1 rounded-lg transition-all ${
+                              isReplaced
+                                ? 'text-amber-400 bg-amber-500/20 hover:bg-amber-500/30'
+                                : 'text-zinc-400 hover:text-amber-400 hover:bg-white/5'
+                            }`}
+                            title={t('busyMachine')}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                          </div>
+                          </button>
+                        ) : (
+                          <div className="w-4 h-4" />
                         )}
-                        <svg className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                        </svg>
+
+                        {/* Tips icon */}
+                        {hasTip ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              alert(`💡 Tip del coach:\n\n${entry.customTip || libEx?.tip}`);
+                            }}
+                            className="p-1 text-zinc-500 hover:text-yellow-400 transition-colors"
+                            title="Ver tips del coach"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </button>
+                        ) : (
+                          <div className="w-4 h-4" />
+                        )}
                       </div>
                     </div>
                   );
@@ -1585,38 +1691,66 @@ ${feedbackText || 'Sin comentarios.'}
 
                       {!isCollapsed && (
                         <div className="space-y-4">
-                          {/* EMBEDDED VIDEO PLAYER (Directly inside the app!) or EXERCISE ILLUSTRATION */}
+                          {/* EMBEDDED VIDEO PLAYER (Morsia Custom Facade + Player) */}
                           {embed ? (
-                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 shadow-lg">
-                              {embed.type === 'youtube' || embed.type === 'vimeo' ? (
-                                <iframe
-                                  src={embed.src}
-                                  title={libEx?.name || 'Video'}
-                                  className="w-full h-full border-0"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                  allowFullScreen
-                                />
-                              ) : embed.type === 'direct' ? (
-                                <video
-                                  src={embed.src}
-                                  controls
-                                  playsInline
-                                  className="w-full h-full object-contain"
-                                />
-                              ) : (
-                                <a
-                                  href={embed.src}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="w-full h-full flex flex-col items-center justify-center text-zinc-400 hover:text-white p-4 text-center transition-colors"
-                                >
-                                  <svg className="w-10 h-10 mb-2 text-zinc-300" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8 5v14l11-7z" />
-                                  </svg>
-                                  <span className="text-xs font-semibold">{t('watchVideo')}</span>
-                                </a>
-                              )}
-                            </div>
+                            playingVideoId === entry.id ? (
+                              <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 shadow-lg">
+                                {embed.type === 'youtube' || embed.type === 'vimeo' ? (
+                                  <iframe
+                                    src={embed.src}
+                                    title={libEx?.name || 'Video'}
+                                    className="w-full h-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                  />
+                                ) : embed.type === 'direct' ? (
+                                  <video
+                                    src={embed.src}
+                                    controls
+                                    autoPlay
+                                    playsInline
+                                    className="w-full h-full object-contain"
+                                  />
+                                ) : (
+                                  <a
+                                    href={embed.src}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full h-full flex flex-col items-center justify-center text-zinc-400 hover:text-white p-4 text-center transition-colors"
+                                  >
+                                    <svg className="w-10 h-10 mb-2 text-zinc-300" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                    <span className="text-xs font-semibold">{t('watchVideo')}</span>
+                                  </a>
+                                )}
+                              </div>
+                            ) : (
+                              /* Native Morsia Video Card (Foto 3) */
+                              <div
+                                onClick={() => setPlayingVideoId(entry.id)}
+                                className="relative w-full aspect-video rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 shadow-xl cursor-pointer group"
+                              >
+                                {embed.thumbnail || getExerciseCoverImage(libEx) ? (
+                                  <img
+                                    src={embed.thumbnail || getExerciseCoverImage(libEx)}
+                                    alt={libEx?.name || 'Video'}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500 font-bold text-sm">
+                                    {libEx?.name}
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/35 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 backdrop-blur-md border border-white/40 flex items-center justify-center text-white shadow-2xl group-hover:scale-110 transition-transform">
+                                    <svg className="w-7 h-7 sm:w-8 sm:h-8 fill-white ml-1" viewBox="0 0 24 24">
+                                      <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
+                            )
                           ) : (libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '')) ? (
                             <div className="relative w-full h-52 sm:h-64 rounded-2xl overflow-hidden bg-zinc-950/80 border border-white/10 flex items-center justify-center p-3 shadow-lg">
                               <img
