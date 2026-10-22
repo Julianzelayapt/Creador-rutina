@@ -1455,10 +1455,10 @@ ${feedbackText || 'Sin comentarios.'}
                               {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
                             </div>
                           )}
-                          {/* Translucent center play button */}
-                          <div className="absolute inset-0 bg-black/25 flex items-center justify-center group-hover:bg-black/10 transition-colors">
-                            <div className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm border border-white/40 flex items-center justify-center text-white shadow-md">
-                              <svg className="w-3.5 h-3.5 fill-white ml-0.5" viewBox="0 0 24 24">
+                          {/* Subtle play hint */}
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-5 h-5 rounded-full bg-black/30 backdrop-blur-[2px] border border-white/20 flex items-center justify-center shadow-sm opacity-60 group-hover:opacity-90 transition-opacity">
+                              <svg className="w-2.5 h-2.5 fill-white ml-0.5" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z" />
                               </svg>
                             </div>
