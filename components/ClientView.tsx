@@ -1442,8 +1442,8 @@ ${feedbackText || 'Sin comentarios.'}
                         }}
                         className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1 cursor-pointer pr-2"
                       >
-                        {/* 16:9 Video Thumbnail with Center Play Button (Morsia Style) */}
-                        <div className="w-24 h-16 sm:w-28 sm:h-18 rounded-xl bg-zinc-900 border border-white/10 overflow-hidden shrink-0 relative shadow-inner group-hover:border-white/30 transition-all">
+                        {/* Square Thumbnail - mismo estilo que la tarjeta del día */}
+                        <div className="w-20 h-20 rounded-xl bg-zinc-900 border border-white/10 overflow-hidden shrink-0 relative shadow-md group-hover:border-white/30 transition-all">
                           {coverImg ? (
                             <img
                               src={coverImg}
