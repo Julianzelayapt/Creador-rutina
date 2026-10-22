@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routine, Exercise } from '../types';
 import { getMuscleGroupImage } from '../muscleGroups';
-import { getExerciseCoverImage } from './ClientView';
+import { getExerciseCoverImage, isYouTubeShort } from './ClientView';
 
 interface ProgressiveOverloadTabProps {
   routine: Routine;
@@ -126,7 +126,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                   <img
                     src={getExerciseCoverImage(libEx)}
                     alt={libEx.name}
-                    className="w-full h-full object-cover"
+                    className={`w-full h-full object-cover ${isYouTubeShort(libEx.videoUrl) ? 'scale-[1.8]' : ''}`}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">

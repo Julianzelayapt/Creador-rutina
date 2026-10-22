@@ -21,6 +21,12 @@ export const getYouTubeThumbnail = (url: string | undefined): string | null => {
   return null;
 };
 
+// Detects vertical (9:16) YouTube Shorts — el thumbnail tiene barras negras laterales
+export const isYouTubeShort = (url: string | undefined): boolean => {
+  if (!url) return false;
+  return url.includes('/shorts/');
+};
+
 // Helper to get exercise cover image (prefers YouTube thumbnail, falls back to custom/muscle group)
 export const getExerciseCoverImage = (libEx?: Exercise): string => {
   if (!libEx) return '';
@@ -1275,6 +1281,7 @@ ${feedbackText || 'Sin comentarios.'}
                     const displayTitle = formatWorkoutTitle(workout.name, idx);
                     const firstEx = workout.exercises[0] ? library.find(l => l.id === workout.exercises[0].libraryExerciseId) : undefined;
                     const dayCover = workout.image || getExerciseCoverImage(firstEx);
+                    const isDayCoverShort = !workout.image && isYouTubeShort(firstEx?.videoUrl);
                     const totalWorkoutSets = workout.exercises.reduce((acc, e) => acc + (e.sets?.length || 0), 0);
 
                     return (
@@ -1293,7 +1300,7 @@ ${feedbackText || 'Sin comentarios.'}
                               <img
                                 src={dayCover}
                                 alt={displayTitle}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                className={`w-full h-full object-cover transition-transform duration-300 ${isDayCoverShort ? 'scale-[1.8] group-hover:scale-[1.85]' : 'group-hover:scale-105'}`}
                               />
                             </div>
                           ) : (
@@ -1308,11 +1315,15 @@ ${feedbackText || 'Sin comentarios.'}
                             <h3 className="font-bold text-white text-base tracking-tight uppercase truncate group-hover:text-yellow-400 transition-colors">
                               {displayTitle}
                             </h3>
-                            <p className="text-zinc-400 text-xs font-medium truncate mt-0.5 flex items-center gap-1.5">
-                              <span>⏱️ 40-50 min</span>
-                              <span className="text-zinc-600">·</span>
+                            <p className="text-zinc-500 text-xs font-medium truncate mt-0.5 flex items-center gap-1.5">
+                              <svg className="w-3 h-3 shrink-0 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2"/>
+                              </svg>
+                              <span>40-50 min</span>
+                              <span className="text-zinc-700">·</span>
                               <span>{workout.exercises.length} {t('exercisesCount')}</span>
-                              <span className="text-zinc-600">·</span>
+                              <span className="text-zinc-700">·</span>
                               <span>{totalWorkoutSets} {t('series')}</span>
                             </p>
                           </div>
@@ -1409,6 +1420,7 @@ ${feedbackText || 'Sin comentarios.'}
                   const libEx = library.find(l => l.id === activeLibId) || originalEx;
                   const isReplaced = activeLibId !== entry.libraryExerciseId;
                   const coverImg = getExerciseCoverImage(libEx);
+                  const isShort = isYouTubeShort(libEx?.videoUrl);
                   const repsList = entry.sets.map(s => s.reps || '10').join(', ');
                   const hasAlternatives = originalEx?.alternativeExerciseIds && originalEx.alternativeExerciseIds.length > 0;
                   const hasTip = Boolean(entry.customTip || libEx?.tip);
@@ -1433,7 +1445,11 @@ ${feedbackText || 'Sin comentarios.'}
                         {/* 16:9 Video Thumbnail with Center Play Button (Morsia Style) */}
                         <div className="w-24 h-16 sm:w-28 sm:h-18 rounded-xl bg-zinc-900 border border-white/10 overflow-hidden shrink-0 relative shadow-inner group-hover:border-white/30 transition-all">
                           {coverImg ? (
-                            <img src={coverImg} alt={libEx?.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <img
+                              src={coverImg}
+                              alt={libEx?.name}
+                              className={`w-full h-full object-cover transition-transform duration-300 ${isShort ? 'scale-[1.8] group-hover:scale-[1.85]' : 'group-hover:scale-105'}`}
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500 font-bold text-xs">
                               {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
