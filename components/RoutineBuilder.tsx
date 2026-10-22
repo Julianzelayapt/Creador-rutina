@@ -1310,12 +1310,12 @@ onChange={(e) => setCurrentRoutine({
                                                     </div>
                                                   )}
                                                   {/* Miniatura de Ilustración del Ejercicio */}
-                                                  <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-slate-200 dark:border-white/10 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
+                                                  <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-slate-200 dark:border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-1 shadow-sm">
                                                     {exImg ? (
                                                       <img
                                                         src={exImg}
                                                         alt={libEx?.name}
-                                                        className="w-full h-full object-contain p-0.5"
+                                                        className="w-full h-full object-contain"
                                                       />
                                                     ) : (
                                                       <span className="font-black text-xs text-zinc-400">

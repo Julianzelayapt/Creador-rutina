@@ -92,15 +92,27 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const [historyExerciseId, setHistoryExerciseId] = useState<string | null>(null);
   const [collapsedExercises, setCollapsedExercises] = useState<Record<string, boolean>>({});
   
-  // Ejercicios sustitutos / alternativas seleccionadas por el alumno
+  // Ejercicios sustitutos / alternativas seleccionadas por el alumno (TEMPORAL SOLO POR SESIÓN)
   const [exerciseOverrides, setExerciseOverrides] = useState<Record<string, string>>(() => {
     try {
-      const raw = localStorage.getItem(`routine_overrides_${routine.id}`);
+      // Purgar cualquier override viejo permanente de localStorage para respetar la rutina original del coach
+      localStorage.removeItem(`routine_overrides_${routine.id}`);
+      const raw = sessionStorage.getItem(`routine_overrides_${routine.id}`);
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
     }
   });
+
+  const clearExerciseOverrides = () => {
+    setExerciseOverrides({});
+    try {
+      sessionStorage.removeItem(`routine_overrides_${routine.id}`);
+      localStorage.removeItem(`routine_overrides_${routine.id}`);
+    } catch (e) {
+      console.error('Error clearing overrides:', e);
+    }
+  };
 
   const [altModalExerciseEntry, setAltModalExerciseEntry] = useState<{
     entryId: string;
@@ -118,7 +130,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         updated[entryId] = alternativeId;
       }
       try {
-        localStorage.setItem(`routine_overrides_${routine.id}`, JSON.stringify(updated));
+        sessionStorage.setItem(`routine_overrides_${routine.id}`, JSON.stringify(updated));
       } catch (e) {
         console.error('Error saving overrides:', e);
       }
@@ -835,6 +847,7 @@ ${feedbackText || 'Sin comentarios.'}
               <p className="text-zinc-400 text-sm leading-relaxed mb-8">{t('feedbackDesc')}</p>
               <button
                 onClick={() => {
+                  clearExerciseOverrides();
                   setShowFeedbackScreen(false);
                   setIsSubmitted(false);
                   setViewMode('dashboard');
@@ -933,15 +946,18 @@ ${feedbackText || 'Sin comentarios.'}
                     </svg>
                   </span>
                   <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">
-                    {t('busyModalTitle')}
+                    {t('busyMachine')}
                   </span>
                 </div>
                 <h3 className="text-xl font-bold text-white tracking-tight">
-                  {t('overload')}
+                  {t('busyModalTitle')}
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
                   {t('busyModalSubtitle')}
                 </p>
+                <div className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 rounded-full">
+                  <span>⏱️</span> Sustituto temporal solo para la sesión de hoy
+                </div>
               </div>
               <button
                 onClick={() => setAltModalExerciseEntry(null)}
@@ -963,7 +979,7 @@ ${feedbackText || 'Sin comentarios.'}
                   <img
                     src={altModalExerciseEntry.originalExercise.muscleImage || getMuscleGroupImage(altModalExerciseEntry.originalExercise.muscleGroup)}
                     alt=""
-                    className="w-10 h-10 rounded-xl object-cover border border-white/10 bg-black"
+                    className="w-14 h-14 rounded-xl object-contain border border-white/10 bg-zinc-900 p-1 shrink-0 shadow-sm"
                   />
                   <div>
                     <span className="font-bold text-sm text-white block">
@@ -1011,7 +1027,7 @@ ${feedbackText || 'Sin comentarios.'}
                         <img
                           src={alt.muscleImage || getMuscleGroupImage(alt.muscleGroup)}
                           alt=""
-                          className="w-11 h-11 rounded-xl object-cover border border-white/10 shrink-0 bg-black"
+                          className="w-14 h-14 rounded-xl object-contain border border-white/10 shrink-0 bg-zinc-900 p-1 shadow-sm"
                         />
                         <div className="min-w-0">
                           <h4 className="font-bold text-sm text-white truncate">
@@ -1381,13 +1397,13 @@ ${feedbackText || 'Sin comentarios.'}
                           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }, 120);
                       }}
-                      className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-xl p-3 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all group shadow-sm"
+                      className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all group shadow-sm"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {/* Circle Thumbnail */}
-                        <div className="w-11 h-11 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                      <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                        {/* Rectangular / subtle rounded larger thumbnail for full anatomical illustration */}
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-zinc-900 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-1 shadow-inner">
                           {muscleImg ? (
-                            <img src={muscleImg} alt={libEx?.name} className="w-full h-full object-cover" />
+                            <img src={muscleImg} alt={libEx?.name} className="w-full h-full object-contain" />
                           ) : (
                             <span className="font-bold text-xs text-zinc-400">
                               {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
@@ -1397,16 +1413,16 @@ ${feedbackText || 'Sin comentarios.'}
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">
+                            <h4 className="font-bold text-white text-sm sm:text-base truncate group-hover:text-yellow-400 transition-colors">
                               {libEx?.name || 'Ejercicio'}
                             </h4>
                             {isReplaced && (
-                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.2 rounded-md">
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded-md border border-amber-500/30">
                                 {t('substitute')}
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                          <p className="text-xs text-zinc-400 font-mono mt-1">
                             {entry.sets.length} × {firstSet?.reps || '10'} {firstSet?.kg ? `· ${firstSet.kg} kg` : ''}
                           </p>
                         </div>
