@@ -43,6 +43,7 @@ export interface Workout {
   id: string;
   name: string;
   warmup?: string;
+  image?: string;
   exercises: ExerciseEntry[];
 }
 

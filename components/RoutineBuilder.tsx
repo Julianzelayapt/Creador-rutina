@@ -1176,6 +1176,63 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     </button>
                   </div>
 
+                  {/* Foto de portada del Día (ej: Cloudinary) */}
+                  <div className="mb-6 bg-slate-50 dark:bg-black/40 p-4 rounded-2xl border border-slate-200 dark:border-white/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>📸</span> Foto del Día / Enfoque (URL Cloudinary, ej: foto tuya haciendo pecho)
+                      </label>
+                      {currentWorkout.image && (
+                        <button
+                          type="button"
+                          onClick={() => setCurrentRoutine({
+                            ...currentRoutine,
+                            weeks: currentRoutine.weeks.map(w => w.id === currentWeek.id ? {
+                              ...w,
+                              workouts: w.workouts.map(wk => wk.id === currentWorkout.id ? { ...wk, image: '' } : wk)
+                            } : w)
+                          })}
+                          className="text-[10px] text-red-400 hover:text-red-300 font-bold underline"
+                        >
+                          Quitar foto
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {currentWorkout.image ? (
+                        <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-yellow-500/40 bg-zinc-900 shadow-md">
+                          <img
+                            src={currentWorkout.image}
+                            alt={currentWorkout.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.opacity = '0.3';
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-14 h-14 rounded-xl shrink-0 bg-zinc-200 dark:bg-zinc-800/60 border border-dashed border-zinc-400 dark:border-zinc-700 flex items-center justify-center text-zinc-500">
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
+                          </svg>
+                        </div>
+                      )}
+                      <input
+                        type="url"
+                        placeholder="Pegá la URL de Cloudinary (ej: https://res.cloudinary.com/.../pecho.jpg)"
+                        value={currentWorkout.image || ''}
+                        onChange={e => setCurrentRoutine({
+                          ...currentRoutine,
+                          weeks: currentRoutine.weeks.map(w => w.id === currentWeek.id ? {
+                            ...w,
+                            workouts: w.workouts.map(wk => wk.id === currentWorkout.id ? { ...wk, image: e.target.value.trim() } : wk)
+                          } : w)
+                        })}
+                        className="flex-1 px-4 py-2.5 text-xs sm:text-sm rounded-xl bg-white dark:bg-black/60 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:border-yellow-500 outline-none font-medium transition-colors"
+                      />
+                    </div>
+                  </div>
+
                   <div className="mb-10 p-6 bg-orange-50/30 dark:bg-orange-500/10 rounded-[2rem] border-2 border-dashed border-orange-200/50 dark:border-orange-500/40 transition-all focus-within:border-orange-500">
                     <textarea
                       placeholder="Instrucciones del enfoque (calentamiento, foco, etc.)..."
@@ -1242,15 +1299,30 @@ onChange={(e) => setCurrentRoutine({
                                       <div className="space-y-10 ml-6">
                                         {group.exercises.map((entry, entryIdx) => {
                                           const libEx = library.find(l => l.id === entry.libraryExerciseId);
+                                          const exImg = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
                                           return (
                                             <div key={entry.id} className={`${entryIdx > 0 ? 'pt-10 border-t border-blue-100/50 dark:border-blue-900/20' : ''}`}>
                                               <div className="flex justify-between items-center mb-4">
-                                                <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-3">
                                                   {group.type === 'superset' && (
                                                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-[10px] font-black text-yellow-400 text-black">
                                                       {entryIdx + 1}
                                                     </div>
                                                   )}
+                                                  {/* Miniatura de Ilustración del Ejercicio */}
+                                                  <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-slate-200 dark:border-white/10 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
+                                                    {exImg ? (
+                                                      <img
+                                                        src={exImg}
+                                                        alt={libEx?.name}
+                                                        className="w-full h-full object-contain p-0.5"
+                                                      />
+                                                    ) : (
+                                                      <span className="font-black text-xs text-zinc-400">
+                                                        {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
+                                                      </span>
+                                                    )}
+                                                  </div>
                                                   <span className="font-black text-xl text-slate-900 dark:text-white uppercase tracking-tighter">
                                                     {libEx?.name || 'Cargando...'}
                                                   </span>
@@ -1883,53 +1955,92 @@ onChange={(e) => setCurrentRoutine({
                 </div>
               </div>
 
-              {/* Grupo Muscular con Foto Automática */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-400">
-                    Grupo Muscular (foto anatómica automática)
+              {/* Ilustración del Ejercicio (Cloudinary / URL) y Grupo Muscular */}
+              <div className="space-y-3 bg-slate-950/70 p-4 rounded-2xl border border-slate-800">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
+                    <span>🖼️</span> Ilustración del Ejercicio (Cloudinary / URL)
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowMusclePhotosModal(true)}
-                    className="text-[11px] text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1"
-                  >
-                    ⚙️ Cambiar fotos
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {newExercise.muscleImage && !newExercise.muscleImage.startsWith('data:') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const defaultImg = getMuscleGroupImage(newExercise.muscleGroup);
+                          setNewExercise({ ...newExercise, muscleImage: defaultImg });
+                        }}
+                        className="text-[10px] text-red-400 hover:text-red-300 font-bold underline"
+                      >
+                        Restablecer automático
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowMusclePhotosModal(true)}
+                      className="text-[10px] text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1"
+                    >
+                      ⚙️ Fotos base
+                    </button>
+                  </div>
                 </div>
+
                 <div className="flex items-center gap-4 bg-black/60 p-3 rounded-2xl border border-slate-700">
-                  <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 bg-zinc-900 flex items-center justify-center">
+                  {/* Vista previa de la ilustración */}
+                  <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-amber-500/40 bg-zinc-900 flex items-center justify-center p-1 shadow-md">
                     <img
                       src={newExercise.muscleImage || getMuscleGroupImage(newExercise.muscleGroup)}
-                      alt="Músculo"
-                      className="w-full h-full object-cover"
+                      alt="Ilustración del ejercicio"
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = getMuscleGroupImage(newExercise.muscleGroup);
+                      }}
                     />
                   </div>
-                  <div className="flex-1">
-                    <select
-                      className="w-full bg-slate-900 text-white text-sm font-bold px-3 py-2 rounded-xl border border-slate-700 outline-none cursor-pointer"
-                      value={newExercise.muscleGroup}
+
+                  <div className="flex-1 space-y-2">
+                    <input
+                      type="url"
+                      placeholder="Pegá URL Cloudinary (ej: https://res.cloudinary.com/.../curl.png)"
+                      className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-yellow-500 outline-none font-medium transition-colors placeholder:text-zinc-600"
+                      value={newExercise.muscleImage && !newExercise.muscleImage.startsWith('data:') ? newExercise.muscleImage : ''}
                       onChange={(e) => {
-                        const selectedGroup = e.target.value;
-                        const autoImage = getMuscleGroupImage(selectedGroup);
+                        const val = e.target.value.trim();
                         setNewExercise({
                           ...newExercise,
-                          muscleGroup: selectedGroup,
-                          muscleImage: autoImage
+                          muscleImage: val || getMuscleGroupImage(newExercise.muscleGroup)
                         });
                       }}
-                    >
-                      {DEFAULT_MUSCLE_GROUPS.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-[10px] text-zinc-500 mt-1 font-medium">
-                      La foto se actualiza automáticamente al cambiar el grupo muscular.
-                    </p>
+                    />
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider shrink-0">
+                        Grupo Muscular:
+                      </span>
+                      <select
+                        className="flex-1 bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-700 outline-none cursor-pointer"
+                        value={newExercise.muscleGroup}
+                        onChange={(e) => {
+                          const selectedGroup = e.target.value;
+                          const hasCustomUrl = newExercise.muscleImage && !newExercise.muscleImage.startsWith('data:');
+                          setNewExercise({
+                            ...newExercise,
+                            muscleGroup: selectedGroup,
+                            muscleImage: hasCustomUrl ? newExercise.muscleImage : getMuscleGroupImage(selectedGroup)
+                          });
+                        }}
+                      >
+                        {DEFAULT_MUSCLE_GROUPS.map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {g.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
+                <p className="text-[10px] text-zinc-500 font-medium">
+                  💡 Pegá el enlace directo de tu ilustración en Cloudinary. Si lo dejás vacío, se asigna automáticamente la foto anatómica del grupo muscular seleccionado.
+                </p>
               </div>
 
               {/* URL Video Demostrativo */}

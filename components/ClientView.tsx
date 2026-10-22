@@ -1248,12 +1248,22 @@ ${feedbackText || 'Sin comentarios.'}
                         className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-2xl p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
                       >
                         <div className="flex items-center gap-3.5 min-w-0 pr-2">
-                          {/* Dumbbell Icon Badge */}
-                          <div className="w-11 h-11 rounded-xl bg-zinc-800/80 border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-zinc-700/80 transition-colors">
-                            <svg className="w-5 h-5 text-zinc-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
-                            </svg>
-                          </div>
+                          {/* Dumbbell Icon Badge or Custom Day Cover Photo */}
+                          {workout.image ? (
+                            <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-zinc-900 shadow-md">
+                              <img
+                                src={workout.image}
+                                alt={displayTitle}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-11 h-11 rounded-xl bg-zinc-800/80 border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-zinc-700/80 transition-colors">
+                              <svg className="w-5 h-5 text-zinc-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
+                              </svg>
+                            </div>
+                          )}
 
                           <div className="min-w-0">
                             <h3 className="font-bold text-white text-sm tracking-tight uppercase truncate">
@@ -1304,6 +1314,18 @@ ${feedbackText || 'Sin comentarios.'}
                   {t('back')}
                 </button>
               </div>
+
+              {/* Day Cover Photo if available */}
+              {currentWorkout.image && (
+                <div className="relative rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 aspect-[21/9] sm:aspect-[16/7] flex flex-col justify-end p-4 shadow-lg">
+                  <img
+                    src={currentWorkout.image}
+                    alt={currentWorkoutDisplayTitle}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                </div>
+              )}
 
               {/* Title & Workout Instructions */}
               <div>
@@ -1547,8 +1569,8 @@ ${feedbackText || 'Sin comentarios.'}
 
                       {!isCollapsed && (
                         <div className="space-y-4">
-                          {/* EMBEDDED VIDEO PLAYER (Directly inside the app!) */}
-                          {embed && (
+                          {/* EMBEDDED VIDEO PLAYER (Directly inside the app!) or EXERCISE ILLUSTRATION */}
+                          {embed ? (
                             <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 shadow-lg">
                               {embed.type === 'youtube' || embed.type === 'vimeo' ? (
                                 <iframe
@@ -1579,7 +1601,15 @@ ${feedbackText || 'Sin comentarios.'}
                                 </a>
                               )}
                             </div>
-                          )}
+                          ) : (libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '')) ? (
+                            <div className="relative w-full h-52 sm:h-64 rounded-2xl overflow-hidden bg-zinc-950/80 border border-white/10 flex items-center justify-center p-3 shadow-lg">
+                              <img
+                                src={libEx?.muscleImage || getMuscleGroupImage(libEx?.muscleGroup)}
+                                alt={libEx?.name}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                          ) : null}
 
                           {/* Coach Tip Box */}
                           {tipText && (
