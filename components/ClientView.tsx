@@ -699,6 +699,39 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     ? formatWorkoutTitle(currentWorkout.name, currentWorkoutIndex)
     : '';
 
+  // Calcula la duración estimada del entrenamiento sumando:
+  // - 1.5 minutos (90 seg) por cada serie de trabajo (tiempo de ejecución)
+  // - El tiempo de descanso configurado para cada serie
+  const calculateWorkoutDuration = (wk?: Workout): string => {
+    if (!wk || !wk.exercises || wk.exercises.length === 0) return '0 min';
+
+    let totalSeconds = 0;
+    wk.exercises.forEach(entry => {
+      (entry.sets || []).forEach(set => {
+        // 1 minuto y medio (90 seg) de ejecución por serie
+        totalSeconds += 90;
+
+        // Tiempo de descanso configurado entre series
+        const restStr = (set.rest || '').trim();
+        let restSec = 0;
+        if (restStr.includes(':')) {
+          const parts = restStr.split(':');
+          restSec = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+        } else if (restStr) {
+          restSec = parseInt(restStr, 10) || 0;
+        }
+        totalSeconds += restSec > 0 ? restSec : 90;
+      });
+    });
+
+    const totalMinutes = Math.round(totalSeconds / 60);
+    if (totalMinutes < 5) return '5-10 min';
+
+    const lower = Math.max(5, Math.floor(totalMinutes / 5) * 5);
+    const upper = lower + 10;
+    return `${lower}-${upper} min`;
+  };
+
   // Compute total stats across the routine
   const totalWorkouts = routine.weeks.reduce((acc, w) => acc + (w.workouts?.length || 0), 0);
   let totalSetsInRoutine = 0;
@@ -1187,13 +1220,17 @@ ${feedbackText || 'Sin comentarios.'}
                 </div>
 
                 <div className="relative z-10">
-                  <h1 className="text-2xl font-bold tracking-tight text-white uppercase">{routine.name}</h1>
-                  <p className="text-zinc-200 text-xs font-bold tracking-wider uppercase mt-0.5">
-                    by JULIAN
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/30 mb-2.5 backdrop-blur-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse"></span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-yellow-400">PLANES PARA GYMBRO & GYMGIRL</span>
+                  </div>
+                  <h1 className="text-3xl sm:text-4xl font-display tracking-wider text-white uppercase leading-none drop-shadow-md">{routine.name}</h1>
+                  <p className="text-zinc-300 text-xs font-bold tracking-[0.15em] uppercase mt-1 flex items-center gap-1.5">
+                    <span className="text-yellow-400 font-black">BY</span> JULIAN
                   </p>
                   {routine.clientName && (
                     <p className="text-zinc-400 text-xs font-medium mt-0.5">
-                      {t('forClient')}: {routine.clientName}
+                      {t('forClient')}: <span className="text-white font-semibold">{routine.clientName}</span>
                     </p>
                   )}
                   {routine.description && (
@@ -1296,7 +1333,7 @@ ${feedbackText || 'Sin comentarios.'}
                         <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 pr-2">
                           {/* Day Cover Photo or YouTube Thumbnail of First Exercise */}
                           {dayCover ? (
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-zinc-900 shadow-md">
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden shrink-0 border border-white/15 bg-zinc-950 shadow-md">
                               <img
                                 src={dayCover}
                                 alt={displayTitle}
@@ -1304,34 +1341,30 @@ ${feedbackText || 'Sin comentarios.'}
                               />
                             </div>
                           ) : (
-                            <div className="w-16 h-16 rounded-xl bg-zinc-800/80 border border-white/5 flex items-center justify-center shrink-0 group-hover:bg-zinc-700/80 transition-colors">
-                              <svg className="w-5 h-5 text-zinc-300 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-zinc-800 transition-colors">
+                              <svg className="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
                               </svg>
                             </div>
                           )}
 
                           <div className="min-w-0">
-                            <h3 className="font-bold text-white text-base tracking-tight uppercase truncate group-hover:text-yellow-400 transition-colors">
+                            <h3 className="font-display text-xl sm:text-2xl text-white tracking-wide uppercase truncate group-hover:text-yellow-400 transition-colors leading-none">
                               {displayTitle}
                             </h3>
-                            <p className="text-zinc-500 text-xs font-medium truncate mt-0.5 flex items-center gap-1.5">
-                              <svg className="w-3 h-3 shrink-0 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <p className="text-zinc-400 text-xs font-semibold truncate mt-1.5 flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5 shrink-0 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="10" strokeWidth="2"/>
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2"/>
                               </svg>
-                              <span>40-50 min</span>
-                              <span className="text-zinc-700">·</span>
-                              <span>{workout.exercises.length} {t('exercisesCount')}</span>
-                              <span className="text-zinc-700">·</span>
-                              <span>{totalWorkoutSets} {t('series')}</span>
+                              <span className="tracking-wide text-zinc-300">{calculateWorkoutDuration(workout)}</span>
                             </p>
                           </div>
                         </div>
 
                         {/* Chevron right */}
-                        <div className="text-zinc-600 group-hover:text-white transition-colors shrink-0 pl-2">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="text-zinc-500 group-hover:text-yellow-400 transition-colors shrink-0 pl-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
                           </svg>
                         </div>
@@ -1339,7 +1372,7 @@ ${feedbackText || 'Sin comentarios.'}
                     );
                   })
                 ) : (
-                  <div className="p-8 text-center text-zinc-500 bg-[#18181b] rounded-2xl border border-white/5 text-sm">
+                  <div className="p-8 text-center text-zinc-500 bg-[#0e0e11] rounded-2xl border border-white/5 text-sm">
                     {t('noWorkouts')}
                   </div>
                 )}
@@ -1380,15 +1413,19 @@ ${feedbackText || 'Sin comentarios.'}
 
               {/* Title & Workout Instructions */}
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white uppercase">
+                <h1 className="text-3xl sm:text-4xl font-display tracking-wide text-white uppercase leading-none">
                   {currentWorkoutDisplayTitle}
                 </h1>
-                <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                  {currentWorkout.exercises.length} {t('exercisesCount')} · {activeWorkoutTotalSets} {t('series')}
+                <p className="text-xs text-zinc-400 font-semibold mt-1.5 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2"/>
+                  </svg>
+                  <span className="tracking-wide text-zinc-300">{calculateWorkoutDuration(currentWorkout)}</span>
                 </p>
                 {currentWorkout.warmup && (
-                  <div className="mt-2 px-3 py-2 bg-zinc-900 border border-white/5 rounded-xl flex items-start gap-2.5">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-400/80 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md shrink-0 mt-px">
+                  <div className="mt-2.5 px-3 py-2 bg-zinc-900 border border-white/5 rounded-xl flex items-start gap-2.5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-md shrink-0 mt-px">
                       {t('warmup')}
                     </span>
                     <p className="text-xs text-zinc-300 font-medium leading-relaxed">{currentWorkout.warmup}</p>
@@ -1396,16 +1433,16 @@ ${feedbackText || 'Sin comentarios.'}
                 )}
               </div>
 
-              {/* Compact Start Workout Button at Top of List */}
+              {/* Start Workout Button with High Energy Gymbro Aesthetic */}
               <div>
                 <button
                   onClick={() => {
                     initAudio();
                     setViewMode('active');
                   }}
-                  className="w-full py-3.5 px-6 bg-white text-black font-bold text-sm rounded-xl hover:bg-zinc-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm"
+                  className="w-full py-4 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-xl tracking-wider uppercase rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-400/15 font-bold"
                 >
-                  <svg className="w-4 h-4 fill-black" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
                   {t('startWorkout')}
@@ -1923,7 +1960,7 @@ ${feedbackText || 'Sin comentarios.'}
                   {/* Finish Pill Button */}
                   <button
                     onClick={handleFinishClick}
-                    className="py-2.5 px-6 bg-white text-black font-black uppercase text-xs tracking-wider rounded-full shadow-lg hover:bg-zinc-200 active:scale-95 transition-all flex items-center gap-1.5"
+                    className="py-2.5 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-base tracking-wider uppercase rounded-full shadow-lg shadow-yellow-400/20 active:scale-95 transition-all flex items-center gap-2 font-bold"
                   >
                     <svg className="w-4 h-4 fill-black" viewBox="0 0 24 24">
                       <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />

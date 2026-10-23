@@ -127,13 +127,14 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-xl bg-white dark:bg-darkCard rounded-2xl shadow-2xl p-8 md:p-12 border border-slate-100 dark:border-slate-800">
         <div className="text-center mb-10">
-          <div className="inline-block p-4 bg-yellow-500 text-black shadow-lg shadow-yellow-500/20">
+          <div className="inline-block p-4 bg-yellow-400 text-black shadow-lg shadow-yellow-400/20 rounded-2xl mb-3">
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight uppercase">Generador de Rutinas</h1>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-2">Completa los campos para empezar</p>
+          <div className="text-[11px] font-black uppercase tracking-[0.25em] text-yellow-400 mb-1">GYMBRO & GYMGIRL</div>
+          <h1 className="text-4xl font-display text-slate-900 dark:text-white tracking-wider uppercase leading-none">Creador de Rutinas</h1>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-2">Personaliza el plan de tu alumno</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -220,7 +221,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
 
           <button
             type="submit"
-            className="w-full py-5 bg-white text-black rounded-xl font-bold text-base uppercase tracking-wider hover:bg-zinc-200 active:scale-95 transition-all shadow-lg mt-4"
+            className="w-full py-5 bg-yellow-400 hover:bg-yellow-300 text-black rounded-2xl font-display text-xl uppercase tracking-wider active:scale-95 transition-all shadow-lg shadow-yellow-400/15 mt-4 font-bold"
           >
             Crear Rutina
           </button>

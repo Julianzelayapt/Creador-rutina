@@ -1642,9 +1642,11 @@ onChange={(e) => setCurrentRoutine({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent"></div>
               <div className="relative z-10 p-4 flex flex-col justify-end h-full">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Vista previa del alumno</span>
-                <h4 className="text-xl font-bold text-white leading-tight">{currentRoutine.name || 'Título de Rutina'}</h4>
-                <p className="text-xs text-zinc-300 font-bold uppercase mt-0.5">by JULIAN</p>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-400">PLANES GYMBRO & GYMGIRL</span>
+                <h4 className="text-2xl font-display tracking-wider text-white uppercase leading-tight drop-shadow-md">{currentRoutine.name || 'Título de Rutina'}</h4>
+                <p className="text-xs text-zinc-300 font-bold tracking-wider uppercase mt-0.5 flex items-center gap-1">
+                  <span className="text-yellow-400 font-black">BY</span> JULIAN
+                </p>
               </div>
             </div>
 

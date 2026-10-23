@@ -4,13 +4,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hevy Routine Builder Pro</title>
+  <title>GYMBRO & GYMGIRL | Rutinas de Entrenamiento</title>
   <link rel="icon" type="image/png" href="/logo.png">
   <link rel="apple-touch-icon" href="/logo.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -19,40 +19,54 @@
           fontFamily: {
             sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
             mono: ['Inter', 'sans-serif'],
+            display: ['"Bebas Neue"', 'Oswald', 'Impact', 'sans-serif'],
+            condensed: ['Oswald', 'sans-serif'],
           },
           colors: {
-            hevyBlue: '#3b82f6',
+            gymYellow: '#facc15',
+            gymGold: '#eab308',
             darkBg: '#000000',
-            darkCard: '#1C1C1E',
+            darkCard: '#101012',
           }
         }
       }
     }
   </script>
   <style>
-    /* ── Tipografía Global Absoluta: INTER en todo el sistema ── */
-    html, body, *, *::before, *::after, input, button, select, textarea {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    /* ── Tipografía Base del Sistema: INTER para legibilidad técnica y datos ── */
+    body, input, textarea, select, button {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       -webkit-font-smoothing: antialiased !important;
       -moz-osx-font-smoothing: grayscale !important;
       text-rendering: optimizeLegibility !important;
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-      /* Características tipográficas avanzadas de Inter: números tabulares para pesas/tiempos y máxima legibilidad */
       font-feature-settings: 'cv02' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1, 'tnum' 1;
       transition: background-color 0.3s ease, color 0.3s ease;
+      background-color: #000000 !important;
+      color: #ffffff;
     }
 
-    /* Asegurar que las clases mono sigan usando Inter con números tabulares perfectos */
+    /* ── Tipografía Atlética e Imponente: Bebas Neue / Oswald para Títulos y Marca ── */
+    .font-display {
+      font-family: 'Bebas Neue', 'Oswald', Impact, sans-serif !important;
+      letter-spacing: 0.04em;
+    }
+
+    .font-condensed {
+      font-family: 'Oswald', 'Inter', sans-serif !important;
+      letter-spacing: 0.02em;
+    }
+
+    /* Números tabulares para pesas y cronómetros */
     .font-mono {
       font-family: 'Inter', sans-serif !important;
       font-variant-numeric: tabular-nums !important;
       font-feature-settings: 'tnum' 1 !important;
     }
 
-    /* Forzar fondos en modo oscuro si Tailwind no lo detecta en el body */
+    /* Fondo negro absoluto permanente */
     .dark body {
       background-color: #000000 !important;
       color: #ffffff;
