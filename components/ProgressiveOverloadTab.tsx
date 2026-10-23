@@ -116,17 +116,17 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
         let hasData = false;
 
         return (
-          <div key={exId} className="bg-[#0e0e11] border border-white/10 rounded-none p-4 sm:p-5 shadow-lg space-y-4">
+          <div key={exId} className="bg-[#0e0e11] border border-white/10 rounded-xl p-4 sm:p-5 shadow-lg space-y-4">
 
-            {/* Header: Thumbnail al lado del texto del ejercicio */}
+            {/* Header: Thumbnail 16:9 al lado del texto del ejercicio */}
             <div className="flex items-center gap-3.5 pb-3 border-b border-white/5">
-              {/* Thumbnail cuadrado recto */}
-              <div className="w-20 h-20 rounded-none overflow-hidden shrink-0 bg-zinc-900 border border-white/10 shadow-md">
+              {/* Thumbnail 16:9 con esquinas suaves */}
+              <div className="w-28 sm:w-36 aspect-video rounded-lg overflow-hidden shrink-0 bg-zinc-900 border border-white/10 shadow-md">
                 {getExerciseCoverImage(libEx) ? (
                   <img
                     src={getExerciseCoverImage(libEx)}
                     alt={libEx.name}
-                    className={`w-full h-full object-cover ${isYouTubeShort(libEx.videoUrl) ? 'scale-[1.8]' : ''}`}
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">

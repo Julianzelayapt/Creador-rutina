@@ -837,7 +837,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                           e.currentTarget.src = fallback;
                         }
                       }}
-                      className="w-10 h-10 rounded-xl object-cover shrink-0 bg-zinc-900 border border-slate-200 dark:border-white/10"
+                      className="w-14 aspect-video rounded-lg object-cover shrink-0 bg-zinc-900 border border-slate-200 dark:border-white/10"
                     />
                     <div className="min-w-0">
                       <div className="font-bold text-xs truncate group-hover:text-yellow-600 dark:group-hover:text-yellow-400">
@@ -1305,8 +1305,8 @@ onChange={(e) => setCurrentRoutine({
                                                       {entryIdx + 1}
                                                     </div>
                                                   )}
-                                                  {/* Miniatura de Ilustración del Ejercicio */}
-                                                  <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-slate-200 dark:border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-1 shadow-sm">
+                                                  {/* Miniatura 16:9 del Ejercicio */}
+                                                  <div className="w-20 aspect-video rounded-lg bg-zinc-900 border border-slate-200 dark:border-white/10 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
                                                     {exImg ? (
                                                       <img
                                                         src={exImg}
@@ -1317,7 +1317,7 @@ onChange={(e) => setCurrentRoutine({
                                                             e.currentTarget.src = fallback;
                                                           }
                                                         }}
-                                                        className="w-full h-full object-contain"
+                                                        className="w-full h-full object-cover"
                                                       />
                                                     ) : (
                                                       <span className="font-black text-xs text-zinc-400">

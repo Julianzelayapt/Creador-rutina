@@ -1016,10 +1016,10 @@ ${feedbackText || 'Sin comentarios.'}
       {/* Modal de Ejercicios Alternativos / Máquina Ocupada */}
       {altModalExerciseEntry && (
         <div className="fixed inset-0 z-[260] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#0e0e11] border border-white/10 rounded-none max-w-lg w-full p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-[#0e0e11] border border-white/10 rounded-xl max-w-lg w-full p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
               <div className="flex items-center gap-2.5">
-                <span className="p-1.5 rounded-none bg-amber-500/20 text-amber-400">
+                <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                   </svg>
@@ -1035,7 +1035,7 @@ ${feedbackText || 'Sin comentarios.'}
               </div>
               <button
                 onClick={() => setAltModalExerciseEntry(null)}
-                className="p-2 text-zinc-400 hover:text-white rounded-none bg-white/5 transition-colors"
+                className="p-2 text-zinc-400 hover:text-white rounded-lg bg-white/5 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -1058,10 +1058,10 @@ ${feedbackText || 'Sin comentarios.'}
               </div>
             )}
 
-            {/* Lista de Alternativas Aprobadas con miniatura de YouTube */}
+            {/* Lista de Alternativas Aprobadas con miniatura de YouTube (16:9) */}
             <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
               {altModalExerciseEntry.alternatives.length === 0 ? (
-                <div className="p-6 text-center bg-zinc-900/50 rounded-none border border-white/5">
+                <div className="p-6 text-center bg-zinc-900/50 rounded-xl border border-white/5">
                   <p className="text-sm text-zinc-400">
                     {t('noAlternatives')}
                   </p>
@@ -1070,26 +1070,25 @@ ${feedbackText || 'Sin comentarios.'}
                 altModalExerciseEntry.alternatives.map((alt) => {
                   const isCurrentlySelected = altModalExerciseEntry.currentExercise.id === alt.id;
                   const altCover = getExerciseCoverImage(alt);
-                  const isShort = isYouTubeShort(alt.videoUrl);
 
                   return (
                     <div
                       key={alt.id}
-                      className={`p-3 rounded-none border transition-all flex items-center justify-between gap-3 ${
+                      className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
                         isCurrentlySelected
                           ? 'bg-amber-500/10 border-amber-500/40'
                           : 'bg-zinc-900 border-white/5 hover:border-amber-500/30'
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        {/* Miniatura de video / ejercicio */}
-                        <div className="w-16 h-16 rounded-none overflow-hidden shrink-0 bg-zinc-950 border border-white/10 relative shadow-sm">
+                        {/* Miniatura 16:9 */}
+                        <div className="w-24 sm:w-28 aspect-video rounded-lg overflow-hidden shrink-0 bg-zinc-950 border border-white/10 relative shadow-sm">
                           {altCover ? (
                             <img
                               src={altCover}
                               alt={alt.name}
                               onError={onYTThumbError(alt.muscleImage || (alt.muscleGroup ? getMuscleGroupImage(alt.muscleGroup) : ''))}
-                              className={`w-full h-full object-cover ${isShort ? 'scale-[1.8]' : ''}`}
+                              className="w-full h-full object-cover"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500 font-bold text-xs">
@@ -1118,7 +1117,7 @@ ${feedbackText || 'Sin comentarios.'}
                       <button
                         onClick={() => handleChooseAlternative(altModalExerciseEntry.entryId, alt.id)}
                         disabled={isCurrentlySelected}
-                        className={`px-3.5 py-2 rounded-none text-xs font-bold shrink-0 transition-all ${
+                        className={`px-3.5 py-2 rounded-lg text-xs font-bold shrink-0 transition-all ${
                           isCurrentlySelected
                             ? 'bg-amber-500 text-black font-black cursor-default'
                             : 'bg-white/10 hover:bg-amber-400 hover:text-black text-white'
@@ -1212,7 +1211,7 @@ ${feedbackText || 'Sin comentarios.'}
             <div className="max-w-xl mx-auto px-4 space-y-5 animate-in fade-in duration-300">
 
               {/* Routine Cover & Header */}
-              <div className="relative rounded-none overflow-hidden bg-zinc-900 border border-white/10 aspect-[16/9] flex flex-col justify-end p-5 shadow-lg">
+              <div className="relative rounded-xl overflow-hidden bg-zinc-900 border border-white/10 aspect-[16/9] flex flex-col justify-end p-5 shadow-lg">
                 {routine.image && (
                   <img
                     src={routine.image}
@@ -1224,12 +1223,12 @@ ${feedbackText || 'Sin comentarios.'}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
 
                 {/* Language Switcher Pill */}
-                <div className="absolute top-3.5 right-3.5 z-20 flex gap-1 bg-black/60 backdrop-blur-md p-1 border border-white/10">
+                <div className="absolute top-3.5 right-3.5 z-20 flex gap-1 bg-black/60 backdrop-blur-md p-1 rounded-lg border border-white/10">
                   {(['es', 'en', 'it'] as const).map(lang => (
                     <button
                       key={lang}
                       onClick={() => { isDirtyRef.current = true; setLanguage(lang); }}
-                      className={`px-2 py-0.5 text-[10px] font-bold uppercase transition-all ${
+                      className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-md transition-all ${
                         language === lang ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
                       }`}
                     >
@@ -1247,7 +1246,7 @@ ${feedbackText || 'Sin comentarios.'}
               </div>
 
               {/* Stats Card: Weeks | Workouts | Completed % */}
-              <div className="bg-[#0e0e11] border border-white/10 rounded-none p-4 flex items-center justify-between shadow-md">
+              <div className="bg-[#0e0e11] border border-white/10 rounded-xl p-4 flex items-center justify-between shadow-md">
                 <div className="flex-1 text-center border-r border-white/10">
                   <span className="text-2xl font-display text-white leading-none block">{routine.weeks.length}</span>
                   <span className="text-[11px] font-medium text-zinc-400 mt-1 block uppercase tracking-wider">
@@ -1305,7 +1304,7 @@ ${feedbackText || 'Sin comentarios.'}
                       setActiveWeekId(e.target.value);
                       clearExerciseOverrides();
                     }}
-                    className="w-full bg-[#0e0e11] hover:bg-[#151518] text-white pl-11 pr-10 py-3.5 rounded-none font-bold uppercase text-xs tracking-wider border border-white/10 focus:border-yellow-500 outline-none transition-all appearance-none cursor-pointer shadow-md"
+                    className="w-full bg-[#0e0e11] hover:bg-[#151518] text-white pl-11 pr-10 py-3.5 rounded-xl font-bold uppercase text-xs tracking-wider border border-white/10 focus:border-yellow-500 outline-none transition-all appearance-none cursor-pointer shadow-md"
                   >
                     {routine.weeks.map((week, idx) => (
                       <option key={week.id} value={week.id} className="bg-[#0e0e11] text-white py-2">
@@ -1338,21 +1337,21 @@ ${feedbackText || 'Sin comentarios.'}
                           setActiveWorkoutId(workout.id);
                           setViewMode('preview');
                         }}
-                        className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-none p-3.5 sm:p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
+                        className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-xl p-3.5 sm:p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
                       >
                         <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 pr-2">
-                          {/* Day Cover Photo or YouTube Thumbnail of First Exercise */}
+                          {/* Day Cover Photo or YouTube Thumbnail of First Exercise (16:9) */}
                           {dayCover ? (
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-none overflow-hidden shrink-0 border border-white/15 bg-zinc-950 shadow-md">
+                            <div className="w-28 sm:w-36 aspect-video rounded-lg overflow-hidden shrink-0 border border-white/15 bg-zinc-950 shadow-md">
                               <img
                                 src={dayCover}
                                 alt={displayTitle}
                                 onError={onYTThumbError(firstEx?.muscleImage || (firstEx?.muscleGroup ? getMuscleGroupImage(firstEx.muscleGroup) : ''))}
-                                className={`w-full h-full object-cover transition-transform duration-300 ${isDayCoverShort ? 'scale-[1.8] group-hover:scale-[1.85]' : 'group-hover:scale-105'}`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             </div>
                           ) : (
-                            <div className="w-16 h-16 rounded-none bg-zinc-900 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-zinc-800 transition-colors">
+                            <div className="w-28 sm:w-36 aspect-video rounded-lg bg-zinc-900 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-zinc-800 transition-colors">
                               <svg className="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
                               </svg>
@@ -1412,7 +1411,7 @@ ${feedbackText || 'Sin comentarios.'}
 
               {/* Day Cover Photo if available */}
               {currentWorkout.image && (
-                <div className="relative rounded-none overflow-hidden bg-zinc-900 border border-white/10 aspect-[21/9] sm:aspect-[16/7] flex flex-col justify-end p-4 shadow-lg">
+                <div className="relative rounded-xl overflow-hidden bg-zinc-900 border border-white/10 aspect-[21/9] sm:aspect-[16/7] flex flex-col justify-end p-4 shadow-lg">
                   <img
                     src={currentWorkout.image}
                     alt={currentWorkoutDisplayTitle}
@@ -1435,8 +1434,8 @@ ${feedbackText || 'Sin comentarios.'}
                   <span className="tracking-wide text-zinc-300">{calculateWorkoutDuration(currentWorkout)}</span>
                 </p>
                 {currentWorkout.warmup && (
-                  <div className="mt-2.5 px-3 py-2 bg-zinc-900 border border-white/5 rounded-none flex items-start gap-2.5">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-none shrink-0 mt-px">
+                  <div className="mt-2.5 px-3 py-2 bg-zinc-900 border border-white/5 rounded-xl flex items-start gap-2.5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-md shrink-0 mt-px">
                       {t('warmup')}
                     </span>
                     <p className="text-xs text-zinc-300 font-medium leading-relaxed">{currentWorkout.warmup}</p>
@@ -1451,7 +1450,7 @@ ${feedbackText || 'Sin comentarios.'}
                     initAudio();
                     setViewMode('active');
                   }}
-                  className="w-full py-4 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-xl tracking-wider uppercase rounded-none active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-400/15 font-bold"
+                  className="w-full py-4 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-xl tracking-wider uppercase rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-400/15 font-bold"
                 >
                   <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
@@ -1479,7 +1478,7 @@ ${feedbackText || 'Sin comentarios.'}
                   return (
                     <div
                       key={entry.id || idx}
-                      className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-none p-3 sm:p-3.5 flex items-center justify-between transition-all group shadow-md"
+                      className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-xl p-3 sm:p-3.5 flex items-center justify-between transition-all group shadow-md"
                     >
                       {/* Left & Center: Click to train this exercise */}
                       <div
@@ -1493,14 +1492,14 @@ ${feedbackText || 'Sin comentarios.'}
                         }}
                         className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1 cursor-pointer pr-2"
                       >
-                        {/* Square Thumbnail - mismo estilo que la tarjeta del día */}
-                        <div className="w-20 h-20 rounded-none bg-zinc-900 border border-white/10 overflow-hidden shrink-0 relative shadow-md group-hover:border-white/30 transition-all">
+                        {/* 16:9 Thumbnail */}
+                        <div className="w-28 sm:w-36 aspect-video rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0 relative shadow-md group-hover:border-white/30 transition-all">
                           {coverImg ? (
                             <img
                               src={coverImg}
                               alt={libEx?.name}
                               onError={onYTThumbError(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
-                              className={`w-full h-full object-cover transition-transform duration-300 ${isShort ? 'scale-[1.8] group-hover:scale-[1.85]' : 'group-hover:scale-105'}`}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500 font-bold text-xs">
@@ -1509,8 +1508,8 @@ ${feedbackText || 'Sin comentarios.'}
                           )}
                           {/* Subtle play hint */}
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-5 h-5 rounded-full bg-black/30 backdrop-blur-[2px] border border-white/20 flex items-center justify-center shadow-sm opacity-60 group-hover:opacity-90 transition-opacity">
-                              <svg className="w-2.5 h-2.5 fill-white ml-0.5" viewBox="0 0 24 24">
+                            <div className="w-6 h-6 rounded-full bg-black/40 backdrop-blur-[2px] border border-white/20 flex items-center justify-center shadow-sm opacity-60 group-hover:opacity-95 transition-opacity">
+                              <svg className="w-3 h-3 fill-white ml-0.5" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z" />
                               </svg>
                             </div>
