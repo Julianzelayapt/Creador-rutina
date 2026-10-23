@@ -125,14 +125,14 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-xl bg-white dark:bg-darkCard rounded-2xl shadow-2xl p-8 md:p-12 border border-slate-100 dark:border-slate-800">
+      <div className="w-full max-w-xl bg-white dark:bg-[#0e0e11] rounded-none shadow-2xl p-8 md:p-12 border border-slate-100 dark:border-white/10">
         <div className="text-center mb-10">
-          <div className="inline-block p-4 bg-yellow-400 text-black shadow-lg shadow-yellow-400/20 rounded-2xl mb-3">
+          <div className="inline-block p-4 bg-yellow-400 text-black shadow-lg shadow-yellow-400/20 rounded-none mb-3">
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
-          <div className="text-[11px] font-black uppercase tracking-[0.25em] text-yellow-400 mb-1">GYMBRO & GYMGIRL</div>
+          <div className="text-[11px] font-black uppercase tracking-[0.25em] text-yellow-400 mb-1">JULIANZELAYAPT</div>
           <h1 className="text-4xl font-display text-slate-900 dark:text-white tracking-wider uppercase leading-none">Creador de Rutinas</h1>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-2">Personaliza el plan de tu alumno</p>
         </div>
@@ -143,7 +143,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
             <input
               type="text"
               placeholder="Ej: Hipertrofia Full Body"
-              className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-yellow-600 outline-none transition-all font-bold text-slate-800 dark:text-white"
+              className="w-full px-6 py-4 bg-slate-50 dark:bg-black border border-white/10 rounded-none focus:border-yellow-400 outline-none transition-all font-bold text-slate-800 dark:text-white"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
@@ -155,7 +155,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
               <input
                 type="text"
                 placeholder="Ej: Hipertrofia / Fuerza"
-                className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-yellow-600 outline-none transition-all font-bold text-slate-800 dark:text-white"
+                className="w-full px-6 py-4 bg-slate-50 dark:bg-black border border-white/10 rounded-none focus:border-yellow-400 outline-none transition-all font-bold text-slate-800 dark:text-white"
                 value={formData.objective}
                 onChange={(e) => setFormData({ ...formData, objective: e.target.value })}
               />
@@ -165,7 +165,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
               <input
                 type="text"
                 placeholder="Ej: Push Pull Legs"
-                className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-yellow-600 outline-none transition-all font-bold text-slate-800 dark:text-white"
+                className="w-full px-6 py-4 bg-slate-50 dark:bg-black border border-white/10 rounded-none focus:border-yellow-400 outline-none transition-all font-bold text-slate-800 dark:text-white"
                 value={formData.split}
                 onChange={(e) => setFormData({ ...formData, split: e.target.value })}
               />
@@ -177,7 +177,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
             <input
               type="text"
               placeholder="¿A quién va dirigida?"
-              className="w-full px-6 py-5 bg-slate-50 dark:bg-black border-2 border-transparent rounded-[1.5rem] focus:border-yellow-600 outline-none transition-all font-bold text-slate-800 dark:text-white"
+              className="w-full px-6 py-4 bg-slate-50 dark:bg-black border border-white/10 rounded-none focus:border-yellow-400 outline-none transition-all font-bold text-slate-800 dark:text-white"
               value={formData.clientName}
               onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
             />
@@ -221,7 +221,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
 
           <button
             type="submit"
-            className="w-full py-5 bg-yellow-400 hover:bg-yellow-300 text-black rounded-2xl font-display text-xl uppercase tracking-wider active:scale-95 transition-all shadow-lg shadow-yellow-400/15 mt-4 font-bold"
+            className="w-full py-5 bg-yellow-400 hover:bg-yellow-300 text-black rounded-none font-display text-xl uppercase tracking-wider active:scale-95 transition-all shadow-lg shadow-yellow-400/15 mt-4 font-bold"
           >
             Crear Rutina
           </button>

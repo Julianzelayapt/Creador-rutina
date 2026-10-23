@@ -933,25 +933,25 @@ ${feedbackText || 'Sin comentarios.'}
   return (
     <div className="min-h-screen bg-black text-white font-['Inter'] selection:bg-zinc-800 pb-36">
 
-      {/* Floating Rest Timer (iOS Frosted Glass Style) */}
+      {/* Floating Rest Timer (Gym Tactical Style) */}
       {timer !== null && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-6 duration-300">
-          <div className="bg-zinc-900/85 backdrop-blur-2xl border border-white/15 text-white px-6 py-3 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex items-center gap-5">
+          <div className="bg-black/95 backdrop-blur-2xl border-2 border-yellow-400 text-white px-6 py-3 rounded-none shadow-[0_20px_50px_rgba(0,0,0,0.9)] flex items-center gap-5">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-              <span className="text-xs font-semibold tracking-wider uppercase text-zinc-400">{t('pause')}</span>
+              <span className="w-2.5 h-2.5 bg-yellow-400 animate-ping"></span>
+              <span className="text-xs font-bold tracking-widest uppercase text-yellow-400 font-display">{t('pause')}</span>
             </div>
-            <span className="text-2xl font-black tabular-nums tracking-tight font-mono">{formatTime(timer)}</span>
+            <span className="text-3xl font-display tabular-nums tracking-wider font-mono text-white">{formatTime(timer)}</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => addTimerSeconds(30)}
-                className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded-full text-xs font-bold transition-colors"
+                className="px-3 py-1 bg-white/10 hover:bg-yellow-400 hover:text-black rounded-none text-xs font-bold font-mono transition-colors"
               >
                 +30s
               </button>
               <button
                 onClick={stopTimer}
-                className="p-1 hover:bg-white/10 rounded-full text-zinc-400 hover:text-white transition-colors"
+                className="p-1 hover:bg-white/10 rounded-none text-zinc-400 hover:text-white transition-colors"
                 title="Cancelar"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -966,14 +966,14 @@ ${feedbackText || 'Sin comentarios.'}
       {/* History Modal for a specific exercise */}
       {historyExerciseId && (
         <div className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-[#0e0e11] border border-white/10 rounded-none max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg text-white">
+              <h3 className="font-display uppercase tracking-wide text-xl text-white">
                 {library.find(l => l.id === historyExerciseId)?.name || 'Historial'}
               </h3>
               <button
                 onClick={() => setHistoryExerciseId(null)}
-                className="p-2 text-zinc-400 hover:text-white rounded-full bg-white/5"
+                className="p-2 text-zinc-400 hover:text-white rounded-none bg-white/5"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -984,7 +984,7 @@ ${feedbackText || 'Sin comentarios.'}
               {routine.weeks.map((week, wIdx) => {
                 const maxInWeek = weeklySnapshots[week.id]?.[historyExerciseId];
                 return (
-                  <div key={week.id} className="flex items-center justify-between p-3.5 bg-zinc-900 rounded-xl border border-white/5">
+                  <div key={week.id} className="flex items-center justify-between p-3.5 bg-zinc-900 rounded-none border border-white/5">
                     <span className="text-xs font-semibold text-zinc-400">{week.name || `Semana ${wIdx + 1}`}</span>
                     <span className="text-sm font-bold text-white font-mono">
                       {maxInWeek ? `${maxInWeek} kg (Máx)` : 'Sin registro'}
@@ -1000,11 +1000,11 @@ ${feedbackText || 'Sin comentarios.'}
       {/* Modal de Ejercicios Alternativos / Máquina Ocupada */}
       {altModalExerciseEntry && (
         <div className="fixed inset-0 z-[260] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#18181b] border border-white/10 rounded-3xl max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-[#0e0e11] border border-white/10 rounded-none max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="p-1 rounded-md bg-amber-500/20 text-amber-400">
+                  <span className="p-1 rounded-none bg-amber-500/20 text-amber-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
@@ -1019,13 +1019,13 @@ ${feedbackText || 'Sin comentarios.'}
                 <p className="text-xs text-zinc-400 mt-0.5">
                   {t('busyModalSubtitle')}
                 </p>
-                <div className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 rounded-full">
+                <div className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 rounded-none">
                   <span>⏱️</span> Sustituto temporal solo para la sesión de hoy
                 </div>
               </div>
               <button
                 onClick={() => setAltModalExerciseEntry(null)}
-                className="p-2 text-zinc-400 hover:text-white rounded-full bg-white/5 transition-colors"
+                className="p-2 text-zinc-400 hover:text-white rounded-none bg-white/5 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -1034,7 +1034,7 @@ ${feedbackText || 'Sin comentarios.'}
             </div>
 
             {/* Ejercicio Original Base */}
-            <div className="p-3 bg-zinc-900/90 rounded-2xl border border-white/5 mb-4">
+            <div className="p-3 bg-zinc-900/90 rounded-none border border-white/5 mb-4">
               <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
                 {t('originalPlannedExercise')}
               </span>
@@ -1043,7 +1043,7 @@ ${feedbackText || 'Sin comentarios.'}
                   <img
                     src={altModalExerciseEntry.originalExercise.muscleImage || getMuscleGroupImage(altModalExerciseEntry.originalExercise.muscleGroup)}
                     alt=""
-                    className="w-14 h-14 rounded-xl object-contain border border-white/10 bg-zinc-900 p-1 shrink-0 shadow-sm"
+                    className="w-14 h-14 rounded-none object-contain border border-white/10 bg-zinc-900 p-1 shrink-0 shadow-sm"
                   />
                   <div>
                     <span className="font-bold text-sm text-white block">
@@ -1070,7 +1070,7 @@ ${feedbackText || 'Sin comentarios.'}
             {/* Lista de Alternativas Aprobadas */}
             <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
               {altModalExerciseEntry.alternatives.length === 0 ? (
-                <div className="p-6 text-center bg-zinc-900/50 rounded-2xl border border-white/5">
+                <div className="p-6 text-center bg-zinc-900/50 rounded-none border border-white/5">
                   <p className="text-sm text-zinc-400">
                     {t('noAlternatives')}
                   </p>
@@ -1081,7 +1081,7 @@ ${feedbackText || 'Sin comentarios.'}
                   return (
                     <div
                       key={alt.id}
-                      className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                      className={`p-3.5 rounded-none border transition-all flex items-center justify-between gap-3 ${
                         isCurrentlySelected
                           ? 'bg-amber-500/10 border-amber-500/40'
                           : 'bg-zinc-900 border-white/5 hover:border-amber-500/30'
@@ -1091,7 +1091,7 @@ ${feedbackText || 'Sin comentarios.'}
                         <img
                           src={alt.muscleImage || getMuscleGroupImage(alt.muscleGroup)}
                           alt=""
-                          className="w-14 h-14 rounded-xl object-contain border border-white/10 shrink-0 bg-zinc-900 p-1 shadow-sm"
+                          className="w-14 h-14 rounded-none object-contain border border-white/10 shrink-0 bg-zinc-900 p-1 shadow-sm"
                         />
                         <div className="min-w-0">
                           <h4 className="font-bold text-sm text-white truncate">
@@ -1108,7 +1108,7 @@ ${feedbackText || 'Sin comentarios.'}
                       <button
                         onClick={() => handleChooseAlternative(altModalExerciseEntry.entryId, alt.id)}
                         disabled={isCurrentlySelected}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 transition-all ${
+                        className={`px-3.5 py-2 rounded-none text-xs font-bold shrink-0 transition-all ${
                           isCurrentlySelected
                             ? 'bg-amber-500 text-black font-black cursor-default'
                             : 'bg-white/10 hover:bg-amber-400 hover:text-black text-white'
@@ -1125,17 +1125,16 @@ ${feedbackText || 'Sin comentarios.'}
         </div>
       )}
 
-      {/* Finish Workout Confirmation Modal (Image 3) */}
+      {/* Finish Workout Confirmation Modal */}
       {showFinishModal && (
         <div className="fixed inset-0 z-[220] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#1c1c1e] border border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-200 text-center">
-            <div className="w-10 h-1 bg-zinc-600 rounded-full mx-auto mb-6 sm:hidden"></div>
-            <h3 className="text-2xl font-bold text-white mb-2">{t('finishTitle')}</h3>
+          <div className="bg-[#0e0e11] border border-white/10 rounded-none max-w-md w-full p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-200 text-center">
+            <h3 className="text-2xl font-display uppercase tracking-wide text-white mb-2">{t('finishTitle')}</h3>
             <p className="text-zinc-400 text-sm leading-relaxed mb-8">{t('finishDesc')}</p>
             <div className="space-y-3">
               <button
                 onClick={() => setShowFinishModal(false)}
-                className="w-full py-4 bg-white text-black font-bold rounded-full text-base active:scale-95 transition-all shadow-md"
+                className="w-full py-4 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-lg uppercase tracking-wider rounded-none font-bold active:scale-95 transition-all shadow-md"
               >
                 {t('keepTraining')}
               </button>
@@ -1144,7 +1143,7 @@ ${feedbackText || 'Sin comentarios.'}
                   setShowFinishModal(false);
                   setShowFeedbackScreen(true);
                 }}
-                className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-semibold rounded-full text-base active:scale-95 transition-all"
+                className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-display text-lg uppercase tracking-wider rounded-none active:scale-95 transition-all"
               >
                 {t('finishAnyway')}
               </button>
@@ -1193,7 +1192,7 @@ ${feedbackText || 'Sin comentarios.'}
             <div className="max-w-xl mx-auto px-4 space-y-5 animate-in fade-in duration-300">
 
               {/* Routine Cover & Header */}
-              <div className="relative rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 aspect-[16/9] flex flex-col justify-end p-5 shadow-lg">
+              <div className="relative rounded-none overflow-hidden bg-zinc-900 border border-white/10 aspect-[16/9] flex flex-col justify-end p-5 shadow-lg">
                 {routine.image && (
                   <img
                     src={routine.image}
@@ -1205,12 +1204,12 @@ ${feedbackText || 'Sin comentarios.'}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
 
                 {/* Language Switcher Pill */}
-                <div className="absolute top-3.5 right-3.5 z-20 flex gap-1 bg-black/60 backdrop-blur-md p-1 rounded-full border border-white/10">
+                <div className="absolute top-3.5 right-3.5 z-20 flex gap-1 bg-black/60 backdrop-blur-md p-1 border border-white/10">
                   {(['es', 'en', 'it'] as const).map(lang => (
                     <button
                       key={lang}
                       onClick={() => { isDirtyRef.current = true; setLanguage(lang); }}
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase transition-all ${
+                      className={`px-2 py-0.5 text-[10px] font-bold uppercase transition-all ${
                         language === lang ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
                       }`}
                     >
@@ -1220,36 +1219,24 @@ ${feedbackText || 'Sin comentarios.'}
                 </div>
 
                 <div className="relative z-10">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/30 mb-2.5 backdrop-blur-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse"></span>
-                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-yellow-400">PLANES PARA GYMBRO & GYMGIRL</span>
-                  </div>
-                  <h1 className="text-3xl sm:text-4xl font-display tracking-wider text-white uppercase leading-none drop-shadow-md">{routine.name}</h1>
-                  <p className="text-zinc-300 text-xs font-bold tracking-[0.15em] uppercase mt-1 flex items-center gap-1.5">
-                    <span className="text-yellow-400 font-black">BY</span> JULIAN
-                  </p>
-                  {routine.clientName && (
-                    <p className="text-zinc-400 text-xs font-medium mt-0.5">
-                      {t('forClient')}: <span className="text-white font-semibold">{routine.clientName}</span>
-                    </p>
-                  )}
+                  <h1 className="text-3xl sm:text-5xl font-display tracking-wide text-white uppercase leading-none drop-shadow-lg">{routine.name}</h1>
                   {routine.description && (
-                    <p className="text-zinc-400 text-xs mt-1.5 line-clamp-2">{routine.description}</p>
+                    <p className="text-zinc-300 text-xs sm:text-sm mt-2 line-clamp-2 max-w-lg">{routine.description}</p>
                   )}
                 </div>
               </div>
 
               {/* Stats Card: Weeks | Workouts | Completed % */}
-              <div className="bg-[#18181b] border border-white/5 rounded-2xl p-4 flex items-center justify-between shadow-md">
-                <div className="flex-1 text-center border-r border-white/5">
-                  <span className="text-xl font-bold text-white leading-none block">{routine.weeks.length}</span>
-                  <span className="text-[11px] font-medium text-zinc-400 mt-1 block">
+              <div className="bg-[#0e0e11] border border-white/10 rounded-none p-4 flex items-center justify-between shadow-md">
+                <div className="flex-1 text-center border-r border-white/10">
+                  <span className="text-2xl font-display text-white leading-none block">{routine.weeks.length}</span>
+                  <span className="text-[11px] font-medium text-zinc-400 mt-1 block uppercase tracking-wider">
                     {t('weeks')}
                   </span>
                 </div>
-                <div className="flex-1 text-center border-r border-white/5">
-                  <span className="text-xl font-bold text-white leading-none block">{totalWorkouts}</span>
-                  <span className="text-[11px] font-medium text-zinc-400 mt-1 block">
+                <div className="flex-1 text-center border-r border-white/10">
+                  <span className="text-2xl font-display text-white leading-none block">{totalWorkouts}</span>
+                  <span className="text-[11px] font-medium text-zinc-400 mt-1 block uppercase tracking-wider">
                     {t('workouts')}
                   </span>
                 </div>
@@ -1264,7 +1251,7 @@ ${feedbackText || 'Sin comentarios.'}
                         d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       />
                       <path
-                        className="text-emerald-400 transition-all duration-500 ease-out"
+                        className="text-yellow-400 transition-all duration-500 ease-out"
                         strokeDasharray={`${completionPercent}, 100`}
                         strokeWidth="3.5"
                         strokeLinecap="round"
@@ -1295,10 +1282,10 @@ ${feedbackText || 'Sin comentarios.'}
                   <select
                     value={activeWeekId || ''}
                     onChange={(e) => setActiveWeekId(e.target.value)}
-                    className="w-full bg-[#18181b] hover:bg-[#202024] text-white pl-11 pr-10 py-3.5 rounded-2xl font-bold uppercase text-xs tracking-wider border border-white/10 focus:border-yellow-500 outline-none transition-all appearance-none cursor-pointer shadow-md"
+                    className="w-full bg-[#0e0e11] hover:bg-[#151518] text-white pl-11 pr-10 py-3.5 rounded-none font-bold uppercase text-xs tracking-wider border border-white/10 focus:border-yellow-500 outline-none transition-all appearance-none cursor-pointer shadow-md"
                   >
                     {routine.weeks.map((week, idx) => (
-                      <option key={week.id} value={week.id} className="bg-[#18181b] text-white py-2">
+                      <option key={week.id} value={week.id} className="bg-[#0e0e11] text-white py-2">
                         {formatWeekTitle(week.name, idx)}
                       </option>
                     ))}
@@ -1328,12 +1315,12 @@ ${feedbackText || 'Sin comentarios.'}
                           setActiveWorkoutId(workout.id);
                           setViewMode('preview');
                         }}
-                        className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
+                        className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-none p-3.5 sm:p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
                       >
                         <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 pr-2">
                           {/* Day Cover Photo or YouTube Thumbnail of First Exercise */}
                           {dayCover ? (
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden shrink-0 border border-white/15 bg-zinc-950 shadow-md">
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-none overflow-hidden shrink-0 border border-white/15 bg-zinc-950 shadow-md">
                               <img
                                 src={dayCover}
                                 alt={displayTitle}
@@ -1341,7 +1328,7 @@ ${feedbackText || 'Sin comentarios.'}
                               />
                             </div>
                           ) : (
-                            <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-zinc-800 transition-colors">
+                            <div className="w-16 h-16 rounded-none bg-zinc-900 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-zinc-800 transition-colors">
                               <svg className="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
                               </svg>
@@ -1372,7 +1359,7 @@ ${feedbackText || 'Sin comentarios.'}
                     );
                   })
                 ) : (
-                  <div className="p-8 text-center text-zinc-500 bg-[#0e0e11] rounded-2xl border border-white/5 text-sm">
+                  <div className="p-8 text-center text-zinc-500 bg-[#0e0e11] rounded-none border border-white/5 text-sm">
                     {t('noWorkouts')}
                   </div>
                 )}
@@ -1401,7 +1388,7 @@ ${feedbackText || 'Sin comentarios.'}
 
               {/* Day Cover Photo if available */}
               {currentWorkout.image && (
-                <div className="relative rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 aspect-[21/9] sm:aspect-[16/7] flex flex-col justify-end p-4 shadow-lg">
+                <div className="relative rounded-none overflow-hidden bg-zinc-900 border border-white/10 aspect-[21/9] sm:aspect-[16/7] flex flex-col justify-end p-4 shadow-lg">
                   <img
                     src={currentWorkout.image}
                     alt={currentWorkoutDisplayTitle}
@@ -1424,8 +1411,8 @@ ${feedbackText || 'Sin comentarios.'}
                   <span className="tracking-wide text-zinc-300">{calculateWorkoutDuration(currentWorkout)}</span>
                 </p>
                 {currentWorkout.warmup && (
-                  <div className="mt-2.5 px-3 py-2 bg-zinc-900 border border-white/5 rounded-xl flex items-start gap-2.5">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-md shrink-0 mt-px">
+                  <div className="mt-2.5 px-3 py-2 bg-zinc-900 border border-white/5 rounded-none flex items-start gap-2.5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-none shrink-0 mt-px">
                       {t('warmup')}
                     </span>
                     <p className="text-xs text-zinc-300 font-medium leading-relaxed">{currentWorkout.warmup}</p>
@@ -1440,7 +1427,7 @@ ${feedbackText || 'Sin comentarios.'}
                     initAudio();
                     setViewMode('active');
                   }}
-                  className="w-full py-4 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-xl tracking-wider uppercase rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-400/15 font-bold"
+                  className="w-full py-4 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-xl tracking-wider uppercase rounded-none active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-400/15 font-bold"
                 >
                   <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
@@ -1468,7 +1455,7 @@ ${feedbackText || 'Sin comentarios.'}
                   return (
                     <div
                       key={entry.id || idx}
-                      className="bg-[#18181b] hover:bg-[#202024] border border-white/5 hover:border-white/15 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between transition-all group shadow-md"
+                      className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-none p-3 sm:p-3.5 flex items-center justify-between transition-all group shadow-md"
                     >
                       {/* Left & Center: Click to train this exercise */}
                       <div
@@ -1483,7 +1470,7 @@ ${feedbackText || 'Sin comentarios.'}
                         className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1 cursor-pointer pr-2"
                       >
                         {/* Square Thumbnail - mismo estilo que la tarjeta del día */}
-                        <div className="w-20 h-20 rounded-xl bg-zinc-900 border border-white/10 overflow-hidden shrink-0 relative shadow-md group-hover:border-white/30 transition-all">
+                        <div className="w-20 h-20 rounded-none bg-zinc-900 border border-white/10 overflow-hidden shrink-0 relative shadow-md group-hover:border-white/30 transition-all">
                           {coverImg ? (
                             <img
                               src={coverImg}
@@ -1508,7 +1495,7 @@ ${feedbackText || 'Sin comentarios.'}
                         {/* Center Column: Title, SETS, REPS */}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-white text-sm sm:text-base leading-snug truncate group-hover:text-yellow-400 transition-colors">
+                            <h4 className="font-display text-lg sm:text-xl text-white uppercase tracking-wide leading-tight truncate group-hover:text-yellow-400 transition-colors">
                               {libEx?.name || 'Ejercicio'}
                             </h4>
                             {isReplaced && (
@@ -1520,7 +1507,7 @@ ${feedbackText || 'Sin comentarios.'}
 
                           <div className="mt-1 text-left">
                             <p className="text-[11px] font-bold text-zinc-400 tracking-wider uppercase">
-                              SETS: <span className="text-zinc-200 font-mono font-bold">{entry.sets.length}</span>
+                              SETS: <span className="text-yellow-400 font-mono font-bold text-xs">{entry.sets.length}</span>
                             </p>
                           </div>
                         </div>
@@ -1633,8 +1620,8 @@ ${feedbackText || 'Sin comentarios.'}
 
               {/* Warmup notice if exists */}
               {currentWorkout.warmup && (
-                <div className="px-3 py-2.5 bg-zinc-900 border border-white/10 rounded-2xl flex items-start gap-2.5">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-amber-400/80 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md shrink-0 mt-px">
+                <div className="px-3 py-2.5 bg-zinc-900 border border-white/10 rounded-none flex items-start gap-2.5">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-none shrink-0 mt-px">
                     {t('warmup')}
                   </span>
                   <p className="text-xs text-white font-medium leading-relaxed">{currentWorkout.warmup}</p>
@@ -1657,7 +1644,7 @@ ${feedbackText || 'Sin comentarios.'}
                     <div
                       id={`exercise-${entry.id}`}
                       key={entry.id || eIdx}
-                      className="bg-[#18181b] border border-white/5 rounded-2xl p-4 sm:p-5 shadow-lg transition-all scroll-mt-6"
+                      className="bg-[#0e0e11] border border-white/10 rounded-none p-4 sm:p-5 shadow-lg transition-all scroll-mt-6"
                     >
                       {/* Exercise Header */}
                       <div className="flex items-start justify-between gap-3 mb-4">
@@ -1667,12 +1654,12 @@ ${feedbackText || 'Sin comentarios.'}
                               {t('exercisePrefix')} {eIdx + 1}
                             </span>
                             {isReplaced && (
-                              <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                              <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-none">
                                 {t('substituteActive')}
                               </span>
                             )}
                           </div>
-                          <h3 className="text-xl font-bold text-white tracking-tight leading-snug">
+                          <h3 className="text-2xl sm:text-3xl font-display text-white tracking-wide uppercase leading-tight">
                             {libEx?.name || 'Ejercicio'}
                           </h3>
                           {isReplaced && originalEx && (
@@ -1699,7 +1686,7 @@ ${feedbackText || 'Sin comentarios.'}
                                   alternatives: alts
                                 });
                               }}
-                              className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-full border transition-all ${
+                              className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-none border transition-all ${
                                 isReplaced
                                   ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
                                   : 'bg-zinc-800/80 text-amber-400 hover:text-amber-300 hover:bg-zinc-700/80 border-amber-500/25'
@@ -1716,7 +1703,7 @@ ${feedbackText || 'Sin comentarios.'}
                           {/* View History Button */}
                           <button
                             onClick={() => setHistoryExerciseId(libEx?.id || entry.libraryExerciseId)}
-                            className="flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 px-2.5 py-1.5 rounded-full border border-white/5 transition-colors"
+                            className="flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 px-2.5 py-1.5 rounded-none border border-white/5 transition-colors"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1727,7 +1714,7 @@ ${feedbackText || 'Sin comentarios.'}
                           {/* Collapse Toggle */}
                           <button
                             onClick={() => setCollapsedExercises(prev => ({ ...prev, [entry.id]: !prev[entry.id] }))}
-                            className="p-1.5 text-zinc-400 hover:text-white rounded-full bg-zinc-800/80 transition-colors"
+                            className="p-1.5 text-zinc-400 hover:text-white rounded-none bg-zinc-800/80 transition-colors"
                           >
                             <svg
                               className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`}
@@ -1746,7 +1733,7 @@ ${feedbackText || 'Sin comentarios.'}
                           {/* EMBEDDED VIDEO PLAYER (Morsia Custom Facade + Player) */}
                           {embed ? (
                             playingVideoId === entry.id ? (
-                              <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border border-white/10 shadow-lg">
+                              <div className="relative w-full aspect-video rounded-none overflow-hidden bg-black border border-white/10 shadow-lg">
                                 {embed.type === 'youtube' || embed.type === 'vimeo' ? (
                                   <iframe
                                     src={embed.src}
@@ -1781,7 +1768,7 @@ ${feedbackText || 'Sin comentarios.'}
                               /* Native Morsia Video Card (Foto 3) */
                               <div
                                 onClick={() => setPlayingVideoId(entry.id)}
-                                className="relative w-full aspect-video rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 shadow-xl cursor-pointer group"
+                                className="relative w-full aspect-video rounded-none overflow-hidden bg-zinc-950 border border-white/10 shadow-xl cursor-pointer group"
                               >
                                 {embed.thumbnail || getExerciseCoverImage(libEx) ? (
                                   <img
@@ -1795,7 +1782,7 @@ ${feedbackText || 'Sin comentarios.'}
                                   </div>
                                 )}
                                 <div className="absolute inset-0 bg-black/35 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 backdrop-blur-md border border-white/40 flex items-center justify-center text-white shadow-2xl group-hover:scale-110 transition-transform">
+                                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-none bg-black/60 backdrop-blur-md border border-white/40 flex items-center justify-center text-white shadow-2xl group-hover:scale-110 transition-transform">
                                     <svg className="w-7 h-7 sm:w-8 sm:h-8 fill-white ml-1" viewBox="0 0 24 24">
                                       <path d="M8 5v14l11-7z" />
                                     </svg>
@@ -1804,7 +1791,7 @@ ${feedbackText || 'Sin comentarios.'}
                               </div>
                             )
                           ) : (libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '')) ? (
-                            <div className="relative w-full h-52 sm:h-64 rounded-2xl overflow-hidden bg-zinc-950/80 border border-white/10 flex items-center justify-center p-3 shadow-lg">
+                            <div className="relative w-full h-52 sm:h-64 rounded-none overflow-hidden bg-zinc-950/80 border border-white/10 flex items-center justify-center p-3 shadow-lg">
                               <img
                                 src={libEx?.muscleImage || getMuscleGroupImage(libEx?.muscleGroup)}
                                 alt={libEx?.name}
@@ -1815,7 +1802,7 @@ ${feedbackText || 'Sin comentarios.'}
 
                           {/* Coach Tip Box */}
                           {tipText && (
-                            <div className="p-3.5 bg-zinc-900/90 border border-white/5 rounded-2xl flex items-start gap-2.5">
+                            <div className="p-3.5 bg-zinc-900/90 border border-white/10 rounded-none flex items-start gap-2.5">
                               <span className="text-sm">💡</span>
                               <div className="min-w-0">
                                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
@@ -1828,8 +1815,8 @@ ${feedbackText || 'Sin comentarios.'}
                             </div>
                           )}
 
-                          {/* Sets List (One below the other with clean iOS columns) */}
-                          <div className="space-y-2.5 pt-2">
+                          {/* Sets List (One below the other with clean industrial columns) */}
+                          <div className="space-y-2 pt-2">
                             {/* Table Header */}
                             <div className="grid grid-cols-12 gap-2 px-2 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                               <div className="col-span-1 text-center">#</div>
@@ -1845,7 +1832,7 @@ ${feedbackText || 'Sin comentarios.'}
                               return (
                                 <React.Fragment key={set.id || sIdx}>
                                   <div
-                                    className={`grid grid-cols-12 gap-2 items-center p-2.5 rounded-2xl border transition-all ${
+                                    className={`grid grid-cols-12 gap-2 items-center p-2.5 rounded-none border transition-all ${
                                       isDone
                                         ? 'bg-emerald-500/10 border-emerald-500/30'
                                         : 'bg-zinc-900/70 border-white/5'
@@ -1864,7 +1851,7 @@ ${feedbackText || 'Sin comentarios.'}
                                           value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
                                           onChange={(e) => handleRepsChange(set.id, e.target.value)}
                                           placeholder={set.reps}
-                                          className="w-full bg-black/40 border border-white/10 rounded-xl py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:border-white/30 font-mono"
+                                          className="w-full bg-black/40 border border-white/10 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:border-yellow-400 font-mono"
                                         />
                                       </div>
                                     )}
@@ -1877,7 +1864,7 @@ ${feedbackText || 'Sin comentarios.'}
                                           value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
                                           onChange={(e) => handleWeightsChange(set.id, e.target.value)}
                                           placeholder={set.kg}
-                                          className="w-full bg-black/40 border border-white/10 rounded-xl py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:border-white/30 font-mono"
+                                          className="w-full bg-black/40 border border-white/10 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:border-yellow-400 font-mono"
                                         />
                                       </div>
                                     )}
@@ -1889,14 +1876,14 @@ ${feedbackText || 'Sin comentarios.'}
                                       </div>
                                     )}
 
-                                    {/* Checkbox (iOS Clean Round Button) */}
+                                    {/* Checkbox (Straight/Square Tactical Button) */}
                                     <div className="col-span-3 flex justify-center">
                                       <button
                                         onClick={() => handleSetToggle(set.id, set.rest)}
-                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
+                                        className={`w-10 h-10 rounded-none border-2 flex items-center justify-center transition-all active:scale-90 ${
                                           isDone
-                                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30 scale-105'
-                                            : 'border-white/20 bg-zinc-800/40 text-transparent hover:border-emerald-400/50'
+                                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                            : 'border-white/20 bg-zinc-800/40 text-transparent hover:border-yellow-400/50'
                                         }`}
                                       >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1909,7 +1896,7 @@ ${feedbackText || 'Sin comentarios.'}
                                   {/* DropSets if any */}
                                   {set.dropsets?.map((ds, dsIdx) => (
                                     <div key={ds.id || dsIdx} className="pl-6 pr-2 py-1 text-xs text-zinc-400 flex items-center gap-2">
-                                      <span className="text-[10px] font-bold uppercase text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-full">
+                                      <span className="text-[10px] font-bold uppercase text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-none">
                                         DS {dsIdx + 1}
                                       </span>
                                       <span className="font-mono">{ds.kg} kg × {ds.reps} reps</span>
@@ -1926,7 +1913,7 @@ ${feedbackText || 'Sin comentarios.'}
                               placeholder={t('addNote')}
                               value={feelings[entry.id] || ''}
                               onChange={(e) => handleFeelingsChange(entry.id, e.target.value)}
-                              className="w-full bg-zinc-900/60 border border-white/5 rounded-2xl p-3.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/20 resize-none h-20"
+                              className="w-full bg-zinc-900/60 border border-white/10 rounded-none p-3.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-400 resize-none h-20"
                             />
                           </div>
                         </div>
@@ -1936,8 +1923,8 @@ ${feedbackText || 'Sin comentarios.'}
                 })}
               </div>
 
-              {/* Floating Bottom Bar (Sets Logged + Timer Pill + Finish Button - Image 1) */}
-              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-[#18181b]/90 backdrop-blur-2xl border border-white/10 rounded-full p-2.5 flex items-center justify-between shadow-2xl z-40">
+              {/* Floating Bottom Bar (Straight Brutalist Bar) */}
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-black/95 backdrop-blur-2xl border border-white/15 rounded-none p-2.5 flex items-center justify-between shadow-2xl z-40">
                 {/* Sets Logged text */}
                 <div className="pl-3">
                   <span className="text-xs font-bold text-zinc-300">
@@ -1946,9 +1933,9 @@ ${feedbackText || 'Sin comentarios.'}
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Timer pill if running */}
+                  {/* Timer box if running */}
                   {timer !== null && (
-                    <div className="px-3 py-1.5 rounded-full bg-zinc-800 border border-white/10 text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5">
+                    <div className="px-3 py-1.5 rounded-none bg-zinc-900 border border-yellow-400/40 text-xs font-mono font-bold text-yellow-400 flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10" strokeWidth="3" className="opacity-25" />
                         <path strokeLinecap="round" strokeWidth="3" d="M12 2a10 10 0 0110 10" />
@@ -1957,10 +1944,10 @@ ${feedbackText || 'Sin comentarios.'}
                     </div>
                   )}
 
-                  {/* Finish Pill Button */}
+                  {/* Finish Button */}
                   <button
                     onClick={handleFinishClick}
-                    className="py-2.5 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-base tracking-wider uppercase rounded-full shadow-lg shadow-yellow-400/20 active:scale-95 transition-all flex items-center gap-2 font-bold"
+                    className="py-2.5 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-base tracking-wider uppercase rounded-none shadow-lg shadow-yellow-400/20 active:scale-95 transition-all flex items-center gap-2 font-bold"
                   >
                     <svg className="w-4 h-4 fill-black" viewBox="0 0 24 24">
                       <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />

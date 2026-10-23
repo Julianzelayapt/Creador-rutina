@@ -88,7 +88,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
           <select
             value={selectedExId}
             onChange={(e) => setSelectedExId(e.target.value)}
-            className="w-full bg-[#18181b] border border-white/10 px-4 py-3 rounded-xl font-semibold text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-white/30 transition-all shadow-sm"
+            className="w-full bg-[#0e0e11] border border-white/10 px-4 py-3 rounded-none font-semibold text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-400 transition-all shadow-sm"
           >
             {uniqueExerciseIds.map(exId => {
               const libEx = library.find(l => l.id === exId);
@@ -116,12 +116,12 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
         let hasData = false;
 
         return (
-          <div key={exId} className="bg-[#18181b] border border-white/5 rounded-2xl p-4 sm:p-5 shadow-lg space-y-4">
+          <div key={exId} className="bg-[#0e0e11] border border-white/10 rounded-none p-4 sm:p-5 shadow-lg space-y-4">
 
             {/* Header: Thumbnail al lado del texto del ejercicio */}
             <div className="flex items-center gap-3.5 pb-3 border-b border-white/5">
-              {/* Thumbnail cuadrado - mismo estilo que tarjeta del día y ejercicios */}
-              <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-zinc-900 border border-white/10 shadow-md">
+              {/* Thumbnail cuadrado recto */}
+              <div className="w-20 h-20 rounded-none overflow-hidden shrink-0 bg-zinc-900 border border-white/10 shadow-md">
                 {getExerciseCoverImage(libEx) ? (
                   <img
                     src={getExerciseCoverImage(libEx)}
@@ -138,7 +138,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
               </div>
 
               <div className="min-w-0">
-                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight leading-snug truncate">
+                <h3 className="font-display text-xl sm:text-2xl text-white uppercase tracking-wide leading-none truncate">
                   {libEx.name}
                 </h3>
                 <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mt-0.5">
