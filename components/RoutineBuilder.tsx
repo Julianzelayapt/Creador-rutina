@@ -17,7 +17,7 @@ const getYouTubeThumbnail = (url: string | undefined): string | null => {
   const trimmed = url.trim();
   const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
   if (ytMatch && ytMatch[1]) {
-    return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+    return `https://img.youtube.com/vi/${ytMatch[1]}/maxresdefault.jpg`;
   }
   return null;
 };
@@ -1963,8 +1963,51 @@ onChange={(e) => setCurrentRoutine({
                 </div>
               </div>
 
+              {/* Grupo Muscular */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-zinc-400">
+                    Grupo Muscular
+                  </label>
+                  {newExercise.muscleGroup && (
+                    <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wider">
+                      {DEFAULT_MUSCLE_GROUPS.find(g => g.id === newExercise.muscleGroup)?.name || newExercise.muscleGroup}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {DEFAULT_MUSCLE_GROUPS.map(group => {
+                    const isSelected = newExercise.muscleGroup === group.id;
+                    return (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => setNewExercise({
+                          ...newExercise,
+                          muscleGroup: group.id,
+                          muscleImage: getMuscleGroupImage(group.id)
+                        })}
+                        className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
+                          isSelected
+                            ? 'border-yellow-400 bg-yellow-400/10 shadow-md scale-[1.03]'
+                            : 'border-slate-700 bg-black/40 hover:border-slate-500 hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <img
+                          src={getMuscleGroupImage(group.id)}
+                          alt={group.name}
+                          className="w-8 h-8 rounded-lg object-cover"
+                        />
+                        <span className={`text-[9px] font-black uppercase tracking-wider leading-tight text-center ${isSelected ? 'text-yellow-400' : 'text-zinc-400'}`}>
+                          {group.name.split('/')[0].trim()}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-              {/* URL Video Demostrativo */}
+
               <div>
                 <label className="text-[11px] font-black uppercase tracking-wider text-zinc-400 mb-1.5 block">
                   URL Video demostrativo

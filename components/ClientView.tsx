@@ -16,7 +16,7 @@ export const getYouTubeThumbnail = (url: string | undefined): string | null => {
   const trimmed = url.trim();
   const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
   if (ytMatch && ytMatch[1]) {
-    return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+    return `https://img.youtube.com/vi/${ytMatch[1]}/maxresdefault.jpg`;
   }
   return null;
 };
@@ -47,7 +47,7 @@ const getEmbedVideo = (url: string | undefined) => {
     return {
       type: 'youtube' as const,
       videoId,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
       src: `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&modestbranding=1&rel=0`
     };
   }
@@ -1152,27 +1152,37 @@ ${feedbackText || 'Sin comentarios.'}
         </div>
       )}
 
-      {/* Main Tab Navigation: Training vs Progressive Overload */}
-      <div className="max-w-xl mx-auto px-4 pt-5 pb-3 flex items-center justify-between">
-        <div className="flex gap-1.5 bg-zinc-900 border border-white/10 p-1 rounded-xl">
+      {/* Main Tab Navigation: Athletic Underline Tabs */}
+      {viewMode !== 'active' && (
+        <div className="max-w-xl mx-auto px-4 pt-4 pb-1 border-b border-white/10 flex items-center justify-start gap-8">
           <button
             onClick={() => setActiveTab('training')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all ${
-              activeTab === 'training' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
+            className={`pb-3 font-display text-lg sm:text-xl uppercase tracking-wider transition-all relative ${
+              activeTab === 'training'
+                ? 'text-yellow-400 font-bold'
+                : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             {t('training')}
+            {activeTab === 'training' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.8)]" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab('overload')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all ${
-              activeTab === 'overload' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
+            className={`pb-3 font-display text-lg sm:text-xl uppercase tracking-wider transition-all relative ${
+              activeTab === 'overload'
+                ? 'text-yellow-400 font-bold'
+                : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             {t('overload')}
+            {activeTab === 'overload' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.8)]" />
+            )}
           </button>
         </div>
-      </div>
+      )}
 
       {activeTab === 'overload' ? (
         <div className="max-w-xl mx-auto px-4 py-4">
@@ -1644,88 +1654,91 @@ ${feedbackText || 'Sin comentarios.'}
                     <div
                       id={`exercise-${entry.id}`}
                       key={entry.id || eIdx}
-                      className="bg-[#0e0e11] border border-white/10 rounded-none p-4 sm:p-5 shadow-lg transition-all scroll-mt-6"
+                      className="bg-[#0e0e11] border border-white/10 rounded-2xl p-4 sm:p-5 shadow-lg transition-all scroll-mt-6"
                     >
                       {/* Exercise Header */}
-                      <div className="flex items-start justify-between gap-3 mb-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block">
+                      <div className="mb-4">
+                        {/* Top Action Row: Exercise Badge + Substitute & Action Buttons */}
+                        <div className="flex items-center justify-between gap-2 mb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
                               {t('exercisePrefix')} {eIdx + 1}
                             </span>
                             {isReplaced && (
-                              <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-none">
+                              <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-md">
                                 {t('substituteActive')}
                               </span>
                             )}
                           </div>
-                          <h3 className="text-2xl sm:text-3xl font-display text-white tracking-wide uppercase leading-tight">
-                            {libEx?.name || 'Ejercicio'}
-                          </h3>
-                          {isReplaced && originalEx && (
-                            <span className="text-[11px] text-zinc-400 block mt-0.5">
-                              {t('replaces')}: <strong className="text-zinc-300">{originalEx.name}</strong>
-                            </span>
-                          )}
-                        </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                          {/* Botón ¿Máquina ocupada? si tiene alternativas */}
-                          {hasAlternatives && (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Botón ¿Máquina ocupada? si tiene alternativas */}
+                            {hasAlternatives && (
+                              <button
+                                onClick={() => {
+                                  if (!originalEx) return;
+                                  const alts = (originalEx.alternativeExerciseIds || [])
+                                    .map(altId => library.find(l => l.id === altId))
+                                    .filter((l): l is Exercise => Boolean(l));
+
+                                  setAltModalExerciseEntry({
+                                    entryId: entry.id,
+                                    originalExercise: originalEx,
+                                    currentExercise: libEx || originalEx,
+                                    alternatives: alts
+                                  });
+                                }}
+                                className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
+                                  isReplaced
+                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                                    : 'bg-zinc-800/80 text-amber-400 hover:text-amber-300 hover:bg-zinc-700/80 border-amber-500/25'
+                                }`}
+                                title={t('busyMachine')}
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
+                                <span>{isReplaced ? t('changeAlt') : t('busyShort')}</span>
+                              </button>
+                            )}
+
+                            {/* View History Button */}
                             <button
-                              onClick={() => {
-                                if (!originalEx) return;
-                                const alts = (originalEx.alternativeExerciseIds || [])
-                                  .map(altId => library.find(l => l.id === altId))
-                                  .filter((l): l is Exercise => Boolean(l));
-
-                                setAltModalExerciseEntry({
-                                  entryId: entry.id,
-                                  originalExercise: originalEx,
-                                  currentExercise: libEx || originalEx,
-                                  alternatives: alts
-                                });
-                              }}
-                              className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-none border transition-all ${
-                                isReplaced
-                                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
-                                  : 'bg-zinc-800/80 text-amber-400 hover:text-amber-300 hover:bg-zinc-700/80 border-amber-500/25'
-                              }`}
-                              title={t('busyMachine')}
+                              onClick={() => setHistoryExerciseId(libEx?.id || entry.libraryExerciseId)}
+                              className="flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 px-2.5 py-1.5 rounded-lg border border-white/5 transition-colors"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              <span>{isReplaced ? t('changeAlt') : t('busyShort')}</span>
+                              {t('viewHistory')}
                             </button>
-                          )}
 
-                          {/* View History Button */}
-                          <button
-                            onClick={() => setHistoryExerciseId(libEx?.id || entry.libraryExerciseId)}
-                            className="flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 px-2.5 py-1.5 rounded-none border border-white/5 transition-colors"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {t('viewHistory')}
-                          </button>
-
-                          {/* Collapse Toggle */}
-                          <button
-                            onClick={() => setCollapsedExercises(prev => ({ ...prev, [entry.id]: !prev[entry.id] }))}
-                            className="p-1.5 text-zinc-400 hover:text-white rounded-none bg-zinc-800/80 transition-colors"
-                          >
-                            <svg
-                              className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                            {/* Collapse Toggle */}
+                            <button
+                              onClick={() => setCollapsedExercises(prev => ({ ...prev, [entry.id]: !prev[entry.id] }))}
+                              className="p-1.5 text-zinc-400 hover:text-white rounded-lg bg-zinc-800/80 transition-colors"
                             >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 15l7-7 7 7" />
-                            </svg>
-                          </button>
+                              <svg
+                                className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 15l7-7 7 7" />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Full Width Exercise Title (Words Stay Together Horizontally) */}
+                        <h3 className="text-2xl sm:text-3xl font-display text-white tracking-wide uppercase leading-tight">
+                          {libEx?.name || 'Ejercicio'}
+                        </h3>
+                        {isReplaced && originalEx && (
+                          <span className="text-[11px] text-zinc-400 block mt-0.5">
+                            {t('replaces')}: <strong className="text-zinc-300">{originalEx.name}</strong>
+                          </span>
+                        )}
                       </div>
 
                       {!isCollapsed && (
@@ -1733,7 +1746,7 @@ ${feedbackText || 'Sin comentarios.'}
                           {/* EMBEDDED VIDEO PLAYER (Morsia Custom Facade + Player) */}
                           {embed ? (
                             playingVideoId === entry.id ? (
-                              <div className="relative w-full aspect-video rounded-none overflow-hidden bg-black border border-white/10 shadow-lg">
+                              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-white/10 shadow-lg">
                                 {embed.type === 'youtube' || embed.type === 'vimeo' ? (
                                   <iframe
                                     src={embed.src}
@@ -1768,7 +1781,7 @@ ${feedbackText || 'Sin comentarios.'}
                               /* Native Morsia Video Card (Foto 3) */
                               <div
                                 onClick={() => setPlayingVideoId(entry.id)}
-                                className="relative w-full aspect-video rounded-none overflow-hidden bg-zinc-950 border border-white/10 shadow-xl cursor-pointer group"
+                                className="relative w-full aspect-video rounded-xl overflow-hidden bg-zinc-950 border border-white/10 shadow-xl cursor-pointer group"
                               >
                                 {embed.thumbnail || getExerciseCoverImage(libEx) ? (
                                   <img
@@ -1782,7 +1795,7 @@ ${feedbackText || 'Sin comentarios.'}
                                   </div>
                                 )}
                                 <div className="absolute inset-0 bg-black/35 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-none bg-black/60 backdrop-blur-md border border-white/40 flex items-center justify-center text-white shadow-2xl group-hover:scale-110 transition-transform">
+                                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/60 backdrop-blur-md border border-white/40 flex items-center justify-center text-white shadow-2xl group-hover:scale-110 transition-transform">
                                     <svg className="w-7 h-7 sm:w-8 sm:h-8 fill-white ml-1" viewBox="0 0 24 24">
                                       <path d="M8 5v14l11-7z" />
                                     </svg>
@@ -1791,7 +1804,7 @@ ${feedbackText || 'Sin comentarios.'}
                               </div>
                             )
                           ) : (libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '')) ? (
-                            <div className="relative w-full h-52 sm:h-64 rounded-none overflow-hidden bg-zinc-950/80 border border-white/10 flex items-center justify-center p-3 shadow-lg">
+                            <div className="relative w-full h-52 sm:h-64 rounded-xl overflow-hidden bg-zinc-950/80 border border-white/10 flex items-center justify-center p-3 shadow-lg">
                               <img
                                 src={libEx?.muscleImage || getMuscleGroupImage(libEx?.muscleGroup)}
                                 alt={libEx?.name}
@@ -1802,7 +1815,7 @@ ${feedbackText || 'Sin comentarios.'}
 
                           {/* Coach Tip Box */}
                           {tipText && (
-                            <div className="p-3.5 bg-zinc-900/90 border border-white/10 rounded-none flex items-start gap-2.5">
+                            <div className="p-3.5 bg-zinc-900/90 border border-white/10 rounded-xl flex items-start gap-2.5">
                               <span className="text-sm">💡</span>
                               <div className="min-w-0">
                                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
@@ -1815,7 +1828,7 @@ ${feedbackText || 'Sin comentarios.'}
                             </div>
                           )}
 
-                          {/* Sets List (One below the other with clean industrial columns) */}
+                          {/* Sets List (One below the other with clean ergonomic rows) */}
                           <div className="space-y-2 pt-2">
                             {/* Table Header */}
                             <div className="grid grid-cols-12 gap-2 px-2 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
@@ -1832,7 +1845,7 @@ ${feedbackText || 'Sin comentarios.'}
                               return (
                                 <React.Fragment key={set.id || sIdx}>
                                   <div
-                                    className={`grid grid-cols-12 gap-2 items-center p-2.5 rounded-none border transition-all ${
+                                    className={`grid grid-cols-12 gap-2 items-center p-2.5 rounded-xl border transition-all ${
                                       isDone
                                         ? 'bg-emerald-500/10 border-emerald-500/30'
                                         : 'bg-zinc-900/70 border-white/5'
@@ -1851,7 +1864,7 @@ ${feedbackText || 'Sin comentarios.'}
                                           value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
                                           onChange={(e) => handleRepsChange(set.id, e.target.value)}
                                           placeholder={set.reps}
-                                          className="w-full bg-black/40 border border-white/10 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:border-yellow-400 font-mono"
+                                          className="w-full bg-black/40 border border-white/10 rounded-lg py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400/50 font-mono"
                                         />
                                       </div>
                                     )}
@@ -1864,7 +1877,7 @@ ${feedbackText || 'Sin comentarios.'}
                                           value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
                                           onChange={(e) => handleWeightsChange(set.id, e.target.value)}
                                           placeholder={set.kg}
-                                          className="w-full bg-black/40 border border-white/10 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:border-yellow-400 font-mono"
+                                          className="w-full bg-black/40 border border-white/10 rounded-lg py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400/50 font-mono"
                                         />
                                       </div>
                                     )}
@@ -1876,11 +1889,11 @@ ${feedbackText || 'Sin comentarios.'}
                                       </div>
                                     )}
 
-                                    {/* Checkbox (Straight/Square Tactical Button) */}
+                                    {/* Checkbox (Circular Tactile Button) */}
                                     <div className="col-span-3 flex justify-center">
                                       <button
                                         onClick={() => handleSetToggle(set.id, set.rest)}
-                                        className={`w-10 h-10 rounded-none border-2 flex items-center justify-center transition-all active:scale-90 ${
+                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
                                           isDone
                                             ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
                                             : 'border-white/20 bg-zinc-800/40 text-transparent hover:border-yellow-400/50'
@@ -1896,7 +1909,7 @@ ${feedbackText || 'Sin comentarios.'}
                                   {/* DropSets if any */}
                                   {set.dropsets?.map((ds, dsIdx) => (
                                     <div key={ds.id || dsIdx} className="pl-6 pr-2 py-1 text-xs text-zinc-400 flex items-center gap-2">
-                                      <span className="text-[10px] font-bold uppercase text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-none">
+                                      <span className="text-[10px] font-bold uppercase text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-md">
                                         DS {dsIdx + 1}
                                       </span>
                                       <span className="font-mono">{ds.kg} kg × {ds.reps} reps</span>
@@ -1913,7 +1926,7 @@ ${feedbackText || 'Sin comentarios.'}
                               placeholder={t('addNote')}
                               value={feelings[entry.id] || ''}
                               onChange={(e) => handleFeelingsChange(entry.id, e.target.value)}
-                              className="w-full bg-zinc-900/60 border border-white/10 rounded-none p-3.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-400 resize-none h-20"
+                              className="w-full bg-zinc-900/60 border border-white/10 rounded-xl p-3.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-400 resize-none h-20"
                             />
                           </div>
                         </div>
@@ -1923,8 +1936,8 @@ ${feedbackText || 'Sin comentarios.'}
                 })}
               </div>
 
-              {/* Floating Bottom Bar (Straight Brutalist Bar) */}
-              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-black/95 backdrop-blur-2xl border border-white/15 rounded-none p-2.5 flex items-center justify-between shadow-2xl z-40">
+              {/* Floating Bottom Bar (Ergonomic Pill Bar) */}
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-black/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-2.5 flex items-center justify-between shadow-2xl z-40">
                 {/* Sets Logged text */}
                 <div className="pl-3">
                   <span className="text-xs font-bold text-zinc-300">
@@ -1935,7 +1948,7 @@ ${feedbackText || 'Sin comentarios.'}
                 <div className="flex items-center gap-2">
                   {/* Timer box if running */}
                   {timer !== null && (
-                    <div className="px-3 py-1.5 rounded-none bg-zinc-900 border border-yellow-400/40 text-xs font-mono font-bold text-yellow-400 flex items-center gap-1.5">
+                    <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-yellow-400/40 text-xs font-mono font-bold text-yellow-400 flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10" strokeWidth="3" className="opacity-25" />
                         <path strokeLinecap="round" strokeWidth="3" d="M12 2a10 10 0 0110 10" />
@@ -1947,7 +1960,7 @@ ${feedbackText || 'Sin comentarios.'}
                   {/* Finish Button */}
                   <button
                     onClick={handleFinishClick}
-                    className="py-2.5 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-base tracking-wider uppercase rounded-none shadow-lg shadow-yellow-400/20 active:scale-95 transition-all flex items-center gap-2 font-bold"
+                    className="py-2.5 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-base tracking-wider uppercase rounded-xl shadow-lg shadow-yellow-400/20 active:scale-95 transition-all flex items-center gap-2 font-bold"
                   >
                     <svg className="w-4 h-4 fill-black" viewBox="0 0 24 24">
                       <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
