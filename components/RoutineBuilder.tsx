@@ -15,9 +15,9 @@ import {
 const getYouTubeThumbnail = (url: string | undefined): string | null => {
   if (!url) return null;
   const trimmed = url.trim();
-  const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+  const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?(?:.*&)?v=|shorts\/))([\w-]{11})/i);
   if (ytMatch && ytMatch[1]) {
-    return `https://img.youtube.com/vi/${ytMatch[1]}/maxresdefault.jpg`;
+    return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
   }
   return null;
 };
@@ -87,12 +87,17 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
     });
   }, [routine.id]);
 
-  // Sincronizar en tiempo real los cambios del builder con debounce para evitar bucles y sobreescrituras
+  // Evitar guardar en el primer render y dar un debounce suave para no saturar la red ni la UI
+  const isFirstRender = React.useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     if (!currentRoutine.id) return;
     const timer = setTimeout(() => {
       onSave(currentRoutine);
-    }, 400);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [currentRoutine]);
 
@@ -826,6 +831,12 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     <img
                       src={getYouTubeThumbnail(ex.videoUrl) || ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
                       alt={ex.name}
+                      onError={(e) => {
+                        const fallback = ex.muscleImage || getMuscleGroupImage(ex.muscleGroup);
+                        if (fallback && e.currentTarget.src !== fallback) {
+                          e.currentTarget.src = fallback;
+                        }
+                      }}
                       className="w-10 h-10 rounded-xl object-cover shrink-0 bg-zinc-900 border border-slate-200 dark:border-white/10"
                     />
                     <div className="min-w-0">
@@ -1128,31 +1139,6 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     + AGREGAR DÍA
                   </button>
                 </div>
-
-                {/* Botones rápidos de días de la semana */}
-                {currentWeek.workouts.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                    {currentWeek.workouts.map((wk, idx) => {
-                      const isActive = wk.id === activeWorkoutId;
-                      const hasPrefix = /^d[ií]a\s*\d+/i.test(wk.name.trim());
-                      const pillLabel = hasPrefix ? wk.name : `Día ${idx + 1}: ${wk.name}`;
-                      return (
-                        <button
-                          key={wk.id}
-                          type="button"
-                          onClick={() => setActiveWorkoutId(wk.id)}
-                          className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all border ${
-                            isActive
-                              ? 'bg-yellow-400 text-black border-yellow-400 shadow-md scale-[1.02]'
-                              : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-white/10 hover:border-yellow-500/50'
-                          }`}
-                        >
-                          {pillLabel}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
 
               {currentWorkout ? (
@@ -1325,6 +1311,12 @@ onChange={(e) => setCurrentRoutine({
                                                       <img
                                                         src={exImg}
                                                         alt={libEx?.name}
+                                                        onError={(e) => {
+                                                          const fallback = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
+                                                          if (fallback && e.currentTarget.src !== fallback) {
+                                                            e.currentTarget.src = fallback;
+                                                          }
+                                                        }}
                                                         className="w-full h-full object-contain"
                                                       />
                                                     ) : (

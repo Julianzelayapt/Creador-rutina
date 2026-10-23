@@ -14,14 +14,17 @@ interface ClientViewProps {
 export const getYouTubeThumbnail = (url: string | undefined): string | null => {
   if (!url) return null;
   const trimmed = url.trim();
-  const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+  // Match YouTube URLs: watch?v=, embed/, v/, shorts/, youtu.be/, with optional query params
+  const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?(?:.*&)?v=|shorts\/))([\w-]{11})/i);
   if (ytMatch && ytMatch[1]) {
-    return `https://img.youtube.com/vi/${ytMatch[1]}/maxresdefault.jpg`;
+    // hqdefault.jpg exists for 100% of YouTube videos and Shorts (480x360).
+    // maxresdefault is 1280x720 but returns a broken 404 for videos where creator didn't upload 720p+ custom thumb.
+    return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
   }
   return null;
 };
 
-// Detects vertical (9:16) YouTube Shorts — el thumbnail tiene barras negras laterales
+// Detects vertical (9:16) YouTube Shorts
 export const isYouTubeShort = (url: string | undefined): boolean => {
   if (!url) return false;
   return url.includes('/shorts/');
@@ -34,6 +37,19 @@ export const getExerciseCoverImage = (libEx?: Exercise): string => {
   if (ytThumb) return ytThumb;
   return libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
 };
+
+// Fallback handler: cascades gracefully to mqdefault and then muscle group fallback if image fails
+export const onYTThumbError = (muscleGroupFallback: string) =>
+  (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.src.includes('/maxresdefault.jpg')) {
+      img.src = img.src.replace('/maxresdefault.jpg', '/hqdefault.jpg');
+    } else if (img.src.includes('/hqdefault.jpg')) {
+      img.src = img.src.replace('/hqdefault.jpg', '/mqdefault.jpg');
+    } else if (muscleGroupFallback && img.src !== muscleGroupFallback) {
+      img.src = muscleGroupFallback;
+    }
+  };
 
 // Helper to convert any video URL into an embedded player
 const getEmbedVideo = (url: string | undefined) => {
@@ -1000,27 +1016,21 @@ ${feedbackText || 'Sin comentarios.'}
       {/* Modal de Ejercicios Alternativos / Máquina Ocupada */}
       {altModalExerciseEntry && (
         <div className="fixed inset-0 z-[260] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#0e0e11] border border-white/10 rounded-none max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="p-1 rounded-none bg-amber-500/20 text-amber-400">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                    </svg>
+          <div className="bg-[#0e0e11] border border-white/10 rounded-none max-w-lg w-full p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <span className="p-1.5 rounded-none bg-amber-500/20 text-amber-400">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </span>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-tight">
+                    {t('busyModalTitle')}
+                  </h3>
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+                    {altModalExerciseEntry.originalExercise.name}
                   </span>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">
-                    {t('busyMachine')}
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold text-white tracking-tight">
-                  {t('busyModalTitle')}
-                </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  {t('busyModalSubtitle')}
-                </p>
-                <div className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 rounded-none">
-                  <span>⏱️</span> Sustituto temporal solo para la sesión de hoy
                 </div>
               </div>
               <button
@@ -1033,42 +1043,23 @@ ${feedbackText || 'Sin comentarios.'}
               </button>
             </div>
 
-            {/* Ejercicio Original Base */}
-            <div className="p-3 bg-zinc-900/90 rounded-none border border-white/5 mb-4">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
-                {t('originalPlannedExercise')}
-              </span>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <img
-                    src={altModalExerciseEntry.originalExercise.muscleImage || getMuscleGroupImage(altModalExerciseEntry.originalExercise.muscleGroup)}
-                    alt=""
-                    className="w-14 h-14 rounded-none object-contain border border-white/10 bg-zinc-900 p-1 shrink-0 shadow-sm"
-                  />
-                  <div>
-                    <span className="font-bold text-sm text-white block">
-                      {altModalExerciseEntry.originalExercise.name}
-                    </span>
-                    {altModalExerciseEntry.originalExercise.muscleGroup && (
-                      <span className="text-[10px] uppercase font-bold text-zinc-500">
-                        {altModalExerciseEntry.originalExercise.muscleGroup}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {altModalExerciseEntry.currentExercise.id !== altModalExerciseEntry.originalExercise.id && (
-                  <button
-                    onClick={() => handleChooseAlternative(altModalExerciseEntry.entryId, null)}
-                    className="text-xs text-amber-400 hover:text-amber-300 font-bold underline px-2 py-1"
-                  >
-                    {t('restoreOriginal')}
-                  </button>
-                )}
+            {/* Si ya hay un sustituto elegido, botón para restablecer al original */}
+            {altModalExerciseEntry.currentExercise.id !== altModalExerciseEntry.originalExercise.id && (
+              <div className="mb-3 flex justify-end">
+                <button
+                  onClick={() => handleChooseAlternative(altModalExerciseEntry.entryId, null)}
+                  className="text-xs text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {t('restoreOriginal')} ({altModalExerciseEntry.originalExercise.name})
+                </button>
               </div>
-            </div>
+            )}
 
-            {/* Lista de Alternativas Aprobadas */}
-            <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+            {/* Lista de Alternativas Aprobadas con miniatura de YouTube */}
+            <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
               {altModalExerciseEntry.alternatives.length === 0 ? (
                 <div className="p-6 text-center bg-zinc-900/50 rounded-none border border-white/5">
                   <p className="text-sm text-zinc-400">
@@ -1078,25 +1069,44 @@ ${feedbackText || 'Sin comentarios.'}
               ) : (
                 altModalExerciseEntry.alternatives.map((alt) => {
                   const isCurrentlySelected = altModalExerciseEntry.currentExercise.id === alt.id;
+                  const altCover = getExerciseCoverImage(alt);
+                  const isShort = isYouTubeShort(alt.videoUrl);
+
                   return (
                     <div
                       key={alt.id}
-                      className={`p-3.5 rounded-none border transition-all flex items-center justify-between gap-3 ${
+                      className={`p-3 rounded-none border transition-all flex items-center justify-between gap-3 ${
                         isCurrentlySelected
                           ? 'bg-amber-500/10 border-amber-500/40'
                           : 'bg-zinc-900 border-white/5 hover:border-amber-500/30'
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <img
-                          src={alt.muscleImage || getMuscleGroupImage(alt.muscleGroup)}
-                          alt=""
-                          className="w-14 h-14 rounded-none object-contain border border-white/10 shrink-0 bg-zinc-900 p-1 shadow-sm"
-                        />
+                        {/* Miniatura de video / ejercicio */}
+                        <div className="w-16 h-16 rounded-none overflow-hidden shrink-0 bg-zinc-950 border border-white/10 relative shadow-sm">
+                          {altCover ? (
+                            <img
+                              src={altCover}
+                              alt={alt.name}
+                              onError={onYTThumbError(alt.muscleImage || (alt.muscleGroup ? getMuscleGroupImage(alt.muscleGroup) : ''))}
+                              className={`w-full h-full object-cover ${isShort ? 'scale-[1.8]' : ''}`}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500 font-bold text-xs">
+                              {(alt.name || 'EX').substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+
                         <div className="min-w-0">
                           <h4 className="font-bold text-sm text-white truncate">
                             {alt.name}
                           </h4>
+                          {alt.muscleGroup && (
+                            <span className="text-[10px] uppercase font-bold text-zinc-400 block mt-0.5">
+                              {alt.muscleGroup}
+                            </span>
+                          )}
                           {alt.tip && (
                             <p className="text-[11px] text-zinc-400 truncate mt-0.5 max-w-[200px]">
                               {alt.tip}
@@ -1291,7 +1301,10 @@ ${feedbackText || 'Sin comentarios.'}
                   </div>
                   <select
                     value={activeWeekId || ''}
-                    onChange={(e) => setActiveWeekId(e.target.value)}
+                    onChange={(e) => {
+                      setActiveWeekId(e.target.value);
+                      clearExerciseOverrides();
+                    }}
                     className="w-full bg-[#0e0e11] hover:bg-[#151518] text-white pl-11 pr-10 py-3.5 rounded-none font-bold uppercase text-xs tracking-wider border border-white/10 focus:border-yellow-500 outline-none transition-all appearance-none cursor-pointer shadow-md"
                   >
                     {routine.weeks.map((week, idx) => (
@@ -1334,6 +1347,7 @@ ${feedbackText || 'Sin comentarios.'}
                               <img
                                 src={dayCover}
                                 alt={displayTitle}
+                                onError={onYTThumbError(firstEx?.muscleImage || (firstEx?.muscleGroup ? getMuscleGroupImage(firstEx.muscleGroup) : ''))}
                                 className={`w-full h-full object-cover transition-transform duration-300 ${isDayCoverShort ? 'scale-[1.8] group-hover:scale-[1.85]' : 'group-hover:scale-105'}`}
                               />
                             </div>
@@ -1485,6 +1499,7 @@ ${feedbackText || 'Sin comentarios.'}
                             <img
                               src={coverImg}
                               alt={libEx?.name}
+                              onError={onYTThumbError(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
                               className={`w-full h-full object-cover transition-transform duration-300 ${isShort ? 'scale-[1.8] group-hover:scale-[1.85]' : 'group-hover:scale-105'}`}
                             />
                           ) : (
@@ -1787,6 +1802,7 @@ ${feedbackText || 'Sin comentarios.'}
                                   <img
                                     src={embed.thumbnail || getExerciseCoverImage(libEx)}
                                     alt={libEx?.name || 'Video'}
+                                    onError={onYTThumbError(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                   />
                                 ) : (
