@@ -133,6 +133,37 @@ const parseRoutineData = (rawRecord: any): Routine | null => {
   return null;
 };
 
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('ErrorBoundary caught:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-black text-white">
+          <div className="p-4 bg-red-500/20 text-red-400 rounded-2xl mb-4 font-mono text-sm max-w-lg border border-red-500/30">
+            ⚠️ Ocurrió un error al cargar la vista: {this.state.error?.message}
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-yellow-400 text-black font-black uppercase text-xs rounded-xl"
+          >
+            Recargar página
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const App: React.FC = () => {
   const [view, setView] = useState<'setup' | 'builder' | 'client'>('setup');
   const [currentRoutine, setCurrentRoutine] = useState<Routine | null>(null);
@@ -181,18 +212,26 @@ const App: React.FC = () => {
     const handleHashChange = async () => {
       const hash = window.location.hash;
 
-      if (hash && hash.startsWith('#routine/')) {
-        const routineId = hash.replace('#routine/', '');
-        await loadRoutine(routineId, 'client');
-      } else if (hash && hash.startsWith('#builder/')) {
-        const routineId = hash.replace('#builder/', '');
-        await loadRoutine(routineId, 'builder');
+      if (hash && (hash.startsWith('#routine/') || hash.startsWith('#/routine/'))) {
+        const routineId = hash.replace(/^#\/?routine\//, '').replace(/\/$/, '').trim();
+        if (routineId) await loadRoutine(routineId, 'client');
+      } else if (hash && (hash.startsWith('#builder/') || hash.startsWith('#/builder/'))) {
+        const routineId = hash.replace(/^#\/?builder\//, '').replace(/\/$/, '').trim();
+        if (routineId) await loadRoutine(routineId, 'builder');
       } else {
         if (window.location.hash === '') setView('setup');
       }
     };
 
     const loadRoutine = async (routineId: string, targetView: 'client' | 'builder') => {
+      // 0. Si ya la tenemos cargada en memoria con ese ID, cambiar vista al instante
+      setCurrentRoutine(prev => {
+        if (prev && prev.id === routineId) {
+          setView(targetView);
+        }
+        return prev;
+      });
+
       // 1. Intentar carga inmediata desde caché local (para cliente y builder)
       const fullCacheKey = `full_routine_cache_${routineId}`;
       const fullCachedRoutine = localStorage.getItem(fullCacheKey);
@@ -519,7 +558,7 @@ const App: React.FC = () => {
           <h2 className="text-xl font-bold uppercase tracking-tight animate-pulse text-white">PREPARANDO RUTINA...</h2>
         </div>
       ) : (
-        <>
+        <ErrorBoundary>
           {view === 'setup' && <RoutineSetup onRoutineCreated={handleRoutineCreated} />}
           {view === 'builder' && currentRoutine && (
             <RoutineBuilder
@@ -535,7 +574,7 @@ const App: React.FC = () => {
           {view === 'client' && currentRoutine && (
             <ClientView routine={currentRoutine} library={exerciseLibrary} />
           )}
-        </>
+        </ErrorBoundary>
       )}
     </div>
   );

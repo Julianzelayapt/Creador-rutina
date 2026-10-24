@@ -66,7 +66,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   const [customMuscleImagesMap, setCustomMuscleImagesMap] = useState<Record<string, string>>(() => getCustomMuscleImages());
 
   // Navegación por ID
-  const [activeWeekId, setActiveWeekId] = useState<string | null>(routine.weeks[0]?.id || null);
+  const [activeWeekId, setActiveWeekId] = useState<string | null>(routine.weeks?.[0]?.id || null);
   const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null);
 
 
@@ -1306,9 +1306,7 @@ onChange={(e) => setCurrentRoutine({
                                                       {currentRoutine.enabledMetrics.rmPercentage && <th className="py-2">% RM</th>}
                                                       {currentRoutine.enabledMetrics.tempo && <th className="py-2">TEMPO</th>}
                                                       {currentRoutine.enabledMetrics.rest && (
-                                                        <th className="py-2">
-                                                          {group.type === 'superset' ? (entryIdx === 0 ? '' : 'DESC.') : 'DESC.'}
-                                                        </th>
+                                                        <th className="py-2">DESC.</th>
                                                       )}
                                                       <th className="py-2">DROP</th>
                                                       <th className="w-10"></th>
@@ -1354,11 +1352,7 @@ onChange={(e) => setCurrentRoutine({
                                                           )}
                                                           {currentRoutine.enabledMetrics.rest && (
                                                             <td>
-                                                              {group.type === 'superset' && entryIdx === 0 ? (
-                                                                <span className="text-[9px] font-black text-slate-950 dark:text-white">0:10</span>
-                                                              ) : (
-                                                                <input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rest} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rest', e.target.value)} />
-                                                              )}
+                                                              <input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.rest} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'rest', e.target.value)} />
                                                             </td>
                                                           )}
                                                           <td>
