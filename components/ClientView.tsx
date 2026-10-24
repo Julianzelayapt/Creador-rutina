@@ -292,6 +292,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         synced: 'Guardado en la nube',
         syncError: 'Error al sincronizar',
         warmup: 'Calentamiento',
+        warmupBadge: 'Calentamiento',
+        workingBadge: 'Efectivas',
         noWorkouts: 'No hay días cargados en esta semana.',
         coachMode: 'Coach Mode',
         setsLogged: 'series registradas',
@@ -358,6 +360,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         synced: 'Saved to cloud',
         syncError: 'Error syncing',
         warmup: 'Warmup',
+        warmupBadge: 'Warmup',
+        workingBadge: 'Working',
         noWorkouts: 'No workouts in this week.',
         coachMode: 'Coach Mode',
         setsLogged: 'sets logged',
@@ -424,6 +428,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         synced: 'Salvato nel cloud',
         syncError: 'Errore cloud',
         warmup: 'Riscaldamento',
+        warmupBadge: 'Riscaldamento',
+        workingBadge: 'Allenanti',
         noWorkouts: 'Nessun allenamento in questa settimana.',
         coachMode: 'Coach Mode',
         setsLogged: 'serie registrate',
@@ -1921,104 +1927,136 @@ ${feedbackText || 'Sin comentarios.'}
                             </div>
                           )}
 
-                          {/* Sets List (One below the other with clean ergonomic rows) */}
-                          <div className="space-y-2 pt-2">
+                          {/* Sets List (Separación clara Calentamiento / Efectivas) */}
+                          <div className="space-y-4 pt-2">
                             {/* Table Header */}
                             <div className="grid grid-cols-12 gap-2 px-2 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                              <div className="col-span-1 text-center">#</div>
+                              <div className="col-span-1 text-center font-mono">#</div>
                               {routine.enabledMetrics.reps && <div className="col-span-3 text-center">{t('reps')}</div>}
                               {routine.enabledMetrics.kg && <div className="col-span-3 text-center">{t('kg')}</div>}
                               {routine.enabledMetrics.rir && <div className="col-span-2 text-center">{t('rir')}</div>}
                               <div className="col-span-3 text-center">{t('ok')}</div>
                             </div>
 
-                            {/* Sets Rows */}
-                            {entry.sets.map((set, sIdx) => {
-                              const isDone = !!completedSets[set.id];
-                              return (
-                                <React.Fragment key={set.id || sIdx}>
-                                  <div
-                                    className={`grid grid-cols-12 gap-2 items-center p-2.5 rounded-none border-0 transition-all ${
-                                      isDone
-                                        ? 'bg-emerald-500/15'
-                                        : 'bg-[#101216]'
-                                    }`}
-                                  >
-                                    {/* Set Index / Type */}
-                                    <div className="col-span-1 text-center font-bold text-xs font-mono flex items-center justify-center">
-                                      {set.type === 'warmup' ? (
-                                        <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 font-black px-1.5 py-0.5 rounded-none" title="Serie de Calentamiento / Aproximación">
-                                          W
+                            {(() => {
+                              const warmupSets = entry.sets.filter(s => s.type === 'warmup');
+                              const workingSets = entry.sets.filter(s => s.type !== 'warmup');
+
+                              const renderSetRow = (set: TrainingSet, displayIdx: number, isWarmupSet: boolean) => {
+                                const isDone = !!completedSets[set.id];
+                                return (
+                                  <React.Fragment key={set.id}>
+                                    <div
+                                      className={`grid grid-cols-12 gap-2 items-center p-2.5 rounded-none border-0 transition-all ${
+                                        isDone
+                                          ? 'bg-emerald-500/15'
+                                          : isWarmupSet ? 'bg-[#121620]' : 'bg-[#101216]'
+                                      }`}
+                                    >
+                                      {/* Set Index / Type */}
+                                      <div className="col-span-1 text-center font-bold text-xs font-mono flex items-center justify-center">
+                                        <span className={isWarmupSet ? 'text-blue-400 font-black' : 'text-zinc-300 font-bold'}>
+                                          {displayIdx}
                                         </span>
-                                      ) : (
-                                        <span className="text-zinc-400">
-                                          {sIdx + 1}
-                                        </span>
+                                      </div>
+
+                                      {/* Reps Input */}
+                                      {routine.enabledMetrics.reps && (
+                                        <div className="col-span-3">
+                                          <input
+                                            type="text"
+                                            value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
+                                            onChange={(e) => handleRepsChange(set.id, e.target.value)}
+                                            placeholder={set.reps}
+                                            className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono"
+                                          />
+                                        </div>
                                       )}
+
+                                      {/* Kg Input */}
+                                      {routine.enabledMetrics.kg && (
+                                        <div className="col-span-3">
+                                          <input
+                                            type="text"
+                                            value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
+                                            onChange={(e) => handleWeightsChange(set.id, e.target.value)}
+                                            placeholder={set.kg}
+                                            className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono"
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* RIR badge if enabled */}
+                                      {routine.enabledMetrics.rir && (
+                                        <div className="col-span-2 text-center text-xs font-bold text-zinc-400">
+                                          {set.rir || '-'}
+                                        </div>
+                                      )}
+
+                                      {/* Checkbox (Circular Tactile Button) */}
+                                      <div className="col-span-3 flex justify-center">
+                                        <button
+                                          onClick={() => handleSetToggle(set.id, set.rest)}
+                                          className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
+                                            isDone
+                                              ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                              : 'border-white/20 bg-zinc-800/40 text-transparent hover:border-yellow-400/50'
+                                          }`}
+                                        >
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        </button>
+                                      </div>
                                     </div>
 
-                                    {/* Reps Input */}
-                                    {routine.enabledMetrics.reps && (
-                                      <div className="col-span-3">
-                                        <input
-                                          type="text"
-                                          value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
-                                          onChange={(e) => handleRepsChange(set.id, e.target.value)}
-                                          placeholder={set.reps}
-                                          className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono"
-                                        />
+                                    {/* DropSets if any */}
+                                    {set.dropsets?.map((ds, dsIdx) => (
+                                      <div key={ds.id || dsIdx} className="pl-6 pr-2 py-1 text-xs text-zinc-400 flex items-center gap-2">
+                                        <span className="text-[10px] font-bold uppercase text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-none">
+                                          DS {dsIdx + 1}
+                                        </span>
+                                        <span className="font-mono">{ds.kg} kg × {ds.reps} reps</span>
                                       </div>
-                                    )}
+                                    ))}
+                                  </React.Fragment>
+                                );
+                              };
 
-                                    {/* Kg Input */}
-                                    {routine.enabledMetrics.kg && (
-                                      <div className="col-span-3">
-                                        <input
-                                          type="text"
-                                          value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
-                                          onChange={(e) => handleWeightsChange(set.id, e.target.value)}
-                                          placeholder={set.kg}
-                                          className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono"
-                                        />
+                              return (
+                                <>
+                                  {/* SECCIÓN CALENTAMIENTO / ACERCAMIENTO */}
+                                  {warmupSets.length > 0 && (
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center gap-2 px-1">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/15 border border-blue-500/30 px-2.5 py-1 rounded-none flex items-center gap-1.5">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+                                          {t('warmupBadge')}
+                                        </span>
                                       </div>
-                                    )}
-
-                                    {/* RIR badge if enabled */}
-                                    {routine.enabledMetrics.rir && (
-                                      <div className="col-span-2 text-center text-xs font-bold text-zinc-400">
-                                        {set.rir || '-'}
+                                      <div className="space-y-1.5">
+                                        {warmupSets.map((set, wIdx) => renderSetRow(set, wIdx + 1, true))}
                                       </div>
-                                    )}
-
-                                    {/* Checkbox (Circular Tactile Button) */}
-                                    <div className="col-span-3 flex justify-center">
-                                      <button
-                                        onClick={() => handleSetToggle(set.id, set.rest)}
-                                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
-                                          isDone
-                                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-                                            : 'border-white/20 bg-zinc-800/40 text-transparent hover:border-yellow-400/50'
-                                        }`}
-                                      >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                      </button>
                                     </div>
-                                  </div>
+                                  )}
 
-                                  {/* DropSets if any */}
-                                  {set.dropsets?.map((ds, dsIdx) => (
-                                    <div key={ds.id || dsIdx} className="pl-6 pr-2 py-1 text-xs text-zinc-400 flex items-center gap-2">
-                                      <span className="text-[10px] font-bold uppercase text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-none">
-                                        DS {dsIdx + 1}
-                                      </span>
-                                      <span className="font-mono">{ds.kg} kg × {ds.reps} reps</span>
+                                  {/* SECCIÓN SERIES EFECTIVAS */}
+                                  {workingSets.length > 0 && (
+                                    <div className="space-y-1.5 pt-1">
+                                      <div className="flex items-center gap-2 px-1">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-none flex items-center gap-1.5">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                          {t('workingBadge')}
+                                        </span>
+                                      </div>
+                                      <div className="space-y-1.5">
+                                        {workingSets.map((set, wkIdx) => renderSetRow(set, wkIdx + 1, false))}
+                                      </div>
                                     </div>
-                                  ))}
-                                </React.Fragment>
+                                  )}
+                                </>
                               );
-                            })}
+                            })()}
                           </div>
 
                           {/* Exercise Notes */}

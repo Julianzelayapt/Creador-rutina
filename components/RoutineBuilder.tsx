@@ -1315,6 +1315,12 @@ onChange={(e) => setCurrentRoutine({
                                                   <tbody>
                                                     {entry.sets.map((set, idx) => {
                                                       const isWarmup = set.type === 'warmup';
+                                                      const warmupCount = entry.sets.filter(s => s.type === 'warmup').length;
+                                                      const warmupIndex = entry.sets.slice(0, idx + 1).filter(s => s.type === 'warmup').length;
+                                                      const workingIndex = entry.sets.slice(0, idx + 1).filter(s => s.type !== 'warmup').length;
+                                                      const displayLabel = isWarmup 
+                                                        ? (warmupCount > 1 ? `W${warmupIndex}` : 'W') 
+                                                        : `${workingIndex}`;
                                                       return (
                                                       <React.Fragment key={set.id}>
                                                         <tr>
@@ -1332,7 +1338,7 @@ onChange={(e) => setCurrentRoutine({
                                                               }`}
                                                               title={isWarmup ? "Serie de Calentamiento / Aproximación" : "Serie Efectiva de Trabajo"}
                                                             >
-                                                              {isWarmup ? 'W' : `${idx + 1}`}
+                                                              {displayLabel}
                                                             </button>
                                                           </td>
                                                           {currentRoutine.enabledMetrics.reps && (
