@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&family=Oswald:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&family=Montserrat:ital,wght@0,700..900;1,700..900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -19,14 +19,15 @@
           fontFamily: {
             sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
             mono: ['Inter', 'sans-serif'],
-            display: ['"Bebas Neue"', 'Oswald', 'Impact', 'sans-serif'],
-            condensed: ['Oswald', 'sans-serif'],
+            display: ['Montserrat', '"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            condensed: ['Montserrat', 'sans-serif'],
           },
           colors: {
             gymYellow: '#facc15',
             gymGold: '#eab308',
-            darkBg: '#000000',
-            darkCard: '#101012',
+            darkBg: '#0c0e12',
+            darkCard: '#181b22',
+            darkCardHover: '#20242e',
           }
         }
       }
@@ -44,19 +45,21 @@
     body {
       font-feature-settings: 'cv02' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1, 'tnum' 1;
       transition: background-color 0.3s ease, color 0.3s ease;
-      background-color: #000000 !important;
+      background-color: #0c0e12 !important;
       color: #ffffff;
     }
 
-    /* ── Tipografía Atlética e Imponente: Bebas Neue / Oswald para Títulos y Marca ── */
+    /* ── Tipografía Deportiva Gymshark / Explore: Montserrat / Plus Jakarta Sans para Títulos y Días ── */
     .font-display {
-      font-family: 'Bebas Neue', 'Oswald', Impact, sans-serif !important;
-      letter-spacing: 0.04em;
+      font-family: 'Montserrat', 'Plus Jakarta Sans', sans-serif !important;
+      font-weight: 800;
+      letter-spacing: -0.02em;
     }
 
     .font-condensed {
-      font-family: 'Oswald', 'Inter', sans-serif !important;
-      letter-spacing: 0.02em;
+      font-family: 'Montserrat', sans-serif !important;
+      font-weight: 700;
+      letter-spacing: -0.01em;
     }
 
     /* Números tabulares para pesas y cronómetros */

@@ -101,7 +101,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     enabledMetrics: initialRoutine.enabledMetrics || { reps: true, kg: true, rir: true, rmPercentage: false, rest: true, tempo: false }
   };
 
-  // Safe load of saved progress
+  // Safe load of saved progress (supports both clientProgress and legacy clientState)
   const getSavedData = () => {
     const saved = localStorage.getItem(`routine_progress_${routine.id}`);
     let localData = null;
@@ -112,8 +112,34 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         console.error('Error parsing saved progress:', e);
       }
     }
-    if (localData) return localData;
-    return (routine.clientProgress && Object.keys(routine.clientProgress).length > 0) ? routine.clientProgress : null;
+    const remoteData = routine.clientProgress || (routine as any).clientState || null;
+    let normalizedRemote: any = null;
+    if (remoteData) {
+      const completedSets = remoteData.completedSets || (typeof remoteData === 'object' && !remoteData.completedSets ? remoteData : {});
+      normalizedRemote = {
+        completedSets: completedSets || {},
+        clientWeights: remoteData.clientWeights || {},
+        clientReps: remoteData.clientReps || {},
+        feelings: remoteData.feelings || {},
+        activeWeekId: remoteData.activeWeekId || null,
+        activeWorkoutId: remoteData.activeWorkoutId || null,
+        language: remoteData.language || 'es',
+        weeklySnapshots: remoteData.weeklySnapshots || {}
+      };
+    }
+
+    if (localData && normalizedRemote) {
+      return {
+        ...normalizedRemote,
+        ...localData,
+        completedSets: { ...(normalizedRemote.completedSets || {}), ...(localData.completedSets || {}) },
+        clientWeights: { ...(normalizedRemote.clientWeights || {}), ...(localData.clientWeights || {}) },
+        clientReps: { ...(normalizedRemote.clientReps || {}), ...(localData.clientReps || {}) },
+        feelings: { ...(normalizedRemote.feelings || {}), ...(localData.feelings || {}) },
+        weeklySnapshots: { ...(normalizedRemote.weeklySnapshots || {}), ...(localData.weeklySnapshots || {}) }
+      };
+    }
+    return localData || normalizedRemote || null;
   };
 
   const savedData = getSavedData();
@@ -125,6 +151,31 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const [timer, setTimer] = useState<number | null>(null);
   const [language, setLanguage] = useState<'es' | 'en' | 'it'>(savedData?.language || 'es');
   const [weeklySnapshots, setWeeklySnapshots] = useState<Record<string, Record<string, number>>>(savedData?.weeklySnapshots || routine.clientProgress?.weeklySnapshots || {});
+
+  // Sincronización reactiva cuando llegan datos frescos de Supabase
+  useEffect(() => {
+    const remoteData = routine.clientProgress || (routine as any).clientState;
+    if (!remoteData) return;
+    const remoteSets = remoteData.completedSets || (typeof remoteData === 'object' && !remoteData.completedSets ? remoteData : {});
+    if (remoteSets && Object.keys(remoteSets).length > 0) {
+      setCompletedSets(prev => ({
+        ...remoteSets,
+        ...prev
+      }));
+    }
+    if (remoteData.clientWeights && Object.keys(remoteData.clientWeights).length > 0) {
+      setClientWeights(prev => ({ ...remoteData.clientWeights, ...prev }));
+    }
+    if (remoteData.clientReps && Object.keys(remoteData.clientReps).length > 0) {
+      setClientReps(prev => ({ ...remoteData.clientReps, ...prev }));
+    }
+    if (remoteData.feelings && Object.keys(remoteData.feelings).length > 0) {
+      setFeelings(prev => ({ ...remoteData.feelings, ...prev }));
+    }
+    if (remoteData.weeklySnapshots && Object.keys(remoteData.weeklySnapshots).length > 0) {
+      setWeeklySnapshots(prev => ({ ...remoteData.weeklySnapshots, ...prev }));
+    }
+  }, [routine.id, routine.clientProgress]);
 
   // Tab & View Navigation
   const [activeTab, setActiveTab] = useState<'training' | 'overload'>('training');
@@ -552,8 +603,6 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
 
   // Save progress helper (local + Supabase)
   const saveProgress = async (syncToCloud = false) => {
-    if (!activeWorkoutId) return;
-
     // Calculate current week snapshot for progressive overload
     const currentWeekSnapshot: Record<string, number> = {};
     const week = routine.weeks.find(w => w.id === activeWeekId);
@@ -602,14 +651,43 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       weeklySnapshots: newSnapshots
     };
 
-    localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(progressData));
+    try {
+      localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(progressData));
+      // También sincronizar con full_routine_cache para que una recarga mantenga el progreso
+      const fullCacheKey = `full_routine_cache_${routine.id}`;
+      const cached = localStorage.getItem(fullCacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        parsed.clientProgress = progressData;
+        localStorage.setItem(fullCacheKey, JSON.stringify(parsed));
+      }
+    } catch (e) {
+      console.error('Local progress storage error:', e);
+    }
 
     if (syncToCloud) {
       try {
-        await supabase
+        const { error } = await supabase
           .from('routines')
           .update({ data: { ...routine, clientProgress: progressData } })
           .eq('id', routine.id);
+
+        if (error) {
+          console.warn('Supabase update returned error, attempting upsert fallback:', error);
+          const { error: upsertErr } = await supabase
+            .from('routines')
+            .upsert({
+              id: routine.id,
+              name: routine.name,
+              client_name: routine.clientName,
+              data: { ...routine, clientProgress: progressData }
+            });
+          if (upsertErr) {
+            console.error('Supabase upsert failed:', upsertErr);
+            setSyncStatus('error');
+            return;
+          }
+        }
         setSyncStatus('synced');
       } catch (err) {
         console.error('Error synchronizing progress to Supabase:', err);
@@ -620,17 +698,15 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
 
   // Immediate local save
   useEffect(() => {
-    if (activeWorkoutId) {
-      saveProgress(false);
-    }
+    saveProgress(false);
   }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId, language]);
 
-  // Debounced cloud sync (2 sec)
+  // Debounced cloud sync (1.5 sec)
   useEffect(() => {
-    if (!isDirtyRef.current || !activeWorkoutId) return;
+    if (!isDirtyRef.current) return;
     const timeoutId = setTimeout(() => {
       saveProgress(true);
-    }, 2000);
+    }, 1500);
     return () => clearTimeout(timeoutId);
   }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId, language]);
 
@@ -641,7 +717,18 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     initAudio();
 
     const isNowCompleted = !completedSets[setId];
-    setCompletedSets(prev => ({ ...prev, [setId]: isNowCompleted }));
+    const newCompleted = { ...completedSets, [setId]: isNowCompleted };
+    setCompletedSets(newCompleted);
+
+    // Guardado local síncrono inmediato para respuesta táctil instantánea
+    try {
+      const currentSaved = localStorage.getItem(`routine_progress_${routine.id}`);
+      const parsed = currentSaved ? JSON.parse(currentSaved) : {};
+      parsed.completedSets = newCompleted;
+      localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(parsed));
+    } catch (e) {
+      console.error('Error in instant local set toggle save:', e);
+    }
 
     if (isNowCompleted && routine.enabledMetrics.rest) {
       let seconds = 0;
@@ -1240,16 +1327,16 @@ ${feedbackText || 'Sin comentarios.'}
               </div>
 
               {/* Stats Card: Weeks | Workouts | Completed % */}
-              <div className="bg-[#0e0e11] border border-white/10 rounded-xl p-4 flex items-center justify-between shadow-md">
-                <div className="flex-1 text-center border-r border-white/10">
-                  <span className="text-2xl font-display text-white leading-none block">{routine.weeks.length}</span>
-                  <span className="text-[11px] font-medium text-zinc-400 mt-1 block uppercase tracking-wider">
+              <div className="bg-[#181b22] border-0 rounded-none p-4 flex items-center justify-between shadow-md">
+                <div className="flex-1 text-center border-r border-white/5">
+                  <span className="text-2xl font-display font-black text-white leading-none block">{routine.weeks.length}</span>
+                  <span className="text-[11px] font-bold text-zinc-400 mt-1 block uppercase tracking-wider">
                     {t('weeks')}
                   </span>
                 </div>
-                <div className="flex-1 text-center border-r border-white/10">
-                  <span className="text-2xl font-display text-white leading-none block">{totalWorkouts}</span>
-                  <span className="text-[11px] font-medium text-zinc-400 mt-1 block uppercase tracking-wider">
+                <div className="flex-1 text-center border-r border-white/5">
+                  <span className="text-2xl font-display font-black text-white leading-none block">{totalWorkouts}</span>
+                  <span className="text-[11px] font-bold text-zinc-400 mt-1 block uppercase tracking-wider">
                     {t('workouts')}
                   </span>
                 </div>
@@ -1298,10 +1385,10 @@ ${feedbackText || 'Sin comentarios.'}
                       setActiveWeekId(e.target.value);
                       clearExerciseOverrides();
                     }}
-                    className="w-full bg-[#0e0e11] hover:bg-[#151518] text-white pl-11 pr-10 py-3.5 rounded-xl font-bold uppercase text-xs tracking-wider border border-white/10 focus:border-yellow-500 outline-none transition-all appearance-none cursor-pointer shadow-md"
+                    className="w-full bg-[#181b22] hover:bg-[#20242e] text-white pl-11 pr-10 py-3.5 rounded-none font-bold uppercase text-xs tracking-wider border-0 focus:ring-1 focus:ring-yellow-400 outline-none transition-all appearance-none cursor-pointer shadow-md"
                   >
                     {routine.weeks.map((week, idx) => (
-                      <option key={week.id} value={week.id} className="bg-[#0e0e11] text-white py-2">
+                      <option key={week.id} value={week.id} className="bg-[#181b22] text-white py-2">
                         {formatWeekTitle(week.name, idx)}
                       </option>
                     ))}
@@ -1315,7 +1402,8 @@ ${feedbackText || 'Sin comentarios.'}
               </div>
 
               {/* Workouts / Focus List for Selected Week */}
-              <div className="space-y-2.5">
+              {/* Workouts / Focus List for Selected Week */}
+              <div className="space-y-3">
                 {currentWeek?.workouts && currentWeek.workouts.length > 0 ? (
                   currentWeek.workouts.map((workout, idx) => {
                     const displayTitle = formatWorkoutTitle(workout.name, idx);
@@ -1331,29 +1419,29 @@ ${feedbackText || 'Sin comentarios.'}
                           setActiveWorkoutId(workout.id);
                           setViewMode('preview');
                         }}
-                        className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-lg p-3.5 sm:p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
+                        className="bg-[#181b22] hover:bg-[#20242e] border-0 rounded-none overflow-hidden flex items-stretch justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
                       >
                         <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 pr-2">
-                          {/* Day Cover Photo or YouTube Thumbnail of First Exercise (16:9) */}
-                          {dayCover ? (
-                            <div className="w-28 sm:w-36 aspect-video rounded-lg overflow-hidden shrink-0 border border-white/15 bg-zinc-950 shadow-md">
+                          {/* Day Cover Photo 1:1 Cuadrado flush a la izquierda */}
+                          <div className="w-24 sm:w-28 h-24 sm:h-28 aspect-square rounded-none overflow-hidden shrink-0 bg-zinc-950 relative">
+                            {dayCover ? (
                               <img
                                 src={dayCover}
                                 alt={displayTitle}
                                 onError={onYTThumbError(firstEx?.muscleImage || (firstEx?.muscleGroup ? getMuscleGroupImage(firstEx.muscleGroup) : ''))}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover rounded-none group-hover:scale-105 transition-transform duration-300"
                               />
-                            </div>
-                          ) : (
-                            <div className="w-28 sm:w-36 aspect-video rounded-lg bg-zinc-900 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-zinc-800 transition-colors">
-                              <svg className="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
-                              </svg>
-                            </div>
-                          )}
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                                <svg className="w-7 h-7 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
 
-                          <div className="min-w-0">
-                            <h3 className="font-display text-xl sm:text-2xl text-white tracking-wide uppercase truncate group-hover:text-yellow-400 transition-colors leading-none">
+                          <div className="min-w-0 py-2">
+                            <h3 className="font-display font-black text-lg sm:text-xl text-white tracking-tight uppercase truncate group-hover:text-yellow-400 transition-colors leading-tight">
                               {displayTitle}
                             </h3>
                             <p className="text-zinc-400 text-xs font-semibold truncate mt-1.5 flex items-center gap-1.5">
@@ -1361,13 +1449,13 @@ ${feedbackText || 'Sin comentarios.'}
                                 <circle cx="12" cy="12" r="10" strokeWidth="2"/>
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2"/>
                               </svg>
-                              <span className="tracking-wide text-zinc-300">{calculateWorkoutDuration(workout)}</span>
+                              <span className="tracking-wide text-zinc-300 font-mono">{calculateWorkoutDuration(workout)}</span>
                             </p>
                           </div>
                         </div>
 
                         {/* Chevron right */}
-                        <div className="text-zinc-500 group-hover:text-yellow-400 transition-colors shrink-0 pl-2">
+                        <div className="text-zinc-500 group-hover:text-yellow-400 transition-colors shrink-0 pr-4 flex items-center">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
                           </svg>
@@ -1376,7 +1464,7 @@ ${feedbackText || 'Sin comentarios.'}
                     );
                   })
                 ) : (
-                  <div className="p-8 text-center text-zinc-500 bg-[#0e0e11] rounded-none border border-white/5 text-sm">
+                  <div className="p-8 text-center text-zinc-500 bg-[#181b22] rounded-none border-0 text-sm">
                     {t('noWorkouts')}
                   </div>
                 )}
@@ -1405,7 +1493,7 @@ ${feedbackText || 'Sin comentarios.'}
 
               {/* Day Cover Photo if available */}
               {currentWorkout.image && (
-                <div className="relative rounded-xl overflow-hidden bg-zinc-900 border border-white/10 aspect-[21/9] sm:aspect-[16/7] flex flex-col justify-end p-4 shadow-lg">
+                <div className="relative rounded-none overflow-hidden bg-zinc-900 border-0 aspect-[21/9] sm:aspect-[16/7] flex flex-col justify-end p-4 shadow-lg">
                   <img
                     src={currentWorkout.image}
                     alt={currentWorkoutDisplayTitle}
@@ -1417,7 +1505,7 @@ ${feedbackText || 'Sin comentarios.'}
 
               {/* Title & Workout Instructions */}
               <div>
-                <h1 className="text-3xl sm:text-4xl font-display tracking-wide text-white uppercase leading-none">
+                <h1 className="text-3xl sm:text-4xl font-display font-black tracking-tight text-white uppercase leading-none">
                   {currentWorkoutDisplayTitle}
                 </h1>
                 <p className="text-xs text-zinc-400 font-semibold mt-1.5 flex items-center gap-1.5">
@@ -1428,8 +1516,8 @@ ${feedbackText || 'Sin comentarios.'}
                   <span className="tracking-wide text-zinc-300">{calculateWorkoutDuration(currentWorkout)}</span>
                 </p>
                 {currentWorkout.warmup && currentWorkout.warmup.trim() !== '' && (
-                  <div className="mt-2.5 px-3.5 py-2.5 bg-zinc-900 border border-white/5 rounded-lg flex items-start gap-2.5">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded shrink-0 mt-px">
+                  <div className="mt-2.5 px-3.5 py-2.5 bg-[#181b22] border-0 rounded-none flex items-start gap-2.5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-none shrink-0 mt-px">
                       {t('warmup')}
                     </span>
                     <p className="text-xs text-zinc-300 font-medium leading-relaxed">{currentWorkout.warmup}</p>
@@ -1444,7 +1532,7 @@ ${feedbackText || 'Sin comentarios.'}
                     initAudio();
                     setViewMode('active');
                   }}
-                  className="w-full py-4 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-xl tracking-wider uppercase rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-400/15 font-bold"
+                  className="w-full py-4 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display font-black text-xl tracking-wider uppercase rounded-none active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-400/15"
                 >
                   <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
@@ -1454,8 +1542,8 @@ ${feedbackText || 'Sin comentarios.'}
               </div>
 
               {/* Exercises Preview List (Clicking ANY exercise also starts the workout!) */}
-              <div className="space-y-2 pt-1">
-                <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block ml-1">
+              <div className="space-y-2.5 pt-1">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block ml-1">
                   {t('exercisesTapToTrain')}
                 </span>
                 {currentWorkout.exercises.map((entry, idx) => {
@@ -1472,7 +1560,7 @@ ${feedbackText || 'Sin comentarios.'}
                   return (
                     <div
                       key={entry.id || idx}
-                      className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-lg p-3 sm:p-3.5 flex items-center justify-between transition-all group shadow-md"
+                      className="bg-[#181b22] hover:bg-[#20242e] border-0 rounded-none overflow-hidden flex items-stretch justify-between transition-all group shadow-md"
                     >
                       {/* Left & Center: Click to train this exercise */}
                       <div
@@ -1484,10 +1572,10 @@ ${feedbackText || 'Sin comentarios.'}
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                           }, 120);
                         }}
-                        className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1 cursor-pointer pr-2"
+                        className="flex items-center gap-3.5 min-w-0 flex-1 cursor-pointer"
                       >
-                        {/* 16:9 Thumbnail */}
-                        <div className="w-28 sm:w-36 aspect-video rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0 relative shadow-md group-hover:border-white/30 transition-all">
+                        {/* 1:1 Square Thumbnail - Flush on left */}
+                        <div className="w-24 sm:w-28 h-24 sm:h-28 aspect-square rounded-none bg-zinc-950 overflow-hidden shrink-0 relative">
                           {coverImg ? (
                             <img
                               src={coverImg}
@@ -1496,7 +1584,7 @@ ${feedbackText || 'Sin comentarios.'}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500 font-bold text-xs">
+                            <div className="w-full h-full flex items-center justify-center bg-zinc-950 text-zinc-500 font-bold text-xs">
                               {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
                             </div>
                           )}
@@ -1511,19 +1599,19 @@ ${feedbackText || 'Sin comentarios.'}
                         </div>
 
                         {/* Center Column: Title, SETS, REPS */}
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 py-2 pr-2">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-display text-lg sm:text-xl text-white uppercase tracking-wide leading-tight truncate group-hover:text-yellow-400 transition-colors">
+                            <h4 className="font-display font-black text-base sm:text-lg text-white uppercase tracking-tight leading-tight truncate group-hover:text-yellow-400 transition-colors">
                               {libEx?.name || 'Ejercicio'}
                             </h4>
                             {isReplaced && (
-                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.5 rounded-md border border-amber-500/30 uppercase shrink-0">
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.5 rounded-none border border-amber-500/30 uppercase shrink-0">
                                 {t('substitute')}
                               </span>
                             )}
                           </div>
 
-                          <div className="mt-1 text-left">
+                          <div className="mt-1.5 text-left">
                             <p className="text-[11px] font-bold text-zinc-400 tracking-wider uppercase">
                               SETS: <span className="text-yellow-400 font-mono font-bold text-xs">{entry.sets.length}</span>
                             </p>
@@ -1532,7 +1620,7 @@ ${feedbackText || 'Sin comentarios.'}
                       </div>
 
                       {/* Right Column: Actions (Chevron, Swap/Replace, Tip) */}
-                      <div className="flex flex-col items-center justify-between gap-1.5 shrink-0 pl-2 border-l border-white/5 self-stretch py-0.5">
+                      <div className="flex flex-col items-center justify-between gap-1.5 shrink-0 pr-3 sm:pr-4 py-2 self-stretch">
                         {/* Chevron right */}
                         <button
                           type="button"
@@ -1570,7 +1658,7 @@ ${feedbackText || 'Sin comentarios.'}
                                 alternatives: alts
                               });
                             }}
-                            className={`p-1 rounded-lg transition-all ${
+                            className={`p-1 rounded-none transition-all ${
                               isReplaced
                                 ? 'text-amber-400 bg-amber-500/20 hover:bg-amber-500/30'
                                 : 'text-zinc-400 hover:text-amber-400 hover:bg-white/5'
@@ -1662,18 +1750,18 @@ ${feedbackText || 'Sin comentarios.'}
                     <div
                       id={`exercise-${entry.id}`}
                       key={entry.id || eIdx}
-                      className="bg-[#0e0e11] border border-white/10 rounded-lg p-4 sm:p-5 shadow-md transition-all scroll-mt-6"
+                      className="bg-[#181b22] border-0 rounded-none p-4 sm:p-5 shadow-lg transition-all scroll-mt-6"
                     >
                       {/* Exercise Header */}
                       <div className="mb-4">
                         {/* Top Action Row: Exercise Badge + Substitute & Action Buttons */}
                         <div className="flex items-center justify-between gap-2 mb-2.5">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-none">
                               {t('exercisePrefix')} {eIdx + 1}
                             </span>
                             {isReplaced && (
-                              <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-md">
+                              <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-none">
                                 {t('substituteActive')}
                               </span>
                             )}
@@ -1696,7 +1784,7 @@ ${feedbackText || 'Sin comentarios.'}
                                     alternatives: alts
                                   });
                                 }}
-                                className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border transition-all ${
+                                className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-none border transition-all ${
                                   isReplaced
                                     ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
                                     : 'bg-zinc-800/80 text-amber-400 hover:text-amber-300 hover:bg-zinc-700/80 border-amber-500/25'
@@ -1713,7 +1801,7 @@ ${feedbackText || 'Sin comentarios.'}
                             {/* View History Button */}
                             <button
                               onClick={() => setHistoryExerciseId(libEx?.id || entry.libraryExerciseId)}
-                              className="flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 px-2.5 py-1.5 rounded-lg border border-white/5 transition-colors"
+                              className="flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 px-2.5 py-1.5 rounded-none border border-white/5 transition-colors"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1724,7 +1812,7 @@ ${feedbackText || 'Sin comentarios.'}
                             {/* Collapse Toggle */}
                             <button
                               onClick={() => setCollapsedExercises(prev => ({ ...prev, [entry.id]: !prev[entry.id] }))}
-                              className="p-1.5 text-zinc-400 hover:text-white rounded-lg bg-zinc-800/80 transition-colors"
+                              className="p-1.5 text-zinc-400 hover:text-white rounded-none bg-zinc-800/80 transition-colors"
                             >
                               <svg
                                 className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`}
@@ -1739,7 +1827,7 @@ ${feedbackText || 'Sin comentarios.'}
                         </div>
 
                         {/* Full Width Exercise Title (Words Stay Together Horizontally) */}
-                        <h3 className="text-2xl sm:text-3xl font-display text-white tracking-wide uppercase leading-tight">
+                        <h3 className="text-2xl sm:text-3xl font-display font-black text-white tracking-tight uppercase leading-tight">
                           {libEx?.name || 'Ejercicio'}
                         </h3>
                         {isReplaced && originalEx && (
@@ -1754,7 +1842,7 @@ ${feedbackText || 'Sin comentarios.'}
                           {/* EMBEDDED VIDEO PLAYER (Morsia Custom Facade + Player) */}
                           {embed ? (
                             playingVideoId === entry.id ? (
-                              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-white/10 shadow-lg">
+                              <div className="relative w-full aspect-video rounded-none overflow-hidden bg-black border-0 shadow-lg">
                                 {embed.type === 'youtube' || embed.type === 'vimeo' ? (
                                   <iframe
                                     src={embed.src}
@@ -1789,7 +1877,7 @@ ${feedbackText || 'Sin comentarios.'}
                               /* Native Morsia Video Card (Foto 3) */
                               <div
                                 onClick={() => setPlayingVideoId(entry.id)}
-                                className="relative w-full aspect-video rounded-xl overflow-hidden bg-zinc-950 border border-white/10 shadow-xl cursor-pointer group"
+                                className="relative w-full aspect-video rounded-none overflow-hidden bg-zinc-950 border-0 shadow-xl cursor-pointer group"
                               >
                                 {embed.thumbnail || getExerciseCoverImage(libEx) ? (
                                   <img
@@ -1813,7 +1901,7 @@ ${feedbackText || 'Sin comentarios.'}
                               </div>
                             )
                           ) : (libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '')) ? (
-                            <div className="relative w-full h-52 sm:h-64 rounded-xl overflow-hidden bg-zinc-950/80 border border-white/10 flex items-center justify-center p-3 shadow-lg">
+                            <div className="relative w-full h-52 sm:h-64 rounded-none overflow-hidden bg-zinc-950/80 border-0 flex items-center justify-center p-3 shadow-lg">
                               <img
                                 src={libEx?.muscleImage || getMuscleGroupImage(libEx?.muscleGroup)}
                                 alt={libEx?.name}
@@ -1824,7 +1912,7 @@ ${feedbackText || 'Sin comentarios.'}
 
                           {/* Coach Tip Box */}
                           {tipText && (
-                            <div className="p-3.5 bg-zinc-900/90 border border-white/10 rounded-xl flex items-start gap-2.5">
+                            <div className="p-3.5 bg-[#101216] border-0 rounded-none flex items-start gap-2.5">
                               <span className="text-sm">💡</span>
                               <div className="min-w-0">
                                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
@@ -1854,16 +1942,16 @@ ${feedbackText || 'Sin comentarios.'}
                               return (
                                 <React.Fragment key={set.id || sIdx}>
                                   <div
-                                    className={`grid grid-cols-12 gap-2 items-center p-2.5 rounded-xl border transition-all ${
+                                    className={`grid grid-cols-12 gap-2 items-center p-2.5 rounded-none border-0 transition-all ${
                                       isDone
-                                        ? 'bg-emerald-500/10 border-emerald-500/30'
-                                        : 'bg-zinc-900/70 border-white/5'
+                                        ? 'bg-emerald-500/15'
+                                        : 'bg-[#101216]'
                                     }`}
                                   >
                                     {/* Set Index / Type */}
                                     <div className="col-span-1 text-center font-bold text-xs font-mono flex items-center justify-center">
                                       {set.type === 'warmup' ? (
-                                        <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 font-black px-1.5 py-0.5 rounded" title="Serie de Calentamiento / Aproximación">
+                                        <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 font-black px-1.5 py-0.5 rounded-none" title="Serie de Calentamiento / Aproximación">
                                           W
                                         </span>
                                       ) : (
@@ -1881,7 +1969,7 @@ ${feedbackText || 'Sin comentarios.'}
                                           value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
                                           onChange={(e) => handleRepsChange(set.id, e.target.value)}
                                           placeholder={set.reps}
-                                          className="w-full bg-black/40 border border-white/10 rounded-lg py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400/50 font-mono"
+                                          className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono"
                                         />
                                       </div>
                                     )}
@@ -1894,7 +1982,7 @@ ${feedbackText || 'Sin comentarios.'}
                                           value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
                                           onChange={(e) => handleWeightsChange(set.id, e.target.value)}
                                           placeholder={set.kg}
-                                          className="w-full bg-black/40 border border-white/10 rounded-lg py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400/50 font-mono"
+                                          className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono"
                                         />
                                       </div>
                                     )}
@@ -1926,7 +2014,7 @@ ${feedbackText || 'Sin comentarios.'}
                                   {/* DropSets if any */}
                                   {set.dropsets?.map((ds, dsIdx) => (
                                     <div key={ds.id || dsIdx} className="pl-6 pr-2 py-1 text-xs text-zinc-400 flex items-center gap-2">
-                                      <span className="text-[10px] font-bold uppercase text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-md">
+                                      <span className="text-[10px] font-bold uppercase text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-none">
                                         DS {dsIdx + 1}
                                       </span>
                                       <span className="font-mono">{ds.kg} kg × {ds.reps} reps</span>
@@ -1943,7 +2031,7 @@ ${feedbackText || 'Sin comentarios.'}
                               placeholder={t('addNote')}
                               value={feelings[entry.id] || ''}
                               onChange={(e) => handleFeelingsChange(entry.id, e.target.value)}
-                              className="w-full bg-zinc-900/60 border border-white/10 rounded-xl p-3.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-400 resize-none h-20"
+                              className="w-full bg-[#101216] border-0 rounded-none p-3.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-yellow-400 resize-none h-20"
                             />
                           </div>
                         </div>
@@ -1954,7 +2042,7 @@ ${feedbackText || 'Sin comentarios.'}
               </div>
 
               {/* Floating Bottom Bar (Ergonomic Pill Bar) */}
-              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-black/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-2.5 flex items-center justify-between shadow-2xl z-40">
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-black/95 backdrop-blur-2xl border-0 rounded-none p-2.5 flex items-center justify-between shadow-2xl z-40">
                 {/* Sets Logged text */}
                 <div className="pl-3">
                   <span className="text-xs font-bold text-zinc-300">
@@ -1965,7 +2053,7 @@ ${feedbackText || 'Sin comentarios.'}
                 <div className="flex items-center gap-2">
                   {/* Timer box if running */}
                   {timer !== null && (
-                    <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-yellow-400/40 text-xs font-mono font-bold text-yellow-400 flex items-center gap-1.5">
+                    <div className="px-3 py-1.5 rounded-none bg-zinc-900 border border-yellow-400/40 text-xs font-mono font-bold text-yellow-400 flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10" strokeWidth="3" className="opacity-25" />
                         <path strokeLinecap="round" strokeWidth="3" d="M12 2a10 10 0 0110 10" />
@@ -1977,7 +2065,7 @@ ${feedbackText || 'Sin comentarios.'}
                   {/* Finish Button */}
                   <button
                     onClick={handleFinishClick}
-                    className="py-2.5 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display text-base tracking-wider uppercase rounded-xl shadow-lg shadow-yellow-400/20 active:scale-95 transition-all flex items-center gap-2 font-bold"
+                    className="py-2.5 px-6 bg-yellow-400 hover:bg-yellow-300 text-black font-display font-black text-base tracking-wider uppercase rounded-none shadow-lg shadow-yellow-400/20 active:scale-95 transition-all flex items-center gap-2"
                   >
                     <svg className="w-4 h-4 fill-black" viewBox="0 0 24 24">
                       <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />

@@ -99,6 +99,23 @@ const parseRoutineData = (rawRecord: any): Routine | null => {
       })) : []
     }));
 
+    // Soporte retrocompatible robusto para clientProgress y legacy clientState
+    const rawProgress = payload.clientProgress || payload.clientState || null;
+    let clientProgress = undefined;
+    if (rawProgress && typeof rawProgress === 'object') {
+      const completedSets = rawProgress.completedSets || (rawProgress.completedSets === undefined && Object.keys(rawProgress).length > 0 && typeof Object.values(rawProgress)[0] === 'boolean' ? rawProgress : {});
+      clientProgress = {
+        completedSets: completedSets || {},
+        clientWeights: rawProgress.clientWeights || {},
+        clientReps: rawProgress.clientReps || {},
+        feelings: rawProgress.feelings || {},
+        activeWeekId: rawProgress.activeWeekId || null,
+        activeWorkoutId: rawProgress.activeWorkoutId || null,
+        language: rawProgress.language || 'es',
+        weeklySnapshots: rawProgress.weeklySnapshots || {}
+      };
+    }
+
     return {
       ...payload,
       id: rawRecord.id || payload.id,
@@ -109,7 +126,8 @@ const parseRoutineData = (rawRecord: any): Routine | null => {
       description: payload.description || rawRecord.description || '',
       image: payload.image || rawRecord.image || '',
       enabledMetrics: payload.enabledMetrics || { reps: true, kg: true, rir: true, rmPercentage: false, rest: true, tempo: false },
-      weeks
+      weeks,
+      clientProgress: clientProgress || payload.clientProgress
     };
   }
   return null;
@@ -260,29 +278,64 @@ const App: React.FC = () => {
   };
 
   const handleSaveRoutine = async (updatedRoutine: Routine) => {
+    // Preservar siempre clientProgress si ya existía en currentRoutine o si el cliente lo actualizó en Supabase
+    let latestClientProgress = updatedRoutine.clientProgress || currentRoutine?.clientProgress;
+    try {
+      const { data: remoteData } = await supabase
+        .from('routines')
+        .select('data')
+        .eq('id', updatedRoutine.id)
+        .single();
+
+      if (remoteData?.data) {
+        const remoteProgress = remoteData.data.clientProgress || remoteData.data.clientState;
+        if (remoteProgress) {
+          latestClientProgress = {
+            completedSets: { ...(latestClientProgress?.completedSets || {}), ...(remoteProgress.completedSets || {}) },
+            clientWeights: { ...(latestClientProgress?.clientWeights || {}), ...(remoteProgress.clientWeights || {}) },
+            clientReps: { ...(latestClientProgress?.clientReps || {}), ...(remoteProgress.clientReps || {}) },
+            feelings: { ...(latestClientProgress?.feelings || {}), ...(remoteProgress.feelings || {}) },
+            snapshots: [
+              ...(latestClientProgress?.snapshots || []),
+              ...(remoteProgress.snapshots || []).filter(
+                (rs: any) => !(latestClientProgress?.snapshots || []).some((ls: any) => ls.date === rs.date && ls.workoutId === rs.workoutId)
+              )
+            ]
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('No se pudo consultar progreso remoto previo al guardado:', err);
+    }
+
+    const routineToSave: Routine = {
+      ...updatedRoutine,
+      clientProgress: latestClientProgress
+    };
+
     // Comprimir la imagen si es un base64 muy grande para evitar exceder límites de Supabase/red
-    if (updatedRoutine.image && updatedRoutine.image.startsWith('data:image/')) {
+    if (routineToSave.image && routineToSave.image.startsWith('data:image/')) {
       try {
-        updatedRoutine.image = await compressBase64Image(updatedRoutine.image);
+        routineToSave.image = await compressBase64Image(routineToSave.image);
       } catch (e) {
         console.error('Error al comprimir la imagen al guardar:', e);
       }
     }
 
     // Actualizar estado local y caché de inmediato para que la vista del cliente siempre tenga los datos más recientes
-    setCurrentRoutine(updatedRoutine);
-    const fullCacheKey = `full_routine_cache_${updatedRoutine.id}`;
-    localStorage.setItem(fullCacheKey, JSON.stringify(updatedRoutine));
+    setCurrentRoutine(routineToSave);
+    const fullCacheKey = `full_routine_cache_${routineToSave.id}`;
+    localStorage.setItem(fullCacheKey, JSON.stringify(routineToSave));
 
     // Guardar en Supabase para la persistencia en la nube
     try {
       const { error } = await supabase
         .from('routines')
         .upsert({
-          id: updatedRoutine.id,
-          name: updatedRoutine.name,
-          client_name: updatedRoutine.clientName,
-          data: updatedRoutine
+          id: routineToSave.id,
+          name: routineToSave.name,
+          client_name: routineToSave.clientName,
+          data: routineToSave
         });
 
       if (error) {

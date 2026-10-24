@@ -88,12 +88,12 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
           <select
             value={selectedExId}
             onChange={(e) => setSelectedExId(e.target.value)}
-            className="w-full bg-[#0e0e11] border border-white/10 px-4 py-3 rounded-none font-semibold text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-yellow-400 transition-all shadow-sm"
+            className="w-full bg-[#181b22] hover:bg-[#20242e] border-0 px-4 py-3.5 rounded-none font-bold text-sm text-white appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-yellow-400 transition-all shadow-md"
           >
             {uniqueExerciseIds.map(exId => {
               const libEx = library.find(l => l.id === exId);
               return (
-                <option key={exId} value={exId} className="bg-zinc-900 text-white">
+                <option key={exId} value={exId} className="bg-zinc-900 text-white font-semibold">
                   {libEx?.name || '...'}
                 </option>
               );
@@ -116,21 +116,21 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
         let hasData = false;
 
         return (
-          <div key={exId} className="bg-[#0e0e11] border border-white/10 rounded-xl p-4 sm:p-5 shadow-lg space-y-4">
+          <div key={exId} className="bg-[#181b22] border-0 rounded-none p-4 sm:p-5 shadow-lg space-y-4">
 
-            {/* Header: Thumbnail 16:9 al lado del texto del ejercicio */}
+            {/* Header: Thumbnail 1:1 al lado del texto del ejercicio */}
             <div className="flex items-center gap-3.5 pb-3 border-b border-white/5">
-              {/* Thumbnail 16:9 con esquinas suaves */}
-              <div className="w-28 sm:w-36 aspect-video rounded-lg overflow-hidden shrink-0 bg-zinc-900 border border-white/10 shadow-md">
+              {/* Thumbnail 1:1 Cuadrado con esquinas filosas */}
+              <div className="w-20 sm:w-24 aspect-square rounded-none overflow-hidden shrink-0 bg-zinc-950 shadow-md">
                 {getExerciseCoverImage(libEx) ? (
                   <img
                     src={getExerciseCoverImage(libEx)}
                     alt={libEx.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-none"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <span className="font-bold text-xs text-zinc-400">
+                    <span className="font-black text-xs text-zinc-400">
                       {(libEx.name || 'EX').substring(0, 2).toUpperCase()}
                     </span>
                   </div>
@@ -138,10 +138,10 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
               </div>
 
               <div className="min-w-0">
-                <h3 className="font-display text-xl sm:text-2xl text-white uppercase tracking-wide leading-none truncate">
+                <h3 className="font-display font-black text-lg sm:text-xl text-white uppercase tracking-tight leading-none truncate">
                   {libEx.name}
                 </h3>
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mt-0.5">
+                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mt-1">
                   {t('weeklyProgress')}
                 </p>
               </div>

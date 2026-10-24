@@ -69,9 +69,6 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   const [activeWeekId, setActiveWeekId] = useState<string | null>(routine.weeks[0]?.id || null);
   const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null);
 
-  // Superset Creator Modal
-  const [showSupersetModal, setShowSupersetModal] = useState(false);
-  const [supersetForm, setSupersetForm] = useState<{ ex1Id: string | null, ex2Id: string | null, rest: string }>({ ex1Id: null, ex2Id: null, rest: '2:00' });
 
   // Modal personalizado para nombre de enfoque (reemplaza window.prompt)
   const [showEnfoqueModal, setShowEnfoqueModal] = useState(false);
@@ -138,30 +135,9 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
             ...w,
             workouts: w.workouts.map(wk => {
               if (wk.id === activeWorkoutId) {
-                // 1. Replicar la misma lógica de "processedExercises" de la UI
-                const groups: { type: 'single' | 'superset', exercises: ExerciseEntry[], id: string }[] = [];
-                const processedIds = new Set<string>();
-
-                wk.exercises.forEach(ex => {
-                  if (processedIds.has(ex.id)) return;
-                  if (ex.supersetLabel) {
-                    const group = wk.exercises.filter(e => e.supersetLabel === ex.supersetLabel);
-                    groups.push({ type: 'superset', exercises: group, id: `group-${ex.supersetLabel}` });
-                    group.forEach(ge => processedIds.add(ge.id));
-                  } else {
-                    groups.push({ type: 'single', exercises: [ex], id: ex.id });
-                    processedIds.add(ex.id);
-                  }
-                });
-
-                // 2. Reordenar los grupos (no los ejercicios individuales sueltos)
-                const newGroups = Array.from(groups);
-                const [reorderedGroup] = newGroups.splice(result.source.index, 1);
-                newGroups.splice(result.destination.index, 0, reorderedGroup);
-
-                // 3. Aplanar de vuelta a la lista flat con el nuevo orden
-                const newExercises = newGroups.flatMap(g => g.exercises);
-                
+                const newExercises = Array.from(wk.exercises);
+                const [reorderedExercise] = newExercises.splice(result.source.index, 1);
+                newExercises.splice(result.destination.index, 0, reorderedExercise);
                 return { ...wk, exercises: newExercises };
               }
               return wk;
@@ -1245,98 +1221,65 @@ onChange={(e) => setCurrentRoutine({
                   <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId="exercises-list">
                       {(provided) => {
-                        const processedExercises: { type: 'single' | 'superset', exercises: ExerciseEntry[], id: string }[] = [];
-                        const processedIds = new Set<string>();
-
-                        currentWorkout.exercises.forEach(ex => {
-                          if (processedIds.has(ex.id)) return;
-                          
-                          if (ex.supersetLabel) {
-                            const group = currentWorkout.exercises.filter(e => e.supersetLabel === ex.supersetLabel);
-                            processedExercises.push({ type: 'superset', exercises: group, id: `group-${ex.supersetLabel}` });
-                            group.forEach(ge => processedIds.add(ge.id));
-                          } else {
-                            processedExercises.push({ type: 'single', exercises: [ex], id: ex.id });
-                            processedIds.add(ex.id);
-                          }
-                        });
-
                         return (
                           <div 
-                            className="space-y-16"
+                            className="space-y-8"
                             {...provided.droppableProps}
                             ref={provided.innerRef}
                           >
-                            {processedExercises.map((group, groupIndex) => (
-                              <Draggable key={group.id} draggableId={group.id} index={groupIndex}>
-                                {(provided) => {
-                                  return (
-                                    <div 
-                                      className={`relative group/ex p-8 rounded-2xl border-2 transition-all ${
-                                        group.type === 'superset' 
-                                          ? 'bg-yellow-50/30 dark:bg-yellow-900/5 border-yellow-100 dark:border-yellow-900/30 shadow-lg shadow-yellow-500/5' 
-                                          : 'bg-white dark:bg-darkCard border-slate-100 dark:border-slate-800 shadow-sm'
-                                      }`}
-                                      ref={provided.innerRef}
-                                      {...provided.draggableProps}
-                                    >
-                                      <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover/ex:opacity-100 transition-opacity">
-                                        <div {...provided.dragHandleProps} className="p-2 text-slate-950 dark:text-white hover:text-yellow-500 cursor-grab active:cursor-grabbing">
-                                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 8h16M4 16h16" /></svg>
+                            {currentWorkout.exercises.map((entry, index) => {
+                              const libEx = library.find(l => l.id === entry.libraryExerciseId);
+                              const exImg = getYouTubeThumbnail(libEx?.videoUrl) || libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
+                              return (
+                                <Draggable key={entry.id} draggableId={entry.id} index={index}>
+                                  {(provided) => {
+                                    return (
+                                      <div 
+                                        className="relative group/ex p-6 rounded-none bg-[#181b22] border-0 shadow-lg"
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                      >
+                                        <div className="absolute left-3 top-6 opacity-0 group-hover/ex:opacity-100 transition-opacity">
+                                          <div {...provided.dragHandleProps} className="p-2 text-white hover:text-yellow-400 cursor-grab active:cursor-grabbing">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 8h16M4 16h16" /></svg>
+                                          </div>
                                         </div>
-                                      </div>
 
-                                      {group.type === 'superset' && (
-                                        <div className="flex items-center gap-2 mb-8 ml-6">
-                                          <div className="px-4 py-1.5 bg-yellow-400 text-black rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">SUPERSERIE {group.exercises[0].supersetLabel}</div>
-                                          <div className="h-[2px] flex-1 bg-gradient-to-r from-yellow-500 to-transparent dark:from-blue-900/50"></div>
-                                        </div>
-                                      )}
-
-                                      <div className="space-y-10 ml-6">
-                                        {group.exercises.map((entry, entryIdx) => {
-                                          const libEx = library.find(l => l.id === entry.libraryExerciseId);
-                                          const exImg = getYouTubeThumbnail(libEx?.videoUrl) || libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
-                                          return (
-                                            <div key={entry.id} className={`${entryIdx > 0 ? 'pt-10 border-t border-blue-100/50 dark:border-blue-900/20' : ''}`}>
-                                              <div className="flex justify-between items-center mb-4">
-                                                <div className="flex items-center gap-3">
-                                                  {group.type === 'superset' && (
-                                                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-[10px] font-black text-yellow-400 text-black">
-                                                      {entryIdx + 1}
-                                                    </div>
+                                        <div className="space-y-6 ml-6">
+                                          <div key={entry.id}>
+                                            <div className="flex justify-between items-center mb-4">
+                                              <div className="flex items-center gap-3">
+                                                {/* Miniatura 1:1 Cuadrada del Ejercicio */}
+                                                <div className="w-16 h-16 aspect-square rounded-none bg-zinc-950 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
+                                                  {exImg ? (
+                                                    <img
+                                                      src={exImg}
+                                                      alt={libEx?.name}
+                                                      onError={(e) => {
+                                                        const fallback = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
+                                                        if (fallback && e.currentTarget.src !== fallback) {
+                                                          e.currentTarget.src = fallback;
+                                                        }
+                                                      }}
+                                                      className="w-full h-full object-cover"
+                                                    />
+                                                  ) : (
+                                                    <span className="font-black text-xs text-zinc-400">
+                                                      {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
+                                                    </span>
                                                   )}
-                                                  {/* Miniatura 16:9 del Ejercicio */}
-                                                  <div className="w-20 aspect-video rounded-lg bg-zinc-900 border border-slate-200 dark:border-white/10 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
-                                                    {exImg ? (
-                                                      <img
-                                                        src={exImg}
-                                                        alt={libEx?.name}
-                                                        onError={(e) => {
-                                                          const fallback = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
-                                                          if (fallback && e.currentTarget.src !== fallback) {
-                                                            e.currentTarget.src = fallback;
-                                                          }
-                                                        }}
-                                                        className="w-full h-full object-cover"
-                                                      />
-                                                    ) : (
-                                                      <span className="font-black text-xs text-zinc-400">
-                                                        {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                  <span className="font-black text-xl text-slate-900 dark:text-white uppercase tracking-tighter">
-                                                    {libEx?.name || 'Cargando...'}
-                                                  </span>
                                                 </div>
-                                                <button 
-                                                  onClick={() => deleteExercise(currentWeek.id, currentWorkout.id, entry.id)} 
-                                                  className="text-slate-950 dark:text-white hover:text-red-500 transition-all"
-                                                >
-                                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                                                </button>
+                                                <span className="font-display font-black text-lg sm:text-xl text-white uppercase tracking-tight">
+                                                  {libEx?.name || 'Cargando...'}
+                                                </span>
                                               </div>
+                                              <button 
+                                                onClick={() => deleteExercise(currentWeek.id, currentWorkout.id, entry.id)} 
+                                                className="text-zinc-400 hover:text-red-400 p-2 transition-all"
+                                              >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                                              </button>
+                                            </div>
 
                                               <div className="mb-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/85 focus-within:border-yellow-500/50 transition-all">
                                                 <div className="flex items-center gap-2 mb-1.5">
@@ -1470,32 +1413,21 @@ onChange={(e) => setCurrentRoutine({
                                                 + Agregar Serie
                                               </button>
                                             </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
+                                          </div>
+                                        );
+                                      }}
+                                    </Draggable>
                                   );
-                                }}
-                              </Draggable>
-                            ))}
-                            {provided.placeholder}
+                                })}
+                                {provided.placeholder}
                           </div>
                         );
                       }}
                     </Droppable>
                   </DragDropContext>
 
-                   <div className="mt-16 flex flex-col lg:flex-row gap-4">
-                     <div className="flex-1">
-                       <ExerciseSearch library={library} onSelect={(id) => addExerciseToWorkout(currentWeek.id, currentWorkout.id, id)} />
-                     </div>
-                     <button 
-                       onClick={() => setShowSupersetModal(true)}
-                       className="px-8 py-5 bg-yellow-400 text-black rounded-[2rem] font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-3"
-                     >
-                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
-                       Nueva Superserie
-                     </button>
+                   <div className="mt-12">
+                     <ExerciseSearch library={library} onSelect={(id) => addExerciseToWorkout(currentWeek.id, currentWorkout.id, id)} />
                    </div>
                 </div>
               ) : (
@@ -1514,118 +1446,7 @@ onChange={(e) => setCurrentRoutine({
         </div>
       </div>
 
-      {/* Superset Modal */}
-      {showSupersetModal && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-darkCard rounded-[3rem] w-full max-w-2xl border-2 border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-10 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Crear Superserie</h3>
-                <p className="text-[10px] font-bold text-slate-950 dark:text-white uppercase tracking-widest mt-1">Selecciona los dos ejercicios del bloque</p>
-              </div>
-              <button onClick={() => setShowSupersetModal(false)} className="p-4 text-slate-950 dark:text-white hover:text-red-500 transition-all">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            
-            <div className="p-10 space-y-10">
-              <div className="space-y-4">
-                <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest ml-4">Ejercicio 1</span>
-                <ExerciseSearch 
-                  library={library} 
-                  onSelect={(id) => setSupersetForm(prev => ({ ...prev, ex1Id: id }))} 
-                />
-                {supersetForm.ex1Id && (
-                  <div className="ml-4 flex items-center gap-2 text-yellow-400 text-black font-bold text-xs">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                    Seleccionado: {library.find(l => l.id === supersetForm.ex1Id)?.name}
-                  </div>
-                )}
-              </div>
 
-              <div className="space-y-4">
-                <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest ml-4">Ejercicio 2</span>
-                <ExerciseSearch 
-                  library={library} 
-                  onSelect={(id) => setSupersetForm(prev => ({ ...prev, ex2Id: id }))} 
-                />
-                {supersetForm.ex2Id && (
-                  <div className="ml-4 flex items-center gap-2 text-yellow-400 text-black font-bold text-xs">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                    Seleccionado: {library.find(l => l.id === supersetForm.ex2Id)?.name}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-4">
-                <span className="text-[10px] font-black text-slate-950 dark:text-white uppercase tracking-widest ml-4">Descanso Sugerido</span>
-                <div className="flex items-center w-full px-8 py-5 bg-slate-900 dark:bg-black border border-slate-800 rounded-[2rem] text-white font-black uppercase text-[10px] tracking-widest shadow-2xl group">
-                  <svg className="w-5 h-5 mr-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <input
-                    placeholder="Ej: 2:00"
-                    className="bg-transparent outline-none w-full text-white placeholder:text-slate-500 uppercase"
-                    value={supersetForm.rest}
-                    onChange={e => setSupersetForm(prev => ({ ...prev, rest: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <button 
-                onClick={() => {
-                  if (!supersetForm.ex1Id || !supersetForm.ex2Id) {
-                    alert('Por favor selecciona ambos ejercicios');
-                    return;
-                  }
-                  if (!activeWeekId || !activeWorkoutId) return;
-                  
-                  const week = currentRoutine.weeks.find(w => w.id === activeWeekId);
-                  const workout = week?.workouts.find(wk => wk.id === activeWorkoutId);
-                  const existingLabels = workout?.exercises.map(e => e.supersetLabel).filter(Boolean) as string[];
-                  const lastLabel = existingLabels.length > 0 ? (existingLabels.length === 1 ? existingLabels[0] : existingLabels.sort().pop() || '@') : '@';
-                  const nextLabel = String.fromCharCode(lastLabel.charCodeAt(0) + 1);
-
-                  setCurrentRoutine(prev => ({
-                    ...prev,
-                    weeks: prev.weeks.map(w => w.id === activeWeekId ? {
-                      ...w,
-                      workouts: w.workouts.map(wk => wk.id === activeWorkoutId ? {
-                        ...wk,
-                        exercises: [
-                          ...wk.exercises,
-                          {
-                            id: Math.random().toString(36).substr(2, 9),
-                            libraryExerciseId: supersetForm.ex1Id!,
-                            supersetLabel: nextLabel,
-                            supersetOrder: 1,
-                            sets: [{ id: Math.random().toString(36).substr(2, 9), reps: '10', kg: '0', rir: '2', rmPercentage: '-', rest: '0:10' }]
-                          },
-                          {
-                            id: Math.random().toString(36).substr(2, 9),
-                            libraryExerciseId: supersetForm.ex2Id!,
-                            supersetLabel: nextLabel,
-                            supersetOrder: 2,
-                            sets: [{ id: Math.random().toString(36).substr(2, 9), reps: '10', kg: '0', rir: '2', rmPercentage: '-', rest: supersetForm.rest }]
-                          }
-                        ]
-                      } : wk)
-                    } : w)
-                  }));
-
-                  setShowSupersetModal(false);
-                  setSupersetForm({ ex1Id: null, ex2Id: null, rest: '2:00' });
-                }}
-                className={`w-full py-6 rounded-[2rem] font-black uppercase tracking-widest transition-all shadow-xl ${
-                  supersetForm.ex1Id && supersetForm.ex2Id 
-                    ? 'bg-yellow-400 text-black hover:scale-[1.02]' 
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-950 dark:text-white cursor-not-allowed'
-                }`}
-              >
-                Crear Superserie
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal Reposicionar Portada */}
       {showImageModal && (
