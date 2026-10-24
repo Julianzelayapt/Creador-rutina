@@ -1414,6 +1414,7 @@ onChange={(e) => setCurrentRoutine({
                                               </button>
                                             </div>
                                           </div>
+                                          </div>
                                         );
                                       }}
                                     </Draggable>
