@@ -24,6 +24,7 @@ export interface TrainingSet {
   rmPercentage: string;
   rest: string;
   tempo?: string;
+  type?: 'warmup' | 'working';
   dropsets?: DropSet[];
 }
 

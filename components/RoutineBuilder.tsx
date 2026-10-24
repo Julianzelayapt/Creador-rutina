@@ -312,7 +312,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 const newEntry: ExerciseEntry = {
                   id: Math.random().toString(36).substr(2, 9),
                   libraryExerciseId: exerciseId,
-                  sets: [{ id: Math.random().toString(36).substr(2, 9), reps: '10', kg: '0', rir: '2', rmPercentage: '-', rest: '2:00' }]
+                  sets: [{ id: Math.random().toString(36).substr(2, 9), reps: '10', kg: '0', rir: '2', rmPercentage: '-', rest: '2:00', type: 'working' }]
                 };
                 return { ...wk, exercises: [...wk.exercises, newEntry] };
               }
@@ -367,7 +367,8 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                           kg: lastSet?.kg || '0',
                           rir: lastSet?.rir || '2',
                           rmPercentage: lastSet?.rmPercentage || '-',
-                          rest: lastSet?.rest || '2:00'
+                          rest: lastSet?.rest || '2:00',
+                          type: 'working'
                         }]
                       };
                     }
@@ -1355,6 +1356,7 @@ onChange={(e) => setCurrentRoutine({
                                                 <table className="w-full text-center table-auto min-w-max">
                                                   <thead>
                                                     <tr className="text-[9px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                                                      <th className="py-2 px-1">TIPO</th>
                                                       {currentRoutine.enabledMetrics.reps && <th className="py-2">REPS</th>}
                                                       {currentRoutine.enabledMetrics.kg && <th className="py-2">KG</th>}
                                                       {currentRoutine.enabledMetrics.rir && <th className="py-2">RIR</th>}
@@ -1370,9 +1372,28 @@ onChange={(e) => setCurrentRoutine({
                                                     </tr>
                                                   </thead>
                                                   <tbody>
-                                                    {entry.sets.map((set, idx) => (
+                                                    {entry.sets.map((set, idx) => {
+                                                      const isWarmup = set.type === 'warmup';
+                                                      return (
                                                       <React.Fragment key={set.id}>
                                                         <tr>
+                                                          <td className="px-1">
+                                                            <button
+                                                              type="button"
+                                                              onClick={() => {
+                                                                const nextType = isWarmup ? 'working' : 'warmup';
+                                                                updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'type' as any, nextType);
+                                                              }}
+                                                              className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all border ${
+                                                                isWarmup
+                                                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                                                  : 'bg-slate-100 dark:bg-black text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-white/10 hover:border-yellow-500'
+                                                              }`}
+                                                              title={isWarmup ? "Serie de Calentamiento / Aproximación" : "Serie Efectiva de Trabajo"}
+                                                            >
+                                                              {isWarmup ? 'W' : `${idx + 1}`}
+                                                            </button>
+                                                          </td>
                                                           {currentRoutine.enabledMetrics.reps && (
                                                             <td><input className="w-14 py-3 text-center bg-slate-100 dark:bg-black rounded-xl font-bold dark:text-white border-2 border-transparent focus:border-yellow-600 outline-none" value={set.reps} onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'reps', e.target.value)} /></td>
                                                           )}
@@ -1437,7 +1458,8 @@ onChange={(e) => setCurrentRoutine({
                                                           </tr>
                                                         ))}
                                                       </React.Fragment>
-                                                    ))}
+                                                    );
+                                                    })}
                                                   </tbody>
                                                 </table>
                                               </div>

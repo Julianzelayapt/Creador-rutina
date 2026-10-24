@@ -86,6 +86,7 @@ const parseRoutineData = (rawRecord: any): Routine | null => {
             rmPercentage: s.rmPercentage ?? '-',
             rest: s.rest ?? '2:00',
             tempo: s.tempo,
+            type: s.type || 'working',
             dropsets: Array.isArray(s.dropsets) ? s.dropsets : []
           })) : [],
           supersetGroupId: ex.supersetGroupId,

@@ -1161,34 +1161,28 @@ ${feedbackText || 'Sin comentarios.'}
         </div>
       )}
 
-      {/* Main Tab Navigation: Athletic Underline Tabs */}
+      {/* Main Tab Navigation: Gymshark Capsule Pills */}
       {viewMode !== 'active' && (
-        <div className="max-w-xl mx-auto px-4 pt-4 pb-1 border-b border-white/10 flex items-center justify-start gap-8">
+        <div className="max-w-xl mx-auto px-4 pt-4 pb-2 flex items-center justify-start gap-2.5">
           <button
             onClick={() => setActiveTab('training')}
-            className={`pb-3 font-display text-lg sm:text-xl uppercase tracking-wider transition-all relative ${
+            className={`px-5 py-2 rounded-full font-bold text-xs uppercase tracking-wider transition-all border ${
               activeTab === 'training'
-                ? 'text-yellow-400 font-bold'
-                : 'text-zinc-500 hover:text-zinc-300'
+                ? 'bg-white text-black border-white shadow-md'
+                : 'bg-zinc-900 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
             }`}
           >
             {t('training')}
-            {activeTab === 'training' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.8)]" />
-            )}
           </button>
           <button
             onClick={() => setActiveTab('overload')}
-            className={`pb-3 font-display text-lg sm:text-xl uppercase tracking-wider transition-all relative ${
+            className={`px-5 py-2 rounded-full font-bold text-xs uppercase tracking-wider transition-all border ${
               activeTab === 'overload'
-                ? 'text-yellow-400 font-bold'
-                : 'text-zinc-500 hover:text-zinc-300'
+                ? 'bg-white text-black border-white shadow-md'
+                : 'bg-zinc-900 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
             }`}
           >
             {t('overload')}
-            {activeTab === 'overload' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.8)]" />
-            )}
           </button>
         </div>
       )}
@@ -1337,7 +1331,7 @@ ${feedbackText || 'Sin comentarios.'}
                           setActiveWorkoutId(workout.id);
                           setViewMode('preview');
                         }}
-                        className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-xl p-3.5 sm:p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
+                        className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-lg p-3.5 sm:p-4 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all shadow-md group"
                       >
                         <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 pr-2">
                           {/* Day Cover Photo or YouTube Thumbnail of First Exercise (16:9) */}
@@ -1433,9 +1427,9 @@ ${feedbackText || 'Sin comentarios.'}
                   </svg>
                   <span className="tracking-wide text-zinc-300">{calculateWorkoutDuration(currentWorkout)}</span>
                 </p>
-                {currentWorkout.warmup && (
-                  <div className="mt-2.5 px-3 py-2 bg-zinc-900 border border-white/5 rounded-xl flex items-start gap-2.5">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-md shrink-0 mt-px">
+                {currentWorkout.warmup && currentWorkout.warmup.trim() !== '' && (
+                  <div className="mt-2.5 px-3.5 py-2.5 bg-zinc-900 border border-white/5 rounded-lg flex items-start gap-2.5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded shrink-0 mt-px">
                       {t('warmup')}
                     </span>
                     <p className="text-xs text-zinc-300 font-medium leading-relaxed">{currentWorkout.warmup}</p>
@@ -1478,7 +1472,7 @@ ${feedbackText || 'Sin comentarios.'}
                   return (
                     <div
                       key={entry.id || idx}
-                      className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-xl p-3 sm:p-3.5 flex items-center justify-between transition-all group shadow-md"
+                      className="bg-[#0e0e11] hover:bg-[#151518] border border-white/10 hover:border-yellow-400/40 rounded-lg p-3 sm:p-3.5 flex items-center justify-between transition-all group shadow-md"
                     >
                       {/* Left & Center: Click to train this exercise */}
                       <div
@@ -1643,12 +1637,12 @@ ${feedbackText || 'Sin comentarios.'}
               </div>
 
               {/* Warmup notice if exists */}
-              {currentWorkout.warmup && (
-                <div className="px-3 py-2.5 bg-zinc-900 border border-white/10 rounded-none flex items-start gap-2.5">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-none shrink-0 mt-px">
+              {currentWorkout.warmup && currentWorkout.warmup.trim() !== '' && (
+                <div className="px-3.5 py-2.5 bg-zinc-900 border border-white/5 rounded-lg flex items-start gap-2.5">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded shrink-0 mt-px">
                     {t('warmup')}
                   </span>
-                  <p className="text-xs text-white font-medium leading-relaxed">{currentWorkout.warmup}</p>
+                  <p className="text-xs text-zinc-300 font-medium leading-relaxed">{currentWorkout.warmup}</p>
                 </div>
               )}
 
@@ -1668,7 +1662,7 @@ ${feedbackText || 'Sin comentarios.'}
                     <div
                       id={`exercise-${entry.id}`}
                       key={entry.id || eIdx}
-                      className="bg-[#0e0e11] border border-white/10 rounded-2xl p-4 sm:p-5 shadow-lg transition-all scroll-mt-6"
+                      className="bg-[#0e0e11] border border-white/10 rounded-lg p-4 sm:p-5 shadow-md transition-all scroll-mt-6"
                     >
                       {/* Exercise Header */}
                       <div className="mb-4">
@@ -1866,9 +1860,17 @@ ${feedbackText || 'Sin comentarios.'}
                                         : 'bg-zinc-900/70 border-white/5'
                                     }`}
                                   >
-                                    {/* Set Index */}
-                                    <div className="col-span-1 text-center font-bold text-xs text-zinc-400 font-mono">
-                                      {sIdx + 1}
+                                    {/* Set Index / Type */}
+                                    <div className="col-span-1 text-center font-bold text-xs font-mono flex items-center justify-center">
+                                      {set.type === 'warmup' ? (
+                                        <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 font-black px-1.5 py-0.5 rounded" title="Serie de Calentamiento / Aproximación">
+                                          W
+                                        </span>
+                                      ) : (
+                                        <span className="text-zinc-400">
+                                          {sIdx + 1}
+                                        </span>
+                                      )}
                                     </div>
 
                                     {/* Reps Input */}
