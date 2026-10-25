@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routine, Exercise } from '../types';
 import { getMuscleGroupImage } from '../muscleGroups';
-import { getExerciseCoverImage, isYouTubeShort } from './ClientView';
+import { getExerciseCoverImage, isYouTubeShort, onYTThumbLoad, onYTThumbError } from './ClientView';
 
 interface ProgressiveOverloadTabProps {
   routine: Routine;
@@ -126,6 +126,8 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                   <img
                     src={getExerciseCoverImage(libEx)}
                     alt={libEx.name}
+                    onLoad={onYTThumbLoad(libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
+                    onError={onYTThumbError(libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
                     className="w-full h-full object-cover rounded-none"
                   />
                 ) : (

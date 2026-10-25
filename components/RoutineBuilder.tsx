@@ -808,6 +808,14 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                     <img
                       src={getYouTubeThumbnail(ex.videoUrl) || ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
                       alt={ex.name}
+                      onLoad={(e) => {
+                        if (e.currentTarget.naturalWidth <= 120) {
+                          const fallback = ex.muscleImage || getMuscleGroupImage(ex.muscleGroup);
+                          if (fallback && e.currentTarget.src !== fallback) {
+                            e.currentTarget.src = fallback;
+                          }
+                        }
+                      }}
                       onError={(e) => {
                         const fallback = ex.muscleImage || getMuscleGroupImage(ex.muscleGroup);
                         if (fallback && e.currentTarget.src !== fallback) {
@@ -1255,6 +1263,14 @@ onChange={(e) => setCurrentRoutine({
                                                     <img
                                                       src={exImg}
                                                       alt={libEx?.name}
+                                                      onLoad={(e) => {
+                                                        if (e.currentTarget.naturalWidth <= 120) {
+                                                          const fallback = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
+                                                          if (fallback && e.currentTarget.src !== fallback) {
+                                                            e.currentTarget.src = fallback;
+                                                          }
+                                                        }
+                                                      }}
                                                       onError={(e) => {
                                                         const fallback = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
                                                         if (fallback && e.currentTarget.src !== fallback) {

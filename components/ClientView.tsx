@@ -10,6 +10,12 @@ interface ClientViewProps {
   library: Exercise[];
 }
 
+// Detects vertical (9:16) YouTube Shorts
+export const isYouTubeShort = (url: string | undefined): boolean => {
+  if (!url) return false;
+  return url.includes('/shorts/');
+};
+
 // Helper to extract YouTube video ID and thumbnail
 export const getYouTubeThumbnail = (url: string | undefined): string | null => {
   if (!url) return null;
@@ -17,17 +23,15 @@ export const getYouTubeThumbnail = (url: string | undefined): string | null => {
   // Match YouTube URLs: watch?v=, embed/, v/, shorts/, youtu.be/, with optional query params
   const ytMatch = trimmed.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?(?:.*&)?v=|shorts\/))([\w-]{11})/i);
   if (ytMatch && ytMatch[1]) {
-    // Use maxresdefault (1280x720) for clean fill in square crops — no letterboxing.
-    // onYTThumbError cascades to hqdefault → mqdefault → muscle group if this 404s.
+    // YouTube Shorts do not have maxresdefault, go straight to hqdefault
+    if (isYouTubeShort(trimmed)) {
+      return `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+    }
+    // Use maxresdefault (1280x720) for clean fill in square crops.
+    // onYTThumbLoad and onYTThumbError cascade to hqdefault → mqdefault → muscle group if 404 or placeholder.
     return `https://img.youtube.com/vi/${ytMatch[1]}/maxresdefault.jpg`;
   }
   return null;
-};
-
-// Detects vertical (9:16) YouTube Shorts
-export const isYouTubeShort = (url: string | undefined): boolean => {
-  if (!url) return false;
-  return url.includes('/shorts/');
 };
 
 // Helper to get exercise cover image (prefers YouTube thumbnail, falls back to custom/muscle group)
@@ -38,8 +42,25 @@ export const getExerciseCoverImage = (libEx?: Exercise): string => {
   return libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
 };
 
+// Helper when image loads: YouTube returns a 120x90 placeholder JPEG when maxresdefault/hqdefault is missing.
+// Modern browsers fire onLoad (not onError) because the payload is valid JPEG.
+// Checking naturalWidth <= 120 detects this placeholder immediately.
+export const onYTThumbLoad = (muscleGroupFallback?: string) =>
+  (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.naturalWidth <= 120) {
+      if (img.src.includes('/maxresdefault.jpg')) {
+        img.src = img.src.replace('/maxresdefault.jpg', '/hqdefault.jpg');
+      } else if (img.src.includes('/hqdefault.jpg')) {
+        img.src = img.src.replace('/hqdefault.jpg', '/mqdefault.jpg');
+      } else if (muscleGroupFallback && img.src !== muscleGroupFallback) {
+        img.src = muscleGroupFallback;
+      }
+    }
+  };
+
 // Fallback handler: cascades gracefully maxresdefault → hqdefault → mqdefault → muscle group
-export const onYTThumbError = (muscleGroupFallback: string) =>
+export const onYTThumbError = (muscleGroupFallback?: string) =>
   (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     if (img.src.includes('/maxresdefault.jpg')) {
@@ -63,7 +84,9 @@ const getEmbedVideo = (url: string | undefined) => {
     return {
       type: 'youtube' as const,
       videoId,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      thumbnail: isYouTubeShort(trimmed)
+        ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+        : `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
       src: `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&modestbranding=1&rel=0`
     };
   }
@@ -1180,6 +1203,7 @@ ${feedbackText || 'Sin comentarios.'}
                               <img
                                 src={altCover}
                                 alt={alt.name}
+                                onLoad={onYTThumbLoad(alt.muscleImage || (alt.muscleGroup ? getMuscleGroupImage(alt.muscleGroup) : ''))}
                                 onError={onYTThumbError(alt.muscleImage || (alt.muscleGroup ? getMuscleGroupImage(alt.muscleGroup) : ''))}
                                 className="w-full h-full object-cover"
                               />
@@ -1438,6 +1462,7 @@ ${feedbackText || 'Sin comentarios.'}
                               <img
                                 src={dayCover}
                                 alt={displayTitle}
+                                onLoad={onYTThumbLoad(firstEx?.muscleImage || (firstEx?.muscleGroup ? getMuscleGroupImage(firstEx.muscleGroup) : ''))}
                                 onError={onYTThumbError(firstEx?.muscleImage || (firstEx?.muscleGroup ? getMuscleGroupImage(firstEx.muscleGroup) : ''))}
                                 className="w-full h-full object-cover rounded-none group-hover:scale-105 transition-transform duration-300"
                               />
@@ -1590,6 +1615,7 @@ ${feedbackText || 'Sin comentarios.'}
                             <img
                               src={coverImg}
                               alt={libEx?.name}
+                              onLoad={onYTThumbLoad(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
                               onError={onYTThumbError(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
@@ -1885,6 +1911,7 @@ ${feedbackText || 'Sin comentarios.'}
                                   <img
                                     src={embed.thumbnail || getExerciseCoverImage(libEx)}
                                     alt={libEx?.name || 'Video'}
+                                    onLoad={onYTThumbLoad(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
                                     onError={onYTThumbError(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                   />
