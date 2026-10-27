@@ -45,6 +45,8 @@ export interface Workout {
   name: string;
   warmup?: string;
   image?: string;
+  dayOfWeek?: number; // 0 = Lunes, 1 = Martes, 2 = Miércoles, 3 = Jueves, 4 = Viernes, 5 = Sábado, 6 = Domingo
+  isRestDay?: boolean;
   exercises: ExerciseEntry[];
 }
 
@@ -63,6 +65,7 @@ export interface ClientProgress {
   activeWorkoutId: string | null;
   language: 'es' | 'en' | 'it';
   weeklySnapshots?: Record<string, Record<string, number>>; // { weekId: { exerciseId: avgKg } }
+  dayOverrides?: Record<string, string>; // e.g. { "weekId_dayIndex": workoutId | 'rest' }
 }
 
 export interface Routine {
@@ -74,6 +77,7 @@ export interface Routine {
   imagePosition?: string; // e.g. "50%" or "center 30%"
   objective?: string;
   split?: string;
+  startDate?: string; // YYYY-MM-DD
   clientProgress?: ClientProgress;
   weeks: Week[];
   enabledMetrics: {

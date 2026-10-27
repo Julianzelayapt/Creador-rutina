@@ -4,6 +4,7 @@ import { Routine, Exercise } from '../types';
 import { supabase } from '../supabase';
 import ProgressiveOverloadTab from './ProgressiveOverloadTab';
 import { getMuscleGroupImage } from '../muscleGroups';
+import { ClientCalendarView } from './ClientCalendarView';
 
 interface ClientViewProps {
   routine: Routine;
@@ -147,7 +148,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         activeWeekId: remoteData.activeWeekId || null,
         activeWorkoutId: remoteData.activeWorkoutId || null,
         language: remoteData.language || 'es',
-        weeklySnapshots: remoteData.weeklySnapshots || {}
+        weeklySnapshots: remoteData.weeklySnapshots || {},
+        dayOverrides: remoteData.dayOverrides || {}
       };
     }
 
@@ -159,7 +161,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         clientWeights: { ...(normalizedRemote.clientWeights || {}), ...(localData.clientWeights || {}) },
         clientReps: { ...(normalizedRemote.clientReps || {}), ...(localData.clientReps || {}) },
         feelings: { ...(normalizedRemote.feelings || {}), ...(localData.feelings || {}) },
-        weeklySnapshots: { ...(normalizedRemote.weeklySnapshots || {}), ...(localData.weeklySnapshots || {}) }
+        weeklySnapshots: { ...(normalizedRemote.weeklySnapshots || {}), ...(localData.weeklySnapshots || {}) },
+        dayOverrides: { ...(normalizedRemote.dayOverrides || {}), ...(localData.dayOverrides || {}) }
       };
     }
     return localData || normalizedRemote || null;
@@ -174,6 +177,24 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const [timer, setTimer] = useState<number | null>(null);
   const [language, setLanguage] = useState<'es' | 'en' | 'it'>(savedData?.language || 'es');
   const [weeklySnapshots, setWeeklySnapshots] = useState<Record<string, Record<string, number>>>(savedData?.weeklySnapshots || routine.clientProgress?.weeklySnapshots || {});
+  const [dayOverrides, setDayOverrides] = useState<Record<string, string>>(savedData?.dayOverrides || routine.clientProgress?.dayOverrides || {});
+
+  const [displayMode, setDisplayMode] = useState<'calendar' | 'classic'>(() => {
+    try {
+      return (localStorage.getItem(`client_display_mode_${routine.id}`) as 'calendar' | 'classic') || 'calendar';
+    } catch {
+      return 'calendar';
+    }
+  });
+
+  const toggleDisplayMode = (mode: 'calendar' | 'classic') => {
+    setDisplayMode(mode);
+    try {
+      localStorage.setItem(`client_display_mode_${routine.id}`, mode);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Sincronización reactiva cuando llegan datos frescos de Supabase
   useEffect(() => {
@@ -185,6 +206,9 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         ...remoteSets,
         ...prev
       }));
+    }
+    if (remoteData.dayOverrides && Object.keys(remoteData.dayOverrides).length > 0) {
+      setDayOverrides(prev => ({ ...remoteData.dayOverrides, ...prev }));
     }
     if (remoteData.clientWeights && Object.keys(remoteData.clientWeights).length > 0) {
       setClientWeights(prev => ({ ...remoteData.clientWeights, ...prev }));
@@ -677,7 +701,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       activeWeekId,
       activeWorkoutId,
       language,
-      weeklySnapshots: newSnapshots
+      weeklySnapshots: newSnapshots,
+      dayOverrides
     };
 
     try {
@@ -728,7 +753,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   // Immediate local save
   useEffect(() => {
     saveProgress(false);
-  }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId, language]);
+  }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId, language, dayOverrides]);
 
   // Debounced cloud sync (1.5 sec)
   useEffect(() => {
@@ -737,7 +762,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       saveProgress(true);
     }, 1500);
     return () => clearTimeout(timeoutId);
-  }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId, language]);
+  }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId, language, dayOverrides]);
 
   // Set toggle and rest trigger
   const handleSetToggle = (setId: string, restTime: string) => {
@@ -1323,7 +1348,53 @@ ${feedbackText || 'Sin comentarios.'}
           {/* SUBVIEW 1: DASHBOARD (SEMANAS + CAJITAS DE ENFOQUES - Image 4)            */}
           {/* ========================================================================= */}
           {viewMode === 'dashboard' && (
+            displayMode === 'calendar' ? (
+              <ClientCalendarView
+                routine={routine}
+                library={library}
+                completedSets={completedSets}
+                clientWeights={clientWeights}
+                clientReps={clientReps}
+                dayOverrides={dayOverrides}
+                onUpdateDayOverride={(dayKey, workoutIdOrRest) => {
+                  setDayOverrides(prev => {
+                    const next = { ...prev, [dayKey]: workoutIdOrRest };
+                    isDirtyRef.current = true;
+                    setSyncStatus('syncing');
+                    return next;
+                  });
+                }}
+                onSelectWorkout={(wkId) => {
+                  initAudio();
+                  setActiveWorkoutId(wkId);
+                  setViewMode('preview');
+                }}
+                onOpenClassicView={() => toggleDisplayMode('classic')}
+                activeWeekId={activeWeekId}
+                onChangeWeek={(wId) => {
+                  setActiveWeekId(wId);
+                  isDirtyRef.current = true;
+                }}
+                onUpdateStartDate={(newDate) => {
+                  routine.startDate = newDate;
+                  isDirtyRef.current = true;
+                  saveProgress(true);
+                }}
+              />
+            ) : (
             <div className="max-w-xl mx-auto px-4 space-y-5 animate-in fade-in duration-300">
+              {/* Botón para alternar a Vista Calendario */}
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => toggleDisplayMode('calendar')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white transition-all shadow-md shadow-blue-500/20"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Vista Calendario</span>
+                </button>
+              </div>
 
               {/* Routine Cover & Header */}
               <div className="relative rounded-xl overflow-hidden bg-zinc-900 border border-white/10 aspect-[16/9] flex flex-col justify-end p-5 shadow-lg">
@@ -1505,6 +1576,7 @@ ${feedbackText || 'Sin comentarios.'}
                 )}
               </div>
             </div>
+            )
           )}
 
           {/* ========================================================================= */}
