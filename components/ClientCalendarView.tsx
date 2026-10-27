@@ -20,7 +20,7 @@ interface ClientCalendarViewProps {
 
 const CAL_TRANSLATIONS = {
   es: {
-    hello: '¡HOLA,',
+    hello: '¡HOLA',
     week: 'SEMANA',
     of: 'DE',
     today: 'HOY',
@@ -55,7 +55,7 @@ const CAL_TRANSLATIONS = {
     }
   },
   en: {
-    hello: 'HI,',
+    hello: 'HI',
     week: 'WEEK',
     of: 'OF',
     today: 'TODAY',
@@ -90,7 +90,7 @@ const CAL_TRANSLATIONS = {
     }
   },
   it: {
-    hello: 'CIAO,',
+    hello: 'CIAO',
     week: 'SETTIMANA',
     of: 'DI',
     today: 'OGGI',
@@ -353,10 +353,10 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
   return (
     <div className="min-h-screen bg-black text-white pb-24 max-w-md mx-auto relative select-none">
       
-      {/* 1. TOP HEADER: ¡HOLA, NOMBRE! + SELECTOR DE IDIOMA */}
+      {/* 1. TOP HEADER: SALUDO + NOMBRE + SELECTOR DE IDIOMA */}
       <div className="pt-6 px-4 pb-2 flex items-center justify-between">
         <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-white uppercase">
-          ¡HOLA, {clientFirstName}!
+          {cal.hello}, {clientFirstName}!
         </h1>
 
         {/* Selector de idioma (ES / EN / IT) */}
