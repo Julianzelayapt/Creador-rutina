@@ -1368,6 +1368,11 @@ ${feedbackText || 'Sin comentarios.'}
                 setActiveWorkoutId(wkId);
                 setViewMode('active');
               }}
+              language={language}
+              onLanguageChange={(lang) => {
+                isDirtyRef.current = true;
+                setLanguage(lang);
+              }}
               activeWeekId={activeWeekId}
               onChangeWeek={(wId) => {
                 setActiveWeekId(wId);

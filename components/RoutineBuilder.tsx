@@ -1178,16 +1178,16 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                             } : w)
                           });
                         }}
-                        className="w-full sm:w-auto bg-slate-100 dark:bg-black/50 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-xs font-black uppercase text-yellow-500 tracking-wider focus:outline-none focus:border-yellow-500 transition-all cursor-pointer shadow-inner"
+                        className="w-full sm:w-auto bg-white dark:bg-zinc-900 border-2 border-yellow-400 text-slate-900 dark:text-white rounded-2xl px-5 py-3.5 text-sm font-black uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all cursor-pointer shadow-md"
                       >
-                        <option value="">Automático</option>
-                        <option value="0">Lunes</option>
-                        <option value="1">Martes</option>
-                        <option value="2">Miércoles</option>
-                        <option value="3">Jueves</option>
-                        <option value="4">Viernes</option>
-                        <option value="5">Sábado</option>
-                        <option value="6">Domingo</option>
+                        <option value="" className="bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold">Automático</option>
+                        <option value="0" className="bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold">Lunes</option>
+                        <option value="1" className="bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold">Martes</option>
+                        <option value="2" className="bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold">Miércoles</option>
+                        <option value="3" className="bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold">Jueves</option>
+                        <option value="4" className="bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold">Viernes</option>
+                        <option value="5" className="bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold">Sábado</option>
+                        <option value="6" className="bg-white dark:bg-zinc-900 text-slate-900 dark:text-white font-bold">Domingo</option>
                       </select>
                     </div>
 

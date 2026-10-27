@@ -11,6 +11,8 @@ interface ClientCalendarViewProps {
   dayOverrides: Record<string, string>; // { "weekId_dayIndex": workoutId | 'rest' }
   onUpdateDayOverride: (dayKey: string, workoutIdOrRest: string) => void;
   onSelectWorkout: (workoutId: string) => void;
+  language: 'es' | 'en' | 'it';
+  onLanguageChange: (lang: 'es' | 'en' | 'it') => void;
   activeWeekId: string | null;
   onChangeWeek: (weekId: string) => void;
   onUpdateStartDate?: (newDate: string) => void;
@@ -33,6 +35,8 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
   dayOverrides,
   onUpdateDayOverride,
   onSelectWorkout,
+  language,
+  onLanguageChange,
   activeWeekId,
   onChangeWeek,
   onUpdateStartDate
@@ -242,34 +246,29 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
   return (
     <div className="min-h-screen bg-black text-white pb-24 max-w-md mx-auto relative select-none">
       
-      {/* 1. TOP HEADER: ¡HOLA, NOMBRE! */}
-      <div className="pt-6 px-4 pb-2">
+      {/* 1. TOP HEADER: ¡HOLA, NOMBRE! + SELECTOR DE IDIOMA */}
+      <div className="pt-6 px-4 pb-2 flex items-center justify-between">
         <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-white uppercase">
           ¡HOLA, {clientFirstName}!
         </h1>
-      </div>
 
-      {/* 2. SELECTOR DE SEMANAS (Filoso, rounded-none) */}
-      {routine.weeks.length > 1 && (
-        <div className="px-4 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          {routine.weeks.map((w, idx) => {
-            const isWeekActive = currentWeek?.id === w.id;
-            return (
-              <button
-                key={w.id}
-                onClick={() => onChangeWeek(w.id)}
-                className={`px-3.5 py-1.5 rounded-none text-xs font-display font-black uppercase tracking-wider whitespace-nowrap transition-all ${
-                  isWeekActive
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-[#181b22] text-zinc-400 hover:bg-[#20242e]'
-                }`}
-              >
-                {w.name ? w.name.toUpperCase() : `SEMANA ${idx + 1}`}
-              </button>
-            );
-          })}
+        {/* Selector de idioma (ES / EN / IT) */}
+        <div className="flex items-center bg-[#181b22] p-1 border border-white/10 rounded-none">
+          {(['es', 'en', 'it'] as const).map(lang => (
+            <button
+              key={lang}
+              onClick={() => onLanguageChange(lang)}
+              className={`px-2 py-0.5 text-[10px] font-display font-black uppercase transition-all rounded-none ${
+                language === lang
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              {lang}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* 3. TIRA DE CALENDARIO SEMANAL (L M M J V S D) - Filosa y limpia */}
       <div className="px-4 py-2">
