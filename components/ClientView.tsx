@@ -1345,43 +1345,42 @@ ${feedbackText || 'Sin comentarios.'}
       ) : (
         <>
           {/* ========================================================================= */}
-          {/* SUBVIEW 1: DASHBOARD (SEMANAS + CAJITAS DE ENFOQUES - Image 4)            */}
+          {/* SUBVIEW 1: CALENDAR DASHBOARD (TIRA SEMANAL + ENTRENAMIENTO DEL DÍA)      */}
           {/* ========================================================================= */}
           {viewMode === 'dashboard' && (
-            displayMode === 'calendar' ? (
-              <ClientCalendarView
-                routine={routine}
-                library={library}
-                completedSets={completedSets}
-                clientWeights={clientWeights}
-                clientReps={clientReps}
-                dayOverrides={dayOverrides}
-                onUpdateDayOverride={(dayKey, workoutIdOrRest) => {
-                  setDayOverrides(prev => {
-                    const next = { ...prev, [dayKey]: workoutIdOrRest };
-                    isDirtyRef.current = true;
-                    setSyncStatus('syncing');
-                    return next;
-                  });
-                }}
-                onSelectWorkout={(wkId) => {
-                  initAudio();
-                  setActiveWorkoutId(wkId);
-                  setViewMode('preview');
-                }}
-                onOpenClassicView={() => toggleDisplayMode('classic')}
-                activeWeekId={activeWeekId}
-                onChangeWeek={(wId) => {
-                  setActiveWeekId(wId);
+            <ClientCalendarView
+              routine={routine}
+              library={library}
+              completedSets={completedSets}
+              clientWeights={clientWeights}
+              clientReps={clientReps}
+              dayOverrides={dayOverrides}
+              onUpdateDayOverride={(dayKey, workoutIdOrRest) => {
+                setDayOverrides(prev => {
+                  const next = { ...prev, [dayKey]: workoutIdOrRest };
                   isDirtyRef.current = true;
-                }}
-                onUpdateStartDate={(newDate) => {
-                  routine.startDate = newDate;
-                  isDirtyRef.current = true;
-                  saveProgress(true);
-                }}
-              />
-            ) : (
+                  setSyncStatus('syncing');
+                  return next;
+                });
+              }}
+              onSelectWorkout={(wkId) => {
+                initAudio();
+                setActiveWorkoutId(wkId);
+                setViewMode('active');
+              }}
+              activeWeekId={activeWeekId}
+              onChangeWeek={(wId) => {
+                setActiveWeekId(wId);
+                isDirtyRef.current = true;
+              }}
+              onUpdateStartDate={(newDate) => {
+                routine.startDate = newDate;
+                isDirtyRef.current = true;
+                saveProgress(true);
+              }}
+            />
+          )}
+          {false && (
             <div className="max-w-xl mx-auto px-4 space-y-5 animate-in fade-in duration-300">
               {/* Botón para alternar a Vista Calendario */}
               <div className="flex justify-end pt-2">
@@ -1576,7 +1575,6 @@ ${feedbackText || 'Sin comentarios.'}
                 )}
               </div>
             </div>
-            )
           )}
 
           {/* ========================================================================= */}

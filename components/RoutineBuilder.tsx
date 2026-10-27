@@ -992,6 +992,15 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                       placeholder="EJ. PUSH PULL LEGS"
                     />
                   </div>
+                  <div className="flex-1 flex items-center gap-3">
+                    <span className="text-emerald-500 font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 px-3 py-1 rounded-lg">INICIO</span>
+                    <input
+                      type="date"
+                      className="flex-1 bg-transparent text-emerald-500 font-black text-xs lg:text-sm uppercase tracking-widest focus:outline-none border-b border-transparent focus:border-emerald-500/30 pb-0.5 font-mono"
+                      value={currentRoutine.startDate || ''}
+                      onChange={e => setCurrentRoutine({ ...currentRoutine, startDate: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <textarea
                   className="w-full bg-transparent text-slate-500 dark:text-slate-400 font-medium text-xs lg:text-sm focus:outline-none border-l-2 border-slate-100 dark:border-slate-800 pl-4 py-1 h-auto resize-none overflow-hidden"
@@ -1105,8 +1114,11 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                       className="w-full bg-slate-100 dark:bg-slate-900/50 px-8 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest border border-transparent focus:border-yellow-600 transition-all outline-none text-slate-950 dark:text-white appearance-none cursor-pointer shadow-inner"
                     >
                       {currentWeek.workouts.map((workout, idx) => {
+                        const dayNames = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+                        const dayPrefix = workout.dayOfWeek !== undefined ? `[${dayNames[workout.dayOfWeek]}] ` : '';
                         const hasPrefix = /^d[ií]a\s*\d+/i.test(workout.name.trim());
-                        const label = hasPrefix ? workout.name : `Día ${idx + 1} · ${workout.name}`;
+                        const baseLabel = hasPrefix ? workout.name : `Día ${idx + 1} · ${workout.name}`;
+                        const label = `${dayPrefix}${baseLabel}`;
                         return (
                           <option key={workout.id} value={workout.id}>{label}</option>
                         );
@@ -1148,6 +1160,37 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                         />
                       </div>
                     </div>
+
+                    {/* Asignación de Día de la Semana */}
+                    <div className="w-full sm:w-auto">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1.5 ml-1">
+                        Día asignado
+                      </label>
+                      <select
+                        value={currentWorkout.dayOfWeek !== undefined ? currentWorkout.dayOfWeek : ''}
+                        onChange={e => {
+                          const val = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                          setCurrentRoutine({
+                            ...currentRoutine,
+                            weeks: currentRoutine.weeks.map(w => w.id === currentWeek.id ? {
+                              ...w,
+                              workouts: w.workouts.map(wk => wk.id === currentWorkout.id ? { ...wk, dayOfWeek: val } : wk)
+                            } : w)
+                          });
+                        }}
+                        className="w-full sm:w-auto bg-slate-100 dark:bg-black/50 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-xs font-black uppercase text-yellow-500 tracking-wider focus:outline-none focus:border-yellow-500 transition-all cursor-pointer shadow-inner"
+                      >
+                        <option value="">Automático</option>
+                        <option value="0">Lunes</option>
+                        <option value="1">Martes</option>
+                        <option value="2">Miércoles</option>
+                        <option value="3">Jueves</option>
+                        <option value="4">Viernes</option>
+                        <option value="5">Sábado</option>
+                        <option value="6">Domingo</option>
+                      </select>
+                    </div>
+
                     <button
                       onClick={() => deleteWorkout(currentWeek.id, currentWorkout.id)}
                       className="p-3 text-red-400 hover:text-red-600 transition-all flex items-center gap-2 font-black text-[10px] uppercase shrink-0 self-end sm:self-center"

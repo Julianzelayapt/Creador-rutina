@@ -73,6 +73,7 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
     split: '',
     description: '',
     clientName: '',
+    startDate: new Date().toISOString().split('T')[0],
     image: SAMPLE_IMAGES[0]
   });
   const [customImageUrl, setCustomImageUrl] = useState('');
@@ -180,6 +181,16 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
               className="w-full px-6 py-4 bg-slate-50 dark:bg-black border border-white/10 rounded-none focus:border-yellow-400 outline-none transition-all font-bold text-slate-800 dark:text-white"
               value={formData.clientName}
               onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Fecha de Inicio del Plan</label>
+            <input
+              type="date"
+              className="w-full px-6 py-4 bg-slate-50 dark:bg-black border border-white/10 rounded-none focus:border-yellow-400 outline-none transition-all font-bold text-slate-800 dark:text-white font-mono"
+              value={formData.startDate}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
             />
           </div>
 

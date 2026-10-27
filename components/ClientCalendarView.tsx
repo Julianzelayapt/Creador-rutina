@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Routine, Workout, Exercise, TrainingSet } from '../types';
+import { Routine, Workout, Exercise } from '../types';
 import { getExerciseCoverImage, onYTThumbLoad, onYTThumbError } from './ClientView';
 
 interface ClientCalendarViewProps {
@@ -11,20 +11,19 @@ interface ClientCalendarViewProps {
   dayOverrides: Record<string, string>; // { "weekId_dayIndex": workoutId | 'rest' }
   onUpdateDayOverride: (dayKey: string, workoutIdOrRest: string) => void;
   onSelectWorkout: (workoutId: string) => void;
-  onOpenClassicView: () => void;
   activeWeekId: string | null;
   onChangeWeek: (weekId: string) => void;
   onUpdateStartDate?: (newDate: string) => void;
 }
 
 const DAYS_OF_WEEK = [
-  { shortName: 'L', fullName: 'Lunes', index: 0 },
-  { shortName: 'M', fullName: 'Martes', index: 1 },
-  { shortName: 'M', fullName: 'Miércoles', index: 2 },
-  { shortName: 'J', fullName: 'Jueves', index: 3 },
-  { shortName: 'V', fullName: 'Viernes', index: 4 },
-  { shortName: 'S', fullName: 'Sábado', index: 5 },
-  { shortName: 'D', fullName: 'Domingo', index: 6 },
+  { shortName: 'L', fullName: 'LUNES', index: 0 },
+  { shortName: 'M', fullName: 'MARTES', index: 1 },
+  { shortName: 'M', fullName: 'MIÉRCOLES', index: 2 },
+  { shortName: 'J', fullName: 'JUEVES', index: 3 },
+  { shortName: 'V', fullName: 'VIERNES', index: 4 },
+  { shortName: 'S', fullName: 'SÁBADO', index: 5 },
+  { shortName: 'D', fullName: 'DOMINGO', index: 6 },
 ];
 
 export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
@@ -34,7 +33,6 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
   dayOverrides,
   onUpdateDayOverride,
   onSelectWorkout,
-  onOpenClassicView,
   activeWeekId,
   onChangeWeek,
   onUpdateStartDate
@@ -55,7 +53,6 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
   }, [routine.weeks, currentWeek]);
 
   // 2. Cálculo de fechas a partir de startDate
-  // Si no hay startDate guardada en la rutina, usamos el lunes de la semana actual como base
   const baseStartDate = useMemo(() => {
     if (routine.startDate) {
       const parts = routine.startDate.split('-').map(Number);
@@ -63,20 +60,19 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
         return new Date(parts[0], parts[1] - 1, parts[2]);
       }
     }
-    // Fallback: lunes de la semana actual
     const today = new Date();
-    const day = today.getDay(); // 0 is Sunday, 1 is Monday...
+    const day = today.getDay();
     const diff = today.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(today.setDate(diff));
     monday.setHours(0, 0, 0, 0);
     return monday;
   }, [routine.startDate]);
 
-  // Detección de qué día es hoy en relación al índice 0..6 (0=Lunes, 6=Domingo)
+  // Detección del día actual
   const todayInfo = useMemo(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    const dayOfWeek = (now.getDay() + 6) % 7; // Convertir 0=Dom a 0=Lun, 6=Dom
+    const dayOfWeek = (now.getDay() + 6) % 7; // 0=Lunes, 6=Domingo
     return {
       date: now,
       dayOfWeekIndex: dayOfWeek,
@@ -84,25 +80,19 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
     };
   }, []);
 
-  // 3. Día seleccionado actualmente en el calendario semanal (0 a 6)
+  // Día seleccionado actualmente (0 a 6)
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
     return todayInfo.dayOfWeekIndex;
   });
 
-  // Modal para cambiar el entrenamiento del día
-  const [showSwapModal, setShowSwapModal] = useState<boolean>(false);
-  // Modal / selector de fecha de inicio
-  const [showStartDateModal, setShowStartDateModal] = useState<boolean>(false);
-  const [tempStartDate, setTempStartDate] = useState<string>(
-    routine.startDate || todayInfo.formattedStr
-  );
+  // Modal para MOVER DE DÍA la sesión
+  const [showMoveModal, setShowMoveModal] = useState<boolean>(false);
 
-  // 4. Calcular las fechas de los 7 días de la semana activa
+  // 3. Mapeo de entrenamientos para los 7 días de la semana activa
   const weekDaysData = useMemo(() => {
     if (!currentWeek) return [];
 
     return DAYS_OF_WEEK.map((d, index) => {
-      // Fecha = baseStartDate + (currentWeekIndex * 7) + index
       const dayDate = new Date(baseStartDate);
       dayDate.setDate(baseStartDate.getDate() + (currentWeekIndex * 7) + index);
 
@@ -111,8 +101,6 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
         dayDate.getMonth() === todayInfo.date.getMonth() &&
         dayDate.getDate() === todayInfo.date.getDate();
 
-      // Determinar qué entrenamiento corresponde a este día:
-      // a) Revisar override específico del cliente
       const dayKey = `${currentWeek.id}_${index}`;
       const overrideVal = dayOverrides[dayKey];
 
@@ -122,27 +110,23 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
       if (overrideVal === 'rest') {
         isExplicitRest = true;
       } else if (overrideVal) {
-        // Encontrar el workout en la rutina
-        assignedWorkout = currentWeek.workouts.find(w => w.id === overrideVal) ||
-          routine.weeks.flatMap(w => w.workouts).find(w => w.id === overrideVal) || null;
+        assignedWorkout =
+          currentWeek.workouts.find(w => w.id === overrideVal) ||
+          routine.weeks.flatMap(w => w.workouts).find(w => w.id === overrideVal) ||
+          null;
       } else {
-        // b) Si no hay override, buscar asignación por dayOfWeek
         const matchingWorkout = currentWeek.workouts.find(w => w.dayOfWeek === index);
         if (matchingWorkout) {
           assignedWorkout = matchingWorkout;
         } else {
-          // c) Si los workouts no tienen dayOfWeek asignado, mapear secuencialmente los primeros workouts
-          // Ej: Si hay 3 entrenamientos en la semana, ponerlos por defecto en Lunes (0), Miércoles (2), Viernes (4)
-          // O si hay N entrenamientos, distribuirlos
           const unassignedWorkouts = currentWeek.workouts.filter(w => w.dayOfWeek === undefined);
           if (unassignedWorkouts.length > 0) {
-            // Mapeo sugerido por cantidad de días
             let defaultIndexMap: number[] = [];
-            if (unassignedWorkouts.length === 1) defaultIndexMap = [0]; // Lun
-            else if (unassignedWorkouts.length === 2) defaultIndexMap = [1, 3]; // Mar, Jue
-            else if (unassignedWorkouts.length === 3) defaultIndexMap = [0, 2, 4]; // Lun, Mie, Vie
-            else if (unassignedWorkouts.length === 4) defaultIndexMap = [0, 1, 3, 5]; // Lun, Mar, Jue, Sab
-            else if (unassignedWorkouts.length === 5) defaultIndexMap = [0, 1, 2, 3, 4]; // Lun a Vie
+            if (unassignedWorkouts.length === 1) defaultIndexMap = [0];
+            else if (unassignedWorkouts.length === 2) defaultIndexMap = [1, 3];
+            else if (unassignedWorkouts.length === 3) defaultIndexMap = [0, 2, 4];
+            else if (unassignedWorkouts.length === 4) defaultIndexMap = [0, 1, 3, 5];
+            else if (unassignedWorkouts.length === 5) defaultIndexMap = [0, 1, 2, 3, 4];
             else defaultIndexMap = [0, 1, 2, 3, 4, 5];
 
             const foundWkPos = defaultIndexMap.indexOf(index);
@@ -153,7 +137,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
         }
       }
 
-      // Calcular si el entrenamiento está completado
+      // Cálculo de completado
       let isCompleted = false;
       let totalSets = 0;
       let doneSets = 0;
@@ -172,7 +156,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
         ...d,
         dateObj: dayDate,
         dayNumber: dayDate.getDate(),
-        monthShort: dayDate.toLocaleDateString('es-ES', { month: 'short' }),
+        monthShort: dayDate.toLocaleDateString('es-ES', { month: 'short' }).toUpperCase(),
         isToday,
         isExplicitRest,
         assignedWorkout,
@@ -184,10 +168,9 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
     });
   }, [currentWeek, baseStartDate, currentWeekIndex, todayInfo, dayOverrides, routine.weeks, completedSets]);
 
-  // Datos del día seleccionado
   const selectedDayData = weekDaysData[selectedDayIndex] || weekDaysData[0];
 
-  // 5. Estadísticas de progreso global de la rutina
+  // 4. Progreso global limpio
   const globalProgress = useMemo(() => {
     let totalSets = 0;
     let completed = 0;
@@ -202,15 +185,14 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
       });
     });
     const percent = totalSets > 0 ? Math.round((completed / totalSets) * 100) : 0;
-    return { totalSets, completed, percent };
+    return { percent };
   }, [routine.weeks, completedSets]);
 
-  // Imagen de portada del entrenamiento seleccionado
+  // Imagen de portada del entrenamiento
   const workoutCoverImage = useMemo(() => {
     if (!selectedDayData?.assignedWorkout) return null;
     const wk = selectedDayData.assignedWorkout;
     if (wk.image) return wk.image;
-    // Buscar thumbnail del primer ejercicio con video o grupo muscular
     if (wk.exercises && wk.exercises.length > 0) {
       const firstLibEx = library.find(l => l.id === wk.exercises[0].libraryExerciseId);
       if (firstLibEx) {
@@ -220,65 +202,78 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
     return routine.image || null;
   }, [selectedDayData, library, routine.image]);
 
-  const handleApplyStartDate = () => {
-    if (onUpdateStartDate && tempStartDate) {
-      onUpdateStartDate(tempStartDate);
+  // Función para mover la sesión a otro día o intercambiarla
+  const handleMoveWorkoutToDay = (targetDayIndex: number) => {
+    if (!currentWeek) return;
+
+    const sourceDayIndex = selectedDayIndex;
+    if (sourceDayIndex === targetDayIndex) {
+      setShowMoveModal(false);
+      return;
     }
-    setShowStartDateModal(false);
+
+    const sourceDayKey = `${currentWeek.id}_${sourceDayIndex}`;
+    const targetDayKey = `${currentWeek.id}_${targetDayIndex}`;
+
+    const sourceWorkout = selectedDayData.assignedWorkout;
+    const targetDayData = weekDaysData[targetDayIndex];
+    const targetWorkout = targetDayData.assignedWorkout;
+
+    if (sourceWorkout) {
+      onUpdateDayOverride(targetDayKey, sourceWorkout.id);
+      if (targetWorkout) {
+        onUpdateDayOverride(sourceDayKey, targetWorkout.id);
+      } else {
+        onUpdateDayOverride(sourceDayKey, 'rest');
+      }
+    } else {
+      if (targetWorkout) {
+        onUpdateDayOverride(sourceDayKey, targetWorkout.id);
+        onUpdateDayOverride(targetDayKey, 'rest');
+      }
+    }
+
+    setSelectedDayIndex(targetDayIndex);
+    setShowMoveModal(false);
   };
+
+  const clientFirstName = routine.clientName ? routine.clientName.trim().split(' ')[0].toUpperCase() : 'ATLETA';
 
   return (
     <div className="min-h-screen bg-black text-white pb-24 max-w-md mx-auto relative select-none">
       
-      {/* 1. TOP HEADER: Saludo + Selector de Semana + Vista Clásica */}
-      <div className="pt-6 px-4 pb-3 flex items-center justify-between">
-        <div>
-          <span className="text-xs uppercase tracking-widest text-zinc-400 font-semibold">
-            Plan de Entrenamiento
-          </span>
-          <h1 className="text-2xl font-black tracking-tight text-white">
-            ¡Hola, {routine.clientName ? routine.clientName.split(' ')[0] : 'Atleta'}! 👋
-          </h1>
-        </div>
-
-        {/* Botón para alternar a vista de lista clásica */}
-        <button
-          onClick={onOpenClassicView}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 border border-white/10 transition-colors shadow-sm"
-          title="Ver vista lista tradicional"
-        >
-          <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-          </svg>
-          <span>Lista</span>
-        </button>
+      {/* 1. TOP HEADER: ¡HOLA, NOMBRE! */}
+      <div className="pt-6 px-4 pb-2">
+        <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-white uppercase">
+          ¡HOLA, {clientFirstName}!
+        </h1>
       </div>
 
-      {/* 2. SELECTOR DE SEMANA (Chips deslizables) */}
+      {/* 2. SELECTOR DE SEMANAS (Filoso, rounded-none) */}
       {routine.weeks.length > 1 && (
-        <div className="px-4 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div className="px-4 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           {routine.weeks.map((w, idx) => {
             const isWeekActive = currentWeek?.id === w.id;
             return (
               <button
                 key={w.id}
                 onClick={() => onChangeWeek(w.id)}
-                className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-3.5 py-1.5 rounded-none text-xs font-display font-black uppercase tracking-wider whitespace-nowrap transition-all ${
                   isWeekActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                    : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-white/5'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-[#181b22] text-zinc-400 hover:bg-[#20242e]'
                 }`}
               >
-                {w.name || `Semana ${idx + 1}`}
+                {w.name ? w.name.toUpperCase() : `SEMANA ${idx + 1}`}
               </button>
             );
           })}
         </div>
       )}
 
-      {/* 3. TIRA DE CALENDARIO SEMANAL (L M M J V S D) */}
-      <div className="px-4 py-3">
-        <div className="bg-zinc-900/90 border border-white/10 rounded-2xl p-3 shadow-xl backdrop-blur-sm">
+      {/* 3. TIRA DE CALENDARIO SEMANAL (L M M J V S D) - Filosa y limpia */}
+      <div className="px-4 py-2">
+        <div className="bg-[#181b22] rounded-none p-2.5">
           <div className="grid grid-cols-7 gap-1">
             {weekDaysData.map((dayItem, idx) => {
               const isSelected = selectedDayIndex === idx;
@@ -290,50 +285,50 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
                 <button
                   key={idx}
                   onClick={() => setSelectedDayIndex(idx)}
-                  className={`flex flex-col items-center py-2.5 px-1 rounded-xl transition-all relative ${
+                  className={`flex flex-col items-center py-2.5 px-0.5 rounded-none transition-all relative ${
                     isSelected
-                      ? 'bg-white text-black shadow-lg scale-105 font-bold z-10'
+                      ? 'bg-white text-black font-black'
                       : isToday
-                      ? 'bg-zinc-800 text-white border border-blue-500/60'
-                      : 'text-zinc-400 hover:bg-zinc-800/60'
+                      ? 'bg-[#20242e] text-blue-400 font-bold'
+                      : 'text-zinc-400 hover:bg-zinc-900'
                   }`}
                 >
-                  {/* Letra del día (L, M, M, J, V, S, D) */}
-                  <span className={`text-[11px] font-bold uppercase mb-1 ${
-                    isSelected ? 'text-zinc-700' : isToday ? 'text-blue-400 font-extrabold' : 'text-zinc-500'
+                  {/* Letra del día */}
+                  <span className={`text-[10px] font-display font-black uppercase mb-1 ${
+                    isSelected ? 'text-zinc-700' : isToday ? 'text-blue-400' : 'text-zinc-500'
                   }`}>
                     {dayItem.shortName}
                   </span>
 
-                  {/* Círculo con número o Checkmark de completado */}
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full transition-transform">
+                  {/* Número de día o Tilde si completó */}
+                  <div className="w-7 h-7 flex items-center justify-center">
                     {isDone ? (
-                      <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-sm">
-                        <svg className="w-4 h-4 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-6 h-6 bg-blue-600 flex items-center justify-center text-white">
+                        <svg className="w-3.5 h-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
                     ) : (
-                      <span className={`text-sm ${isSelected ? 'font-black text-black' : 'font-semibold text-zinc-200'}`}>
+                      <span className={`text-sm ${isSelected ? 'font-black text-black' : 'font-bold text-zinc-200'}`}>
                         {dayItem.dayNumber}
                       </span>
                     )}
                   </div>
 
-                  {/* Dot indicador debajo */}
-                  <div className="h-1.5 flex items-center justify-center mt-1">
+                  {/* Dot debajo */}
+                  <div className="h-1 flex items-center justify-center mt-1">
                     {hasWk ? (
-                      <div className={`w-1.5 h-1.5 rounded-full ${
+                      <div className={`w-1.5 h-1.5 ${
                         isDone
                           ? 'bg-blue-500'
                           : isSelected
                           ? 'bg-blue-600'
                           : isToday
-                          ? 'bg-blue-400 animate-pulse'
+                          ? 'bg-blue-400'
                           : 'bg-zinc-500'
                       }`} />
                     ) : (
-                      <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-zinc-400' : 'bg-transparent'}`} />
+                      <div className="w-1.5 h-1.5 bg-transparent" />
                     )}
                   </div>
                 </button>
@@ -341,91 +336,72 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
             })}
           </div>
 
-          {/* Subtítulo con fecha seleccionada y botón de configurar fecha de inicio */}
-          <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-400">
-            <span className="capitalize font-medium">
-              {selectedDayData.fullName} {selectedDayData.dayNumber} de {selectedDayData.monthShort}
-              {selectedDayData.isToday && (
-                <span className="ml-1.5 text-blue-400 font-bold bg-blue-500/10 px-1.5 py-0.5 rounded text-[10px]">
-                  HOY
-                </span>
-              )}
+          {/* Subtítulo limpio: Fecha del día seleccionado */}
+          <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-display uppercase tracking-wider text-zinc-400">
+            <span>
+              {selectedDayData.fullName} {selectedDayData.dayNumber} DE {selectedDayData.monthShort}
             </span>
-
-            <button
-              onClick={() => setShowStartDateModal(true)}
-              className="text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors"
-              title="Ajustar fecha de inicio del programa"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>Ajustar fecha</span>
-            </button>
+            {selectedDayData.isToday && (
+              <span className="text-blue-400 font-black">
+                HOY
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 4. BANNER DE PROGRESO DEL PROGRAMA */}
+      {/* 4. BANNER DE PROGRESO DEL PROGRAMA: Limpio, mayúsculas, sin texto innecesario */}
       <div className="px-4 py-2">
-        <div className="bg-gradient-to-r from-zinc-900 to-zinc-900/80 border border-white/10 rounded-2xl p-4 shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-blue-400">
-                {routine.name || 'Programa Activo'}
-              </span>
-              <div className="flex items-baseline gap-2 mt-0.5">
-                <span className="text-2xl font-black text-white">
-                  {globalProgress.percent}%
-                </span>
-                <span className="text-xs text-zinc-400 font-medium">
-                  {currentWeek?.name || `Semana ${currentWeekIndex + 1}`} de {routine.weeks.length}
-                </span>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <span className="text-xs font-semibold text-zinc-300">
-                {globalProgress.completed} de {globalProgress.totalSets} series
-              </span>
-              <p className="text-[10px] text-zinc-500">¡Gran ritmo de progreso!</p>
-            </div>
+        <div className="bg-[#181b22] rounded-none p-4">
+          <div className="text-[10px] font-display font-black text-blue-500 uppercase tracking-widest">
+            {routine.name ? routine.name.toUpperCase() : 'RUTINA'}
           </div>
 
-          {/* Barra de progreso visual */}
-          <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+          <div className="flex items-baseline gap-2.5 mt-1 mb-2.5">
+            <span className="text-3xl font-display font-black text-white">
+              {globalProgress.percent}%
+            </span>
+            <span className="text-xs font-display font-black text-zinc-400 uppercase tracking-wider">
+              SEMANA {currentWeekIndex + 1} DE {routine.weeks.length}
+            </span>
+          </div>
+
+          {/* Barra de progreso azul limpia */}
+          <div className="w-full bg-[#121212] h-2 rounded-none overflow-hidden">
             <div
-              className="bg-blue-600 h-full rounded-full transition-all duration-500 shadow-sm shadow-blue-500/50"
+              className="bg-blue-600 h-full rounded-none transition-all duration-500"
               style={{ width: `${Math.max(globalProgress.percent, 3)}%` }}
             />
           </div>
         </div>
       </div>
 
-      {/* 5. SECCIÓN DE ENTRENAMIENTO DEL DÍA / DÍA DE DESCANSO */}
-      <div className="px-4 py-3 space-y-3">
+      {/* 5. TARJETA DEL DÍA: ESTILO DE LA FOTO (BADGE COMPLETED + FLECHA A LA DERECHA) */}
+      <div className="px-4 py-3 space-y-2">
+        
         <div className="flex items-center justify-between">
-          <h2 className="text-xs uppercase font-extrabold tracking-wider text-zinc-400">
-            {selectedDayData.hasWorkout ? 'Entrenamiento Programado' : 'Día de Recuperación'}
+          <h2 className="text-[11px] font-display font-black uppercase tracking-wider text-zinc-400">
+            {selectedDayData.hasWorkout ? 'PROGRAM WORKOUTS' : 'RECUPERACIÓN'}
           </h2>
 
-          {/* Botón de opciones (...) para cambiar de entrenamiento */}
           <button
-            onClick={() => setShowSwapModal(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 border border-white/10 transition-colors"
+            onClick={() => setShowMoveModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1 bg-[#181b22] hover:bg-[#20242e] text-[11px] font-display font-black uppercase tracking-wider text-zinc-300 rounded-none transition-colors"
           >
-            <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
             </svg>
-            <span>Cambiar sesión</span>
+            <span>{selectedDayData.hasWorkout ? 'Mover de día' : 'Traer sesión a hoy'}</span>
           </button>
         </div>
 
-        {/* CASO A: TIENE ENTRENAMIENTO PROGRAMADO */}
+        {/* CASO A: DÍA CON ENTRENAMIENTO (DISEÑO IDÉNTICO A LA FOTO) */}
         {selectedDayData.hasWorkout && selectedDayData.assignedWorkout ? (
-          <div className="bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative group">
-            
-            {/* Foto de portada del entrenamiento */}
+          <div
+            onClick={() => onSelectWorkout(selectedDayData.assignedWorkout!.id)}
+            className="bg-[#181b22] rounded-none overflow-hidden cursor-pointer active:scale-[0.99] transition-all group shadow-xl"
+          >
+            {/* Foto de portada */}
             <div className="relative aspect-[16/10] w-full bg-zinc-950 overflow-hidden">
               {workoutCoverImage ? (
                 <img
@@ -436,35 +412,37 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
                   onError={onYTThumbError()}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
-                  <svg className="w-16 h-16 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                  <svg className="w-14 h-14 text-zinc-700" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43 1.43 1.43 2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43 1.43-1.43zM4.57 5.57l1.43-1.43 1.43 1.43-1.43 1.43-1.43-1.43zm13.86 13.86l-1.43 1.43-1.43-1.43 1.43-1.43 1.43 1.43z" />
                   </svg>
                 </div>
               )}
 
-              {/* Degradado para legibilidad */}
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
+              {/* Degradado para contraste */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30" />
 
-              {/* Badges superiores: Estado (Completado / Por hacer) */}
-              <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+              {/* Badge superior izquierdo: COMPLETED en azul cuando está terminado */}
+              <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between z-10">
                 {selectedDayData.isCompleted ? (
-                  <span className="px-3 py-1 rounded-full bg-blue-600/90 text-white text-[11px] font-black uppercase tracking-wider backdrop-blur-md shadow-md flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Completado
+                  <span className="px-3.5 py-1.5 bg-blue-600 text-white text-[11px] font-display font-black uppercase tracking-wider rounded-none shadow-md">
+                    COMPLETED
                   </span>
                 ) : (
-                  <span className="px-3 py-1 rounded-full bg-black/60 text-zinc-300 text-[11px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/10">
-                    {selectedDayData.isToday ? 'Programado para hoy' : 'Próxima sesión'}
+                  <span className="px-3 py-1 bg-black/70 backdrop-blur-md text-zinc-300 text-[10px] font-display font-black uppercase tracking-wider rounded-none">
+                    {selectedDayData.isToday ? 'HOY' : 'PROGRAMADO'}
                   </span>
                 )}
 
-                {/* Botón de 3 puntos */}
+                {/* Botón de 3 puntos (...) para opciones / mover */}
                 <button
-                  onClick={() => setShowSwapModal(true)}
-                  className="w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md flex items-center justify-center text-white border border-white/10 transition-colors"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMoveModal(true);
+                  }}
+                  className="w-9 h-9 bg-black/70 hover:bg-black/90 backdrop-blur-md flex items-center justify-center text-white rounded-none transition-colors"
+                  title="Mover sesión de día"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="2" />
@@ -474,244 +452,150 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
                 </button>
               </div>
 
-              {/* Datos en la base de la imagen */}
-              <div className="absolute bottom-3 left-3 right-3">
-                <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
-                  {selectedDayData.fullName} · {selectedDayData.assignedWorkout.exercises?.length || 0} ejercicios
-                </span>
-                <h3 className="text-xl font-black text-white tracking-tight">
-                  {selectedDayData.assignedWorkout.name || 'Sesión de Entrenamiento'}
-                </h3>
+              {/* Botón circular con flecha a la derecha (→) EXACTO COMO EN LA FOTO */}
+              <div className="absolute bottom-3.5 right-3.5 z-10">
+                <div className="w-10 h-10 bg-white group-hover:bg-zinc-200 text-black flex items-center justify-center rounded-none shadow-xl transition-transform group-hover:scale-105">
+                  <svg className="w-5 h-5 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </div>
               </div>
             </div>
 
-            {/* Contenido de la tarjeta */}
-            <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between text-xs text-zinc-400">
-                <div className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  <span>{selectedDayData.totalSets} series programadas</span>
-                </div>
-
-                {selectedDayData.doneSets > 0 && (
-                  <span className="font-semibold text-blue-400">
-                    {selectedDayData.doneSets} / {selectedDayData.totalSets} completadas
-                  </span>
-                )}
-              </div>
-
-              {/* Botón principal de acción: Iniciar / Continuar / Revisar */}
-              <button
-                onClick={() => onSelectWorkout(selectedDayData.assignedWorkout!.id)}
-                className={`w-full py-3.5 px-6 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl transition-all active:scale-[0.98] ${
-                  selectedDayData.isCompleted
-                    ? 'bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10'
-                    : 'bg-white hover:bg-zinc-200 text-black shadow-white/10'
-                }`}
-              >
-                <span>
-                  {selectedDayData.isCompleted
-                    ? 'Ver Resumen de la Sesión'
-                    : selectedDayData.doneSets > 0
-                    ? 'Continuar Entrenamiento'
-                    : 'Iniciar Entrenamiento'}
-                </span>
-                <svg className="w-4 h-4 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </button>
+            {/* Texto inferior de la carta (Título y detalle) */}
+            <div className="p-4">
+              <h3 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight uppercase group-hover:text-blue-400 transition-colors">
+                {selectedDayData.assignedWorkout.name || 'SESIÓN DE ENTRENAMIENTO'}
+              </h3>
+              <p className="text-xs text-zinc-400 font-display font-bold uppercase tracking-wider mt-1">
+                {selectedDayData.fullName} • {selectedDayData.dayNumber} DE {selectedDayData.monthShort} • {selectedDayData.assignedWorkout.exercises?.length || 0} EJERCICIOS
+              </p>
             </div>
           </div>
         ) : (
-          /* CASO B: DÍA DE DESCANSO AUTOMÁTICO O EXPLICITO */
-          <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border border-white/10 rounded-2xl p-6 text-center space-y-4 shadow-xl">
-            <div className="w-16 h-16 mx-auto rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-inner">
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          /* CASO B: DÍA DE DESCANSO */
+          <div className="bg-[#181b22] rounded-none p-6 text-center space-y-3">
+            <div className="w-12 h-12 mx-auto bg-zinc-900 flex items-center justify-center text-blue-400">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
             </div>
 
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">
-                Recuperación Activa
+              <span className="text-[10px] font-display font-black uppercase tracking-widest text-blue-400">
+                RECUPERACIÓN ACTIVA
               </span>
-              <h3 className="text-xl font-black text-white mt-0.5">
-                Hoy toca Descanso
+              <h3 className="text-lg font-display font-black text-white uppercase mt-0.5">
+                HOY TOCA DESCANSO
               </h3>
-              <p className="text-xs text-zinc-400 mt-2 leading-relaxed max-w-xs mx-auto">
-                El descanso es fundamental para la hipertrofia y recuperación muscular. Hidratate bien, descansá y preparate para romperla en tu próxima sesión.
+              <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto">
+                Día de recuperación muscular. Si querés entrenar hoy, podés pasar una sesión de otro día a esta fecha.
               </p>
             </div>
 
-            <div className="pt-2 border-t border-white/5">
+            <div className="pt-2">
               <button
-                onClick={() => setShowSwapModal(true)}
-                className="w-full py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition-all border border-white/10 flex items-center justify-center gap-2"
+                onClick={() => setShowMoveModal(true)}
+                className="w-full py-3 px-4 bg-[#20242e] hover:bg-zinc-800 text-white font-display font-black text-xs uppercase tracking-wider rounded-none transition-colors flex items-center justify-center gap-2"
               >
-                <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
-                <span>¿Vas a entrenar hoy? Elegir entrenamiento</span>
+                <span>MOVER UNA SESIÓN A HOY</span>
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* 6. MODAL INTERACTIVO: CAMBIAR / MOVER ENTRENAMIENTO DEL DÍA */}
-      {showSwapModal && (
+      {/* 6. MODAL: MOVER SESIÓN DE DÍA (Filoso, rounded-none) */}
+      {showMoveModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-white/10 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto">
+          <div className="bg-[#181b22] rounded-none max-w-md w-full p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div>
-                <span className="text-[10px] uppercase font-extrabold text-blue-400 tracking-wider">
-                  Mover / Ajustar Calendario
+                <span className="text-[10px] font-display font-black text-blue-400 uppercase tracking-widest">
+                  MOVER CALENDARIO
                 </span>
-                <h3 className="text-lg font-black text-white">
-                  ¿Qué querés hacer este {selectedDayData.fullName}?
+                <h3 className="text-base sm:text-lg font-display font-black text-white uppercase">
+                  {selectedDayData.hasWorkout
+                    ? `PASAR ${selectedDayData.assignedWorkout?.name?.toUpperCase()} A OTRO DÍA`
+                    : `MOVER UNA SESIÓN A ESTE ${selectedDayData.fullName}`}
                 </h3>
               </div>
               <button
-                onClick={() => setShowSwapModal(false)}
-                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white"
+                onClick={() => setShowMoveModal(false)}
+                className="w-8 h-8 bg-zinc-900 flex items-center justify-center text-zinc-400 hover:text-white rounded-none"
               >
                 ✕
               </button>
             </div>
 
             <p className="text-xs text-zinc-400">
-              Podés mover una sesión de esta semana a hoy si tenés disponibilidad, o marcar este día como descanso.
+              {selectedDayData.hasWorkout
+                ? 'Elegí a qué día de la semana querés mover este entrenamiento. Si el día de destino ya tenía otra sesión, se intercambiarán automáticamente.'
+                : 'Elegí qué sesión de la semana querés traer para realizar este día:'}
             </p>
 
-            {/* Opciones de entrenamientos disponibles */}
-            <div className="space-y-2 pt-1">
-              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
-                Sesiones disponibles de la semana:
-              </span>
+            {/* Lista de los 7 días para mover */}
+            <div className="space-y-1.5 pt-1">
+              {weekDaysData.map((targetDay) => {
+                const isCurrent = targetDay.index === selectedDayIndex;
+                const targetWkName = targetDay.hasWorkout && targetDay.assignedWorkout
+                  ? targetDay.assignedWorkout.name.toUpperCase()
+                  : 'DESCANSO';
 
-              {currentWeek?.workouts.map(wk => {
-                const isCurrentlyAssigned = selectedDayData.assignedWorkout?.id === wk.id;
                 return (
                   <button
-                    key={wk.id}
-                    onClick={() => {
-                      const dayKey = `${currentWeek.id}_${selectedDayIndex}`;
-                      onUpdateDayOverride(dayKey, wk.id);
-                      setShowSwapModal(false);
-                    }}
-                    className={`w-full p-3.5 rounded-xl border flex items-center justify-between text-left transition-all ${
-                      isCurrentlyAssigned
-                        ? 'bg-blue-600/20 border-blue-500 text-white'
-                        : 'bg-zinc-800/80 hover:bg-zinc-700/80 border-white/10 text-zinc-200'
+                    key={targetDay.index}
+                    disabled={isCurrent}
+                    onClick={() => handleMoveWorkoutToDay(targetDay.index)}
+                    className={`w-full p-3 rounded-none flex items-center justify-between text-left transition-all ${
+                      isCurrent
+                        ? 'bg-zinc-900/40 text-zinc-600 cursor-not-allowed'
+                        : 'bg-[#20242e] hover:bg-zinc-800 text-white'
                     }`}
                   >
                     <div>
-                      <h4 className="text-sm font-bold text-white">{wk.name}</h4>
-                      <span className="text-[11px] text-zinc-400">
-                        {wk.exercises?.length || 0} ejercicios programados
+                      <div className="flex items-center gap-2">
+                        <span className="font-display font-black text-sm text-white uppercase">
+                          {targetDay.fullName} {targetDay.dayNumber}
+                        </span>
+                        {targetDay.isToday && (
+                          <span className="text-[9px] font-display font-black text-blue-400 bg-blue-500/20 px-1 py-0.2 rounded-none">
+                            HOY
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-zinc-400 font-display uppercase tracking-wide block mt-0.5">
+                        {isCurrent ? 'DÍA ACTUAL DE ESTA SESIÓN' : `Actualmente: ${targetWkName}`}
                       </span>
                     </div>
 
-                    {isCurrentlyAssigned ? (
-                      <span className="text-xs font-bold text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded">
-                        Asignado hoy
-                      </span>
-                    ) : (
-                      <span className="text-xs font-semibold text-zinc-400 group-hover:text-white">
-                        Seleccionar →
+                    {!isCurrent && (
+                      <span className="text-xs font-display font-black text-blue-400 uppercase">
+                        MOVER ACÁ →
                       </span>
                     )}
                   </button>
                 );
               })}
-
-              {/* Opción de Marcar como Descanso */}
-              <button
-                onClick={() => {
-                  const dayKey = `${currentWeek?.id}_${selectedDayIndex}`;
-                  onUpdateDayOverride(dayKey, 'rest');
-                  setShowSwapModal(false);
-                }}
-                className={`w-full p-3.5 rounded-xl border flex items-center justify-between text-left transition-all ${
-                  !selectedDayData.hasWorkout
-                    ? 'bg-blue-600/20 border-blue-500 text-white'
-                    : 'bg-zinc-800/50 hover:bg-zinc-800 border-white/5 text-zinc-400'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-base">🛌</span>
-                  <div>
-                    <h4 className="text-sm font-bold text-white">Marcar como Día de Descanso</h4>
-                    <span className="text-[11px] text-zinc-400">No entrenar en esta fecha</span>
-                  </div>
-                </div>
-
-                {!selectedDayData.hasWorkout && (
-                  <span className="text-xs font-bold text-blue-400">Activo</span>
-                )}
-              </button>
             </div>
 
             <div className="pt-2">
               <button
-                onClick={() => setShowSwapModal(false)}
-                className="w-full py-2.5 rounded-xl bg-zinc-800 text-zinc-300 font-bold text-xs hover:bg-zinc-700 transition-colors"
+                onClick={() => setShowMoveModal(false)}
+                className="w-full py-3 bg-zinc-900 text-zinc-400 font-display font-black text-xs uppercase tracking-wider rounded-none hover:bg-zinc-800 transition-colors"
               >
-                Cerrar
+                CANCELAR
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 7. MODAL: AJUSTAR FECHA DE INICIO DE LA RUTINA */}
-      {showStartDateModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-white/10 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
-            <div>
-              <span className="text-[10px] uppercase font-extrabold text-blue-400 tracking-wider">
-                Configuración del Calendario
-              </span>
-              <h3 className="text-lg font-black text-white mt-0.5">
-                Fecha de Inicio del Plan
-              </h3>
-              <p className="text-xs text-zinc-400 mt-1">
-                Elegí qué día comenzó (o comienza) la Semana 1 de esta rutina para sincronizar las fechas reales.
-              </p>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
-                Fecha (Día de inicio)
-              </label>
-              <input
-                type="date"
-                value={tempStartDate}
-                onChange={e => setTempStartDate(e.target.value)}
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 font-medium"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                onClick={() => setShowStartDateModal(false)}
-                className="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 font-bold text-xs hover:bg-zinc-700 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleApplyStartDate}
-                className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
-              >
-                Guardar Fecha
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* FIN MODAL MOVER SESIÓN */}
 
     </div>
   );
