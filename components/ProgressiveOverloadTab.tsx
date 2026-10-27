@@ -47,14 +47,15 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
     return translations[language][key] || key;
   };
 
-  // Extraer ejercicios únicos de la rutina
-  const uniqueExerciseIds = Array.from(new Set(
-    routine.weeks.flatMap(week =>
+  // Extraer ejercicios únicos de la rutina incluyendo cualquier ejercicio suplente/alternativo con registros en snapshots
+  const uniqueExerciseIds = Array.from(new Set([
+    ...routine.weeks.flatMap(week =>
       week.workouts.flatMap(workout =>
         workout.exercises.map(entry => entry.libraryExerciseId)
       )
-    )
-  ));
+    ),
+    ...Object.values(weeklySnapshots).flatMap(weekSnap => Object.keys(weekSnap || {}))
+  ]));
 
   const [selectedExId, setSelectedExId] = useState<string>(uniqueExerciseIds[0] || '');
 

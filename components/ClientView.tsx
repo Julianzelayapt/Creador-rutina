@@ -364,7 +364,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         forClient: 'Para',
         noExercises: 'Sin ejercicios',
         series: 'series',
-        watchVideo: 'Ver video instructivo'
+        watchVideo: 'Ver video instructivo',
+        coachTipTitle: 'Tip del coach:',
+        noRecord: 'Sin registro',
+        ratingRequired: 'Por favor selecciona una puntuación con las estrellas.'
       },
       en: {
         training: 'Training',
@@ -432,7 +435,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         forClient: 'For',
         noExercises: 'No exercises',
         series: 'sets',
-        watchVideo: 'Watch instructional video'
+        watchVideo: 'Watch instructional video',
+        coachTipTitle: "Coach's tip:",
+        noRecord: 'No logs yet',
+        ratingRequired: 'Please select a rating with the stars.'
       },
       it: {
         training: 'Allenamento',
@@ -500,7 +506,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         forClient: 'Per',
         noExercises: 'Senza esercizi',
         series: 'serie',
-        watchVideo: 'Guarda video istruttivo'
+        watchVideo: 'Guarda video istruttivo',
+        coachTipTitle: 'Consiglio del coach:',
+        noRecord: 'Nessuna registrazione',
+        ratingRequired: 'Seleziona una valutazione con le stelle.'
       }
     };
     return translations[language]?.[key] || translations['es']?.[key] || key;
@@ -662,11 +671,16 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     if (week) {
       week.workouts.forEach(workout => {
         workout.exercises.forEach(entry => {
+          const effectiveExId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
+          const isReplaced = effectiveExId !== entry.libraryExerciseId;
           let maxKg = 0;
           let hasSets = false;
           entry.sets.forEach(set => {
-            if (completedSets[set.id]) {
-              const kg = parseFloat(clientWeights[set.id] || set.kg);
+            const setKey = isReplaced ? `${set.id}_${effectiveExId}` : set.id;
+            const completed = completedSets[setKey] !== undefined ? completedSets[setKey] : completedSets[set.id];
+            if (completed) {
+              const weightVal = clientWeights[setKey] !== undefined ? clientWeights[setKey] : clientWeights[set.id];
+              const kg = parseFloat(weightVal !== undefined ? weightVal : (isReplaced ? '' : set.kg));
               if (!isNaN(kg)) {
                 if (kg > maxKg) maxKg = kg;
                 hasSets = true;
@@ -674,10 +688,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
             }
           });
           if (hasSets) {
-            if (currentWeekSnapshot[entry.libraryExerciseId]) {
-              currentWeekSnapshot[entry.libraryExerciseId] = Math.max(currentWeekSnapshot[entry.libraryExerciseId], maxKg);
+            if (currentWeekSnapshot[effectiveExId]) {
+              currentWeekSnapshot[effectiveExId] = Math.max(currentWeekSnapshot[effectiveExId], maxKg);
             } else {
-              currentWeekSnapshot[entry.libraryExerciseId] = maxKg;
+              currentWeekSnapshot[effectiveExId] = maxKg;
             }
           }
         });
@@ -915,7 +929,12 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
 
   const activeWorkoutLoggedSets = currentWorkout
     ? currentWorkout.exercises.reduce((acc, ex) => {
-        return acc + ex.sets.filter(s => completedSets[s.id]).length;
+        const activeLibId = exerciseOverrides[ex.id] || ex.libraryExerciseId;
+        const isReplaced = activeLibId !== ex.libraryExerciseId;
+        return acc + ex.sets.filter(s => {
+          const setKey = isReplaced ? `${s.id}_${activeLibId}` : s.id;
+          return completedSets[setKey] !== undefined ? completedSets[setKey] : (isReplaced ? false : completedSets[s.id]);
+        }).length;
       }, 0)
     : 0;
 
@@ -932,7 +951,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   // Final Feedback Submission
   const handleSubmitFeedback = async () => {
     if (rating === 0) {
-      alert(language === 'es' ? 'Por favor selecciona una puntuación con las estrellas.' : 'Please select a rating with the stars.');
+      alert(t('ratingRequired'));
       return;
     }
     if (isSubmitting) return;
@@ -942,14 +961,21 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     await saveProgress(true);
 
     const summary = currentWorkout?.exercises.map(entry => {
-      const libEx = library.find(l => l.id === entry.libraryExerciseId);
+      const activeLibId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
+      const isReplaced = activeLibId !== entry.libraryExerciseId;
+      const originalEx = library.find(l => l.id === entry.libraryExerciseId);
+      const libEx = library.find(l => l.id === activeLibId) || originalEx;
       const exerciseSets = entry.sets.map((set, idx) => {
-        const kg = clientWeights[set.id] || set.kg;
-        const reps = clientReps[set.id] || set.reps;
-        return `Set ${idx + 1}: ${reps} reps @ ${kg}kg`;
+        const setKey = isReplaced ? `${set.id}_${activeLibId}` : set.id;
+        const kg = clientWeights[setKey] !== undefined ? clientWeights[setKey] : (isReplaced ? '' : set.kg);
+        const reps = clientReps[setKey] !== undefined ? clientReps[setKey] : set.reps;
+        return `Set ${idx + 1}: ${reps} reps @ ${kg || '0'}kg`;
       }).join('\n');
       const note = feelings[entry.id] ? `\nNota: ${feelings[entry.id]}` : '';
-      return `--- ${libEx?.name || 'Ejercicio'} ---\n${exerciseSets}${note}`;
+      const exHeader = isReplaced && originalEx
+        ? `--- ${libEx?.name || 'Ejercicio'} (Sustituto de: ${originalEx.name}) ---`
+        : `--- ${libEx?.name || 'Ejercicio'} ---`;
+      return `${exHeader}\n${exerciseSets}${note}`;
     }).join('\n\n');
 
     const fullMessage = `
@@ -1142,9 +1168,9 @@ ${feedbackText || 'Sin comentarios.'}
                 const maxInWeek = weeklySnapshots[week.id]?.[historyExerciseId];
                 return (
                   <div key={week.id} className="flex items-center justify-between p-3.5 bg-zinc-900 rounded-none border border-white/5">
-                    <span className="text-xs font-semibold text-zinc-400">{week.name || `Semana ${wIdx + 1}`}</span>
+                    <span className="text-xs font-semibold text-zinc-400">{formatWeekTitle(week.name, wIdx)}</span>
                     <span className="text-sm font-bold text-white font-mono">
-                      {maxInWeek ? `${maxInWeek} kg (Máx)` : 'Sin registro'}
+                      {maxInWeek ? `${maxInWeek} kg (${t('avgKg')})` : t('noRecord')}
                     </span>
                   </div>
                 );
@@ -1156,8 +1182,8 @@ ${feedbackText || 'Sin comentarios.'}
 
       {/* Modal de Ejercicios Alternativos / Máquina Ocupada */}
       {altModalExerciseEntry && (
-        <div className="fixed inset-0 z-[260] bg-black/90 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-200">
-          <div className="bg-[#0c0e12] rounded-none max-w-lg w-full shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+        <div className="fixed inset-0 z-[260] bg-black/90 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-[#0c0e12] rounded-none max-w-lg w-full shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
@@ -1216,14 +1242,14 @@ ${feedbackText || 'Sin comentarios.'}
                     return (
                       <div
                         key={alt.id}
-                        className={`flex items-stretch justify-between transition-all ${
+                        className={`flex items-center justify-between p-3 gap-3 transition-all ${
                           isCurrentlySelected ? 'bg-yellow-400/8' : 'bg-[#0c0e12] hover:bg-[#181b22]'
                         }`}
                       >
                         {/* Left: thumbnail + info */}
                         <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                          {/* 1:1 square thumbnail flush left */}
-                          <div className="w-20 h-20 aspect-square rounded-none overflow-hidden shrink-0 bg-zinc-950">
+                          {/* 1:1 square thumbnail with crisp styling */}
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 aspect-square rounded-none overflow-hidden shrink-0 bg-zinc-950 border border-white/10 shadow-sm">
                             {altCover ? (
                               <img
                                 src={altCover}
@@ -1239,7 +1265,7 @@ ${feedbackText || 'Sin comentarios.'}
                             )}
                           </div>
 
-                          <div className="min-w-0 py-2">
+                          <div className="min-w-0 py-1">
                             <h4 className="font-display font-black text-sm sm:text-base text-white uppercase tracking-tight truncate leading-tight">
                               {alt.name}
                             </h4>
@@ -1257,7 +1283,7 @@ ${feedbackText || 'Sin comentarios.'}
                         </div>
 
                         {/* Right: action button */}
-                        <div className="flex items-center pr-4">
+                        <div className="flex items-center shrink-0 pr-1 sm:pr-2">
                           <button
                             onClick={() => handleChooseAlternative(altModalExerciseEntry.entryId, alt.id)}
                             disabled={isCurrentlySelected}
@@ -1782,10 +1808,10 @@ ${feedbackText || 'Sin comentarios.'}
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              alert(`💡 Tip del coach:\n\n${entry.customTip || libEx?.tip}`);
+                              alert(`💡 ${t('coachTipTitle')}\n\n${entry.customTip || libEx?.tip}`);
                             }}
                             className="p-1 text-zinc-500 hover:text-yellow-400 transition-colors"
-                            title="Ver tips del coach"
+                            title={t('tip')}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -2045,7 +2071,11 @@ ${feedbackText || 'Sin comentarios.'}
                               const workingSets = entry.sets.filter(s => s.type !== 'warmup');
 
                               const renderSetRow = (set: TrainingSet, displayIdx: number, isWarmupSet: boolean) => {
-                                const isDone = !!completedSets[set.id];
+                                const setKey = isReplaced ? `${set.id}_${activeLibId}` : set.id;
+                                const isDone = completedSets[setKey] !== undefined ? !!completedSets[setKey] : (isReplaced ? false : !!completedSets[set.id]);
+                                const currentWeight = clientWeights[setKey] !== undefined ? clientWeights[setKey] : (isReplaced ? '' : (clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg));
+                                const currentReps = clientReps[setKey] !== undefined ? clientReps[setKey] : (clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps);
+
                                 return (
                                   <React.Fragment key={set.id}>
                                     <div
@@ -2067,8 +2097,8 @@ ${feedbackText || 'Sin comentarios.'}
                                         <div className="col-span-3">
                                           <input
                                             type="text"
-                                            value={clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps}
-                                            onChange={(e) => handleRepsChange(set.id, e.target.value)}
+                                            value={currentReps}
+                                            onChange={(e) => handleRepsChange(setKey, e.target.value)}
                                             placeholder={set.reps}
                                             className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono"
                                           />
@@ -2080,9 +2110,9 @@ ${feedbackText || 'Sin comentarios.'}
                                         <div className="col-span-3">
                                           <input
                                             type="text"
-                                            value={clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg}
-                                            onChange={(e) => handleWeightsChange(set.id, e.target.value)}
-                                            placeholder={set.kg}
+                                            value={currentWeight}
+                                            onChange={(e) => handleWeightsChange(setKey, e.target.value)}
+                                            placeholder={isReplaced ? '0' : set.kg}
                                             className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono"
                                           />
                                         </div>
@@ -2098,7 +2128,7 @@ ${feedbackText || 'Sin comentarios.'}
                                       {/* Checkbox (Circular Tactile Button) */}
                                       <div className="col-span-3 flex justify-center">
                                         <button
-                                          onClick={() => handleSetToggle(set.id, set.rest)}
+                                          onClick={() => handleSetToggle(setKey, set.rest)}
                                           className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
                                             isDone
                                               ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'

@@ -18,15 +18,113 @@ interface ClientCalendarViewProps {
   onUpdateStartDate?: (newDate: string) => void;
 }
 
-const DAYS_OF_WEEK = [
-  { shortName: 'L', fullName: 'LUNES', index: 0 },
-  { shortName: 'M', fullName: 'MARTES', index: 1 },
-  { shortName: 'M', fullName: 'MIÉRCOLES', index: 2 },
-  { shortName: 'J', fullName: 'JUEVES', index: 3 },
-  { shortName: 'V', fullName: 'VIERNES', index: 4 },
-  { shortName: 'S', fullName: 'SÁBADO', index: 5 },
-  { shortName: 'D', fullName: 'DOMINGO', index: 6 },
-];
+const CAL_TRANSLATIONS = {
+  es: {
+    hello: '¡HOLA,',
+    week: 'SEMANA',
+    of: 'DE',
+    today: 'HOY',
+    rest: 'HOY TOCA DESCANSO',
+    recovery: 'RECUPERACIÓN ACTIVA',
+    recoveryShort: 'RECUPERACIÓN',
+    restDesc: 'Día de recuperación muscular. Si querés entrenar hoy, podés pasar una sesión de otro día a esta fecha.',
+    moveDay: 'MOVER DE DÍA',
+    bringHere: 'TRAER SESIÓN A HOY',
+    moveSessionToday: 'MOVER UNA SESIÓN A HOY',
+    programWorkouts: 'PROGRAM WORKOUTS',
+    moveCalendar: 'MOVER CALENDARIO',
+    cancel: 'CANCELAR',
+    save: 'GUARDAR',
+    currentDay: 'DÍA ACTUAL DE ESTA SESIÓN',
+    moveHere: 'MOVER ACÁ →',
+    exercises: 'EJERCICIOS',
+    completed: 'COMPLETED',
+    scheduled: 'PROGRAMADO',
+    moveModalDescMove: 'Elegí a qué día de la semana querés mover este entrenamiento. Si el día de destino ya tenía otra sesión, se intercambiarán automáticamente.',
+    moveModalDescBring: 'Elegí qué sesión de la semana querés traer para realizar este día:',
+    moveModalTitlePass: 'PASAR',
+    moveModalTitleTo: 'A OTRO DÍA',
+    moveModalTitleBring: 'MOVER UNA SESIÓN A ESTE',
+    currently: 'Actualmente:',
+    rest_label: 'DESCANSO',
+    trainingSession: 'SESIÓN DE ENTRENAMIENTO',
+    days: {
+      short: ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
+      full: ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'],
+      month: 'es-ES'
+    }
+  },
+  en: {
+    hello: 'HI,',
+    week: 'WEEK',
+    of: 'OF',
+    today: 'TODAY',
+    rest: 'REST DAY',
+    recovery: 'ACTIVE RECOVERY',
+    recoveryShort: 'RECOVERY',
+    restDesc: 'Recovery day. If you want to train today, you can bring a session from another day.',
+    moveDay: 'MOVE DAY',
+    bringHere: 'BRING SESSION HERE',
+    moveSessionToday: 'MOVE A SESSION TO TODAY',
+    programWorkouts: 'PROGRAM WORKOUTS',
+    moveCalendar: 'MOVE CALENDAR',
+    cancel: 'CANCEL',
+    save: 'SAVE',
+    currentDay: 'CURRENT DAY FOR THIS SESSION',
+    moveHere: 'MOVE HERE →',
+    exercises: 'EXERCISES',
+    completed: 'COMPLETED',
+    scheduled: 'SCHEDULED',
+    moveModalDescMove: 'Choose which day of the week you want to move this workout to. If the target day already has a session, they will swap automatically.',
+    moveModalDescBring: 'Choose which session of the week you want to bring to this day:',
+    moveModalTitlePass: 'MOVE',
+    moveModalTitleTo: 'TO ANOTHER DAY',
+    moveModalTitleBring: 'BRING A SESSION TO',
+    currently: 'Currently:',
+    rest_label: 'REST',
+    trainingSession: 'TRAINING SESSION',
+    days: {
+      short: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+      full: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
+      month: 'en-US'
+    }
+  },
+  it: {
+    hello: 'CIAO,',
+    week: 'SETTIMANA',
+    of: 'DI',
+    today: 'OGGI',
+    rest: 'RIPOSO OGGI',
+    recovery: 'RECUPERO ATTIVO',
+    recoveryShort: 'RECUPERO',
+    restDesc: 'Giorno di recupero muscolare. Se vuoi allenarti oggi, puoi spostare una sessione da un altro giorno.',
+    moveDay: 'SPOSTA GIORNO',
+    bringHere: 'PORTA SESSIONE QUI',
+    moveSessionToday: 'SPOSTA UNA SESSIONE A OGGI',
+    programWorkouts: 'ALLENAMENTI',
+    moveCalendar: 'SPOSTA CALENDARIO',
+    cancel: 'ANNULLA',
+    save: 'SALVA',
+    currentDay: 'GIORNO CORRENTE PER QUESTA SESSIONE',
+    moveHere: 'SPOSTA QUI →',
+    exercises: 'ESERCIZI',
+    completed: 'COMPLETATO',
+    scheduled: 'PROGRAMMATO',
+    moveModalDescMove: 'Scegli in quale giorno della settimana vuoi spostare questo allenamento. Se il giorno di destinazione ha già una sessione, si scambieranno automaticamente.',
+    moveModalDescBring: 'Scegli quale sessione della settimana vuoi portare in questo giorno:',
+    moveModalTitlePass: 'SPOSTA',
+    moveModalTitleTo: 'IN UN ALTRO GIORNO',
+    moveModalTitleBring: 'PORTA UNA SESSIONE A',
+    currently: 'Attualmente:',
+    rest_label: 'RIPOSO',
+    trainingSession: 'SESSIONE DI ALLENAMENTO',
+    days: {
+      short: ['L', 'M', 'M', 'G', 'V', 'S', 'D'],
+      full: ['LUNEDÌ', 'MARTEDÌ', 'MERCOLEDÌ', 'GIOVEDÌ', 'VENERDÌ', 'SABATO', 'DOMENICA'],
+      month: 'it-IT'
+    }
+  }
+};
 
 export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
   routine,
@@ -41,6 +139,15 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
   onChangeWeek,
   onUpdateStartDate
 }) => {
+  const cal = CAL_TRANSLATIONS[language] || CAL_TRANSLATIONS.es;
+
+  // Days of week built dynamically from language
+  const DAYS_OF_WEEK = cal.days.full.map((fullName, index) => ({
+    shortName: cal.days.short[index],
+    fullName,
+    index
+  }));
+
   // 1. Identificar la semana activa
   const currentWeek = useMemo(() => {
     if (activeWeekId) {
@@ -338,11 +445,11 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
           {/* Subtítulo limpio: Fecha del día seleccionado */}
           <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-display uppercase tracking-wider text-zinc-400">
             <span>
-              {selectedDayData.fullName} {selectedDayData.dayNumber} DE {selectedDayData.monthShort}
+              {selectedDayData.fullName} {selectedDayData.dayNumber} {cal.of} {selectedDayData.monthShort}
             </span>
             {selectedDayData.isToday && (
               <span className="text-blue-400 font-black">
-                HOY
+                {cal.today}
               </span>
             )}
           </div>
@@ -361,7 +468,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
               {globalProgress.percent}%
             </span>
             <span className="text-xs font-display font-black text-zinc-400 uppercase tracking-wider">
-              SEMANA {currentWeekIndex + 1} DE {routine.weeks.length}
+              {cal.week} {currentWeekIndex + 1} {cal.of} {routine.weeks.length}
             </span>
           </div>
 
@@ -380,7 +487,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
         
         <div className="flex items-center justify-between">
           <h2 className="text-[11px] font-display font-black uppercase tracking-wider text-zinc-400">
-            {selectedDayData.hasWorkout ? 'PROGRAM WORKOUTS' : 'RECUPERACIÓN'}
+            {selectedDayData.hasWorkout ? cal.programWorkouts : cal.recoveryShort}
           </h2>
 
           <button
@@ -390,7 +497,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
             <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
             </svg>
-            <span>{selectedDayData.hasWorkout ? 'Mover de día' : 'Traer sesión a hoy'}</span>
+            <span>{selectedDayData.hasWorkout ? cal.moveDay : cal.bringHere}</span>
           </button>
         </div>
 
@@ -425,11 +532,11 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
               <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between z-10">
                 {selectedDayData.isCompleted ? (
                   <span className="px-3.5 py-1.5 bg-blue-600 text-white text-[11px] font-display font-black uppercase tracking-wider rounded-none shadow-md">
-                    COMPLETED
+                    {cal.completed}
                   </span>
                 ) : (
                   <span className="px-3 py-1 bg-black/70 backdrop-blur-md text-zinc-300 text-[10px] font-display font-black uppercase tracking-wider rounded-none">
-                    {selectedDayData.isToday ? 'HOY' : 'PROGRAMADO'}
+                    {selectedDayData.isToday ? cal.today : cal.scheduled}
                   </span>
                 )}
 
@@ -441,7 +548,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
                     setShowMoveModal(true);
                   }}
                   className="w-9 h-9 bg-black/70 hover:bg-black/90 backdrop-blur-md flex items-center justify-center text-white rounded-none transition-colors"
-                  title="Mover sesión de día"
+                  title={cal.moveDay}
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="2" />
@@ -464,10 +571,10 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
             {/* Texto inferior de la carta (Título y detalle) */}
             <div className="p-4">
               <h3 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight uppercase group-hover:text-blue-400 transition-colors">
-                {selectedDayData.assignedWorkout.name || 'SESIÓN DE ENTRENAMIENTO'}
+                {selectedDayData.assignedWorkout.name || cal.trainingSession}
               </h3>
               <p className="text-xs text-zinc-400 font-display font-bold uppercase tracking-wider mt-1">
-                {selectedDayData.fullName} • {selectedDayData.dayNumber} DE {selectedDayData.monthShort} • {selectedDayData.assignedWorkout.exercises?.length || 0} EJERCICIOS
+                {selectedDayData.fullName} • {selectedDayData.dayNumber} {cal.of} {selectedDayData.monthShort} • {selectedDayData.assignedWorkout.exercises?.length || 0} {cal.exercises}
               </p>
             </div>
           </div>
@@ -482,13 +589,13 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
 
             <div>
               <span className="text-[10px] font-display font-black uppercase tracking-widest text-blue-400">
-                RECUPERACIÓN ACTIVA
+                {cal.recovery}
               </span>
               <h3 className="text-lg font-display font-black text-white uppercase mt-0.5">
-                HOY TOCA DESCANSO
+                {cal.rest}
               </h3>
               <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto">
-                Día de recuperación muscular. Si querés entrenar hoy, podés pasar una sesión de otro día a esta fecha.
+                {cal.restDesc}
               </p>
             </div>
 
@@ -500,7 +607,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
                 <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
-                <span>MOVER UNA SESIÓN A HOY</span>
+                <span>{cal.moveSessionToday}</span>
               </button>
             </div>
           </div>
@@ -515,12 +622,12 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div>
                 <span className="text-[10px] font-display font-black text-blue-400 uppercase tracking-widest">
-                  MOVER CALENDARIO
+                  {cal.moveCalendar}
                 </span>
                 <h3 className="text-base sm:text-lg font-display font-black text-white uppercase">
                   {selectedDayData.hasWorkout
-                    ? `PASAR ${selectedDayData.assignedWorkout?.name?.toUpperCase()} A OTRO DÍA`
-                    : `MOVER UNA SESIÓN A ESTE ${selectedDayData.fullName}`}
+                    ? `${cal.moveModalTitlePass} ${selectedDayData.assignedWorkout?.name?.toUpperCase()} ${cal.moveModalTitleTo}`
+                    : `${cal.moveModalTitleBring} ${selectedDayData.fullName}`}
                 </h3>
               </div>
               <button
@@ -533,8 +640,8 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
 
             <p className="text-xs text-zinc-400">
               {selectedDayData.hasWorkout
-                ? 'Elegí a qué día de la semana querés mover este entrenamiento. Si el día de destino ya tenía otra sesión, se intercambiarán automáticamente.'
-                : 'Elegí qué sesión de la semana querés traer para realizar este día:'}
+                ? cal.moveModalDescMove
+                : cal.moveModalDescBring}
             </p>
 
             {/* Lista de los 7 días para mover */}
@@ -543,7 +650,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
                 const isCurrent = targetDay.index === selectedDayIndex;
                 const targetWkName = targetDay.hasWorkout && targetDay.assignedWorkout
                   ? targetDay.assignedWorkout.name.toUpperCase()
-                  : 'DESCANSO';
+                  : cal.rest_label;
 
                 return (
                   <button
@@ -563,18 +670,18 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
                         </span>
                         {targetDay.isToday && (
                           <span className="text-[9px] font-display font-black text-blue-400 bg-blue-500/20 px-1 py-0.2 rounded-none">
-                            HOY
+                            {cal.today}
                           </span>
                         )}
                       </div>
                       <span className="text-[11px] text-zinc-400 font-display uppercase tracking-wide block mt-0.5">
-                        {isCurrent ? 'DÍA ACTUAL DE ESTA SESIÓN' : `Actualmente: ${targetWkName}`}
+                        {isCurrent ? cal.currentDay : `${cal.currently} ${targetWkName}`}
                       </span>
                     </div>
 
                     {!isCurrent && (
                       <span className="text-xs font-display font-black text-blue-400 uppercase">
-                        MOVER ACÁ →
+                        {cal.moveHere}
                       </span>
                     )}
                   </button>
@@ -587,7 +694,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
                 onClick={() => setShowMoveModal(false)}
                 className="w-full py-3 bg-zinc-900 text-zinc-400 font-display font-black text-xs uppercase tracking-wider rounded-none hover:bg-zinc-800 transition-colors"
               >
-                CANCELAR
+                {cal.cancel}
               </button>
             </div>
           </div>
