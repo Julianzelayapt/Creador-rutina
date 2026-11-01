@@ -186,18 +186,24 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
     return idx >= 0 ? idx : 0;
   }, [routine.weeks, currentWeek]);
 
-  // 2. Cálculo de fechas a partir de startDate
+  // 2. Cálculo del lunes base a partir de startDate
   const baseStartDate = useMemo(() => {
+    let start: Date;
     if (routine.startDate) {
       const parts = routine.startDate.split('-').map(Number);
       if (parts.length === 3) {
-        return new Date(parts[0], parts[1] - 1, parts[2]);
+        start = new Date(parts[0], parts[1] - 1, parts[2]);
+      } else {
+        start = new Date();
       }
+    } else {
+      start = new Date();
     }
-    const today = new Date();
-    const day = today.getDay();
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(today.setDate(diff));
+    // Llevar siempre al Lunes de esa semana inicial para que la semana arranque en Lunes
+    const day = start.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(start);
+    monday.setDate(start.getDate() + diffToMonday);
     monday.setHours(0, 0, 0, 0);
     return monday;
   }, [routine.startDate]);
@@ -210,7 +216,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
     return {
       date: now,
       dayOfWeekIndex: dayOfWeek,
-      formattedStr: now.toISOString().split('T')[0]
+      formattedStr: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     };
   }, []);
 
