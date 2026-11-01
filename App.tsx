@@ -108,11 +108,16 @@ const parseRoutineData = (rawRecord: any): Routine | null => {
         completedSets: completedSets || {},
         clientWeights: rawProgress.clientWeights || {},
         clientReps: rawProgress.clientReps || {},
+        clientCardioMinutes: rawProgress.clientCardioMinutes || {},
+        clientCardioIntensity: rawProgress.clientCardioIntensity || {},
         feelings: rawProgress.feelings || {},
         activeWeekId: rawProgress.activeWeekId || null,
         activeWorkoutId: rawProgress.activeWorkoutId || null,
+        activeExerciseId: rawProgress.activeExerciseId || null,
+        activeViewMode: rawProgress.activeViewMode || null,
         language: rawProgress.language || 'es',
-        weeklySnapshots: rawProgress.weeklySnapshots || {}
+        weeklySnapshots: rawProgress.weeklySnapshots || {},
+        dayOverrides: rawProgress.dayOverrides || {}
       };
     }
 

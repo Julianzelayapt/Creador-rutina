@@ -50,7 +50,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   }>({
     name: '',
     videoUrl: '',
-    muscleImage: getMuscleGroupImage('pecho'),
+    muscleImage: '',
     muscleGroup: 'pecho',
     alternativeExerciseIds: [],
     language: 'es',
@@ -626,7 +626,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 setNewExercise({
                   name: '',
                   videoUrl: '',
-                  muscleImage: getMuscleGroupImage('pecho'),
+                  muscleImage: '',
                   muscleGroup: 'pecho',
                   alternativeExerciseIds: [],
                   language: (libraryLangFilter as 'es' | 'en' | 'it') || 'es',
@@ -735,7 +735,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 })}
               </optgroup>
               <optgroup label="── Core y Otros ──">
-                {DEFAULT_MUSCLE_GROUPS.filter(g => g.category === 'core' || g.category === 'otro').map(g => {
+                {DEFAULT_MUSCLE_GROUPS.filter(g => g.category === 'core' || g.category === 'cardio' || g.category === 'otro').map(g => {
                   const count = library.filter(e => (e.muscleGroup || '').toLowerCase() === g.id.toLowerCase() && (!libraryLangFilter || (e.language || 'es') === libraryLangFilter)).length;
                   return (
                     <option key={g.id} value={g.id}>
@@ -805,25 +805,23 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                   title="Haz clic para añadir al día activo"
                 >
                   <div className="flex items-center gap-3 overflow-hidden min-w-0 pr-2">
-                    <img
-                      src={getYouTubeThumbnail(ex.videoUrl) || ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
-                      alt={ex.name}
-                      onLoad={(e) => {
-                        if (e.currentTarget.naturalWidth <= 120) {
-                          const fallback = ex.muscleImage || getMuscleGroupImage(ex.muscleGroup);
-                          if (fallback && e.currentTarget.src !== fallback) {
-                            e.currentTarget.src = fallback;
+                    {getYouTubeThumbnail(ex.videoUrl) ? (
+                      <img
+                        src={getYouTubeThumbnail(ex.videoUrl)!}
+                        alt={ex.name}
+                        onLoad={(e) => {
+                          if (e.currentTarget.naturalWidth <= 120) {
+                            e.currentTarget.style.display = 'none';
                           }
-                        }
-                      }}
-                      onError={(e) => {
-                        const fallback = ex.muscleImage || getMuscleGroupImage(ex.muscleGroup);
-                        if (fallback && e.currentTarget.src !== fallback) {
-                          e.currentTarget.src = fallback;
-                        }
-                      }}
-                      className="w-14 aspect-video rounded-lg object-cover shrink-0 bg-zinc-900 border border-slate-200 dark:border-white/10"
-                    />
+                        }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        className="w-14 aspect-video rounded-lg object-cover shrink-0 bg-zinc-900 border border-slate-200 dark:border-white/10"
+                      />
+                    ) : (
+                      <div className="w-14 aspect-video rounded-lg shrink-0 bg-zinc-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-zinc-500 font-black text-xs">
+                        {(ex.name || 'EX').substring(0, 2).toUpperCase()}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <div className="font-bold text-xs truncate group-hover:text-yellow-600 dark:group-hover:text-yellow-400">
                         {ex.name}
@@ -1280,7 +1278,7 @@ onChange={(e) => setCurrentRoutine({
                           >
                             {currentWorkout.exercises.map((entry, index) => {
                               const libEx = library.find(l => l.id === entry.libraryExerciseId);
-                              const exImg = getYouTubeThumbnail(libEx?.videoUrl) || libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
+                              const exImg = getYouTubeThumbnail(libEx?.videoUrl) || '';
                               return (
                                 <Draggable key={entry.id} draggableId={entry.id} index={index}>
                                   {(provided) => {
@@ -1308,18 +1306,10 @@ onChange={(e) => setCurrentRoutine({
                                                       alt={libEx?.name}
                                                       onLoad={(e) => {
                                                         if (e.currentTarget.naturalWidth <= 120) {
-                                                          const fallback = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
-                                                          if (fallback && e.currentTarget.src !== fallback) {
-                                                            e.currentTarget.src = fallback;
-                                                          }
+                                                          e.currentTarget.style.display = 'none';
                                                         }
                                                       }}
-                                                      onError={(e) => {
-                                                        const fallback = libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
-                                                        if (fallback && e.currentTarget.src !== fallback) {
-                                                          e.currentTarget.src = fallback;
-                                                        }
-                                                      }}
+                                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                                       className="w-full h-full object-cover"
                                                     />
                                                   ) : (
@@ -1355,6 +1345,66 @@ onChange={(e) => setCurrentRoutine({
                                               </div>
 
                                               <div className="overflow-x-auto mb-6 -mx-4 px-4 lg:mx-0 lg:px-0 w-[100vw] lg:w-full">
+                                                {((libEx?.muscleGroup || '').toLowerCase() === 'cardio' || (libEx?.name || '').toLowerCase().includes('cardio') || (libEx?.name || '').toLowerCase().includes('eliptica') || (libEx?.name || '').toLowerCase().includes('elíptica')) ? (
+                                                  <div className="space-y-3 p-3 bg-zinc-900/60 border border-yellow-400/20 rounded-xl">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                      <span className="text-[10px] font-black uppercase tracking-wider text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded">
+                                                        Cardio
+                                                      </span>
+                                                      <span className="text-xs text-zinc-400 font-medium">Configurá el tiempo y la intensidad objetivo</span>
+                                                    </div>
+                                                    <table className="w-full text-center table-auto">
+                                                      <thead>
+                                                        <tr className="text-[9px] font-black text-slate-300 uppercase tracking-widest border-b border-white/5">
+                                                          <th className="py-2 text-left pl-2">SERIE</th>
+                                                          <th className="py-2">MINUTOS</th>
+                                                          <th className="py-2">INTENSIDAD</th>
+                                                          <th className="w-10"></th>
+                                                        </tr>
+                                                      </thead>
+                                                      <tbody>
+                                                        {entry.sets.map((set, idx) => (
+                                                          <tr key={set.id} className="border-b border-white/5">
+                                                            <td className="py-2.5 text-left pl-2 font-mono font-bold text-xs text-zinc-300">
+                                                              {idx + 1}
+                                                            </td>
+                                                            <td className="py-2 px-1">
+                                                              <input
+                                                                type="text"
+                                                                value={set.cardioMinutes || set.reps || ''}
+                                                                onChange={e => {
+                                                                  updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'cardioMinutes' as any, e.target.value);
+                                                                  updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'reps', e.target.value);
+                                                                }}
+                                                                placeholder="ej. 20"
+                                                                className="w-20 py-2.5 text-center bg-black rounded-xl font-bold text-white border-2 border-transparent focus:border-yellow-500 outline-none font-mono text-sm"
+                                                              />
+                                                            </td>
+                                                            <td className="py-2 px-1">
+                                                              <div className="flex items-center justify-center gap-1.5">
+                                                                <select
+                                                                  value={set.cardioIntensity || 'Moderada'}
+                                                                  onChange={e => updateSet(currentWeek.id, currentWorkout.id, entry.id, set.id, 'cardioIntensity' as any, e.target.value)}
+                                                                  className="py-2.5 px-3 bg-black rounded-xl font-bold text-white border-2 border-transparent focus:border-yellow-500 outline-none text-xs cursor-pointer appearance-none"
+                                                                >
+                                                                  <option value="Baja">Baja (Zona 1)</option>
+                                                                  <option value="Moderada">Moderada (Zona 2)</option>
+                                                                  <option value="Alta">Alta (Zona 4)</option>
+                                                                  <option value="HIIT">HIIT (Intervalos)</option>
+                                                                </select>
+                                                              </div>
+                                                            </td>
+                                                            <td className="py-2">
+                                                              <button onClick={() => deleteSet(currentWeek.id, currentWorkout.id, entry.id, set.id)} className="text-zinc-500 hover:text-red-400 transition-all p-1">
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                              </button>
+                                                            </td>
+                                                          </tr>
+                                                        ))}
+                                                      </tbody>
+                                                    </table>
+                                                  </div>
+                                                ) : (
                                                 <table className="w-full text-center table-auto min-w-max">
                                                   <thead>
                                                     <tr className="text-[9px] font-black text-slate-950 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
@@ -1464,6 +1514,7 @@ onChange={(e) => setCurrentRoutine({
                                                     })}
                                                   </tbody>
                                                 </table>
+                                                )}
                                               </div>
                                               <button
                                                 onClick={() => addSet(currentWeek.id, currentWorkout.id, entry.id)}
@@ -1634,7 +1685,7 @@ onChange={(e) => setCurrentRoutine({
             <div className="space-y-3 overflow-y-auto pr-1 flex-1">
               {DEFAULT_MUSCLE_GROUPS.map((group) => {
                 const customUrl = customMuscleImagesMap[group.id] || '';
-                const currentImg = customUrl || group.defaultImage;
+                const currentImg = customUrl || '';
 
                 return (
                   <div
@@ -1642,7 +1693,11 @@ onChange={(e) => setCurrentRoutine({
                     className="p-3.5 bg-zinc-900 rounded-2xl border border-white/5 flex items-center gap-3.5"
                   >
                     <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 bg-black flex items-center justify-center">
-                      <img src={currentImg} alt={group.name} className="w-full h-full object-cover" />
+                      {currentImg ? (
+                        <img src={currentImg} alt={group.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="font-black text-xs text-zinc-400">{group.name.substring(0, 2).toUpperCase()}</span>
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0 space-y-1">
@@ -1655,7 +1710,7 @@ onChange={(e) => setCurrentRoutine({
                               setCustomMuscleImage(group.id, '');
                               setCustomMuscleImagesMap(getCustomMuscleImages());
                               if (newExercise.muscleGroup === group.id) {
-                                setNewExercise(prev => ({ ...prev, muscleImage: group.defaultImage }));
+                                setNewExercise(prev => ({ ...prev, muscleImage: '' }));
                               }
                             }}
                             className="text-[10px] text-amber-400 hover:text-amber-300 underline font-semibold"
@@ -1674,7 +1729,7 @@ onChange={(e) => setCurrentRoutine({
                           if (newExercise.muscleGroup === group.id) {
                             setNewExercise(prev => ({
                               ...prev,
-                              muscleImage: val || group.defaultImage
+                              muscleImage: val
                             }));
                           }
                         }}
@@ -1880,19 +1935,14 @@ onChange={(e) => setCurrentRoutine({
                         onClick={() => setNewExercise({
                           ...newExercise,
                           muscleGroup: group.id,
-                          muscleImage: getMuscleGroupImage(group.id)
+                          muscleImage: ''
                         })}
-                        className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all ${
+                        className={`flex items-center justify-center p-2 rounded-xl border transition-all ${
                           isSelected
                             ? 'border-yellow-400 bg-yellow-400/10 shadow-md scale-[1.03]'
                             : 'border-slate-700 bg-black/40 hover:border-slate-500 hover:bg-slate-800/60'
                         }`}
                       >
-                        <img
-                          src={getMuscleGroupImage(group.id)}
-                          alt={group.name}
-                          className="w-8 h-8 rounded-lg object-cover"
-                        />
                         <span className={`text-[9px] font-black uppercase tracking-wider leading-tight text-center ${isSelected ? 'text-yellow-400' : 'text-zinc-400'}`}>
                           {group.name.split('/')[0].trim()}
                         </span>
@@ -2150,11 +2200,6 @@ const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => 
                 }}
               >
                 <div className="flex items-center gap-2.5 overflow-hidden">
-                  <img
-                    src={ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
-                    alt=""
-                    className="w-7 h-7 rounded-lg object-cover shrink-0 bg-black"
-                  />
                   <div className="truncate">
                     <span className="font-extrabold uppercase">{ex.name}</span>
                     <span className="text-[10px] opacity-70 ml-2">({ex.muscleGroup} • {(ex.language || 'es').toUpperCase()})</span>
@@ -2282,11 +2327,6 @@ const AltSearch: React.FC<{
               className="flex items-center justify-between p-2 rounded-xl bg-slate-900/90 hover:bg-yellow-400/10 border border-slate-800 hover:border-yellow-500/40 transition-all group"
             >
               <div className="flex items-center gap-2.5 overflow-hidden min-w-0 pr-2">
-                <img
-                  src={ex.muscleImage || getMuscleGroupImage(ex.muscleGroup)}
-                  alt=""
-                  className="w-8 h-8 rounded-lg object-cover shrink-0 bg-black border border-white/10"
-                />
                 <div className="min-w-0">
                   <div className="text-xs font-bold text-white group-hover:text-yellow-400 truncate">
                     {ex.name}

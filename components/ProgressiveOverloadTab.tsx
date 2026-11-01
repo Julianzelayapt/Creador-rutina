@@ -37,7 +37,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
         week: 'Settimana',
         avgKg: 'MAX KG',
         delta: 'Δ KG',
-        change: '% CAMBIO',
+        change: '% VARIAZIONE',
         progress: 'PROGRESSO',
         noData: 'Completa le serie con peso per vedere i progressi',
         selectExercise: 'Seleziona Esercizio',
@@ -127,8 +127,8 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                   <img
                     src={getExerciseCoverImage(libEx)}
                     alt={libEx.name}
-                    onLoad={onYTThumbLoad(libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
-                    onError={onYTThumbError(libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
+                    onLoad={onYTThumbLoad()}
+                    onError={onYTThumbError()}
                     className="w-full h-full object-cover rounded-none"
                   />
                 ) : (

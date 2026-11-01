@@ -25,6 +25,8 @@ export interface TrainingSet {
   rest: string;
   tempo?: string;
   type?: 'warmup' | 'working';
+  cardioMinutes?: string;
+  cardioIntensity?: string;
   dropsets?: DropSet[];
 }
 
@@ -60,9 +62,13 @@ export interface ClientProgress {
   completedSets: Record<string, boolean>;
   clientWeights: Record<string, string>;
   clientReps: Record<string, string>;
+  clientCardioMinutes?: Record<string, string>;
+  clientCardioIntensity?: Record<string, string>;
   feelings: Record<string, string>;
   activeWeekId: string | null;
   activeWorkoutId: string | null;
+  activeExerciseId?: string | null;
+  activeViewMode?: 'dashboard' | 'preview' | 'active';
   language: 'es' | 'en' | 'it';
   weeklySnapshots?: Record<string, Record<string, number>>; // { weekId: { exerciseId: avgKg } }
   dayOverrides?: Record<string, string>; // e.g. { "weekId_dayIndex": workoutId | 'rest' }

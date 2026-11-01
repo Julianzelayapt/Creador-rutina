@@ -31,14 +31,14 @@ const CAL_TRANSLATIONS = {
     moveDay: 'MOVER DE DÍA',
     bringHere: 'TRAER SESIÓN A HOY',
     moveSessionToday: 'MOVER UNA SESIÓN A HOY',
-    programWorkouts: 'PROGRAM WORKOUTS',
+    programWorkouts: 'ENTRENAMIENTOS PROGRAMADOS',
     moveCalendar: 'MOVER CALENDARIO',
     cancel: 'CANCELAR',
     save: 'GUARDAR',
     currentDay: 'DÍA ACTUAL DE ESTA SESIÓN',
     moveHere: 'MOVER ACÁ →',
     exercises: 'EJERCICIOS',
-    completed: 'COMPLETED',
+    completed: 'COMPLETADO',
     scheduled: 'PROGRAMADO',
     moveModalDescMove: 'Elegí a qué día de la semana querés mover este entrenamiento. Si el día de destino ya tenía otra sesión, se intercambiarán automáticamente.',
     moveModalDescBring: 'Elegí qué sesión de la semana querés traer para realizar este día:',
@@ -48,6 +48,7 @@ const CAL_TRANSLATIONS = {
     currently: 'Actualmente:',
     rest_label: 'DESCANSO',
     trainingSession: 'SESIÓN DE ENTRENAMIENTO',
+    dayPrefix: 'DÍA',
     days: {
       short: ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
       full: ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'],
@@ -83,6 +84,7 @@ const CAL_TRANSLATIONS = {
     currently: 'Currently:',
     rest_label: 'REST',
     trainingSession: 'TRAINING SESSION',
+    dayPrefix: 'DAY',
     days: {
       short: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
       full: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
@@ -101,7 +103,7 @@ const CAL_TRANSLATIONS = {
     moveDay: 'SPOSTA GIORNO',
     bringHere: 'PORTA SESSIONE QUI',
     moveSessionToday: 'SPOSTA UNA SESSIONE A OGGI',
-    programWorkouts: 'ALLENAMENTI',
+    programWorkouts: 'ALLENAMENTI PROGRAMMATI',
     moveCalendar: 'SPOSTA CALENDARIO',
     cancel: 'ANNULLA',
     save: 'SALVA',
@@ -118,6 +120,7 @@ const CAL_TRANSLATIONS = {
     currently: 'Attualmente:',
     rest_label: 'RIPOSO',
     trainingSession: 'SESSIONE DI ALLENAMENTO',
+    dayPrefix: 'GIORNO',
     days: {
       short: ['L', 'M', 'M', 'G', 'V', 'S', 'D'],
       full: ['LUNEDÌ', 'MARTEDÌ', 'MERCOLEDÌ', 'GIOVEDÌ', 'VENERDÌ', 'SABATO', 'DOMENICA'],
@@ -142,11 +145,31 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
   const cal = CAL_TRANSLATIONS[language] || CAL_TRANSLATIONS.es;
 
   // Days of week built dynamically from language
-  const DAYS_OF_WEEK = cal.days.full.map((fullName, index) => ({
-    shortName: cal.days.short[index],
-    fullName,
-    index
-  }));
+  const DAYS_OF_WEEK = useMemo(() => {
+    return cal.days.full.map((fullName, index) => ({
+      shortName: cal.days.short[index],
+      fullName,
+      index
+    }));
+  }, [cal]);
+
+  // Formateador dinámico para el nombre de la sesión (ej: "Día 1" -> "Day 1" o "Giorno 1")
+  const formatWorkoutName = (name?: string): string => {
+    if (!name || !name.trim()) return cal.trainingSession;
+    const trimmed = name.trim();
+    const match = trimmed.match(/^(?:d[ií]a|day|giorno)\s*(\d*)\s*(?:[·\-:]\s*(.*))?$/i);
+    if (match) {
+      const num = match[1];
+      const rest = match[2];
+      if (rest) {
+        return num ? `${cal.dayPrefix} ${num} · ${rest.trim()}` : rest.trim();
+      }
+      if (num) {
+        return `${cal.dayPrefix} ${num}`;
+      }
+    }
+    return trimmed;
+  };
 
   // 1. Identificar la semana activa
   const currentWeek = useMemo(() => {
@@ -267,7 +290,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
         ...d,
         dateObj: dayDate,
         dayNumber: dayDate.getDate(),
-        monthShort: dayDate.toLocaleDateString('es-ES', { month: 'short' }).toUpperCase(),
+        monthShort: dayDate.toLocaleDateString(cal.days.month, { month: 'short' }).toUpperCase(),
         isToday,
         isExplicitRest,
         assignedWorkout,
@@ -277,7 +300,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
         hasWorkout: !!assignedWorkout && !isExplicitRest
       };
     });
-  }, [currentWeek, baseStartDate, currentWeekIndex, todayInfo, dayOverrides, routine.weeks, completedSets]);
+  }, [currentWeek, baseStartDate, currentWeekIndex, todayInfo, dayOverrides, routine.weeks, completedSets, DAYS_OF_WEEK, cal]);
 
   const selectedDayData = weekDaysData[selectedDayIndex] || weekDaysData[0];
 
@@ -571,7 +594,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
             {/* Texto inferior de la carta (Título y detalle) */}
             <div className="p-4">
               <h3 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight uppercase group-hover:text-blue-400 transition-colors">
-                {selectedDayData.assignedWorkout.name || cal.trainingSession}
+                {formatWorkoutName(selectedDayData.assignedWorkout.name)}
               </h3>
               <p className="text-xs text-zinc-400 font-display font-bold uppercase tracking-wider mt-1">
                 {selectedDayData.fullName} • {selectedDayData.dayNumber} {cal.of} {selectedDayData.monthShort} • {selectedDayData.assignedWorkout.exercises?.length || 0} {cal.exercises}

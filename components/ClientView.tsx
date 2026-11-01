@@ -35,18 +35,18 @@ export const getYouTubeThumbnail = (url: string | undefined): string | null => {
   return null;
 };
 
-// Helper to get exercise cover image (prefers YouTube thumbnail, falls back to custom/muscle group)
+// Helper to get exercise cover image (prefers YouTube thumbnail only)
 export const getExerciseCoverImage = (libEx?: Exercise): string => {
   if (!libEx) return '';
   const ytThumb = getYouTubeThumbnail(libEx.videoUrl);
   if (ytThumb) return ytThumb;
-  return libEx.muscleImage || (libEx.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '');
+  return '';
 };
 
 // Helper when image loads: YouTube returns a 120x90 placeholder JPEG when maxresdefault/hqdefault is missing.
 // Modern browsers fire onLoad (not onError) because the payload is valid JPEG.
 // Checking naturalWidth <= 120 detects this placeholder immediately.
-export const onYTThumbLoad = (muscleGroupFallback?: string) =>
+export const onYTThumbLoad = (_muscleGroupFallback?: string) =>
   (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     if (img.naturalWidth <= 120) {
@@ -54,14 +54,14 @@ export const onYTThumbLoad = (muscleGroupFallback?: string) =>
         img.src = img.src.replace('/maxresdefault.jpg', '/hqdefault.jpg');
       } else if (img.src.includes('/hqdefault.jpg')) {
         img.src = img.src.replace('/hqdefault.jpg', '/mqdefault.jpg');
-      } else if (muscleGroupFallback && img.src !== muscleGroupFallback) {
-        img.src = muscleGroupFallback;
+      } else {
+        img.style.display = 'none';
       }
     }
   };
 
-// Fallback handler: cascades gracefully maxresdefault → hqdefault → mqdefault → muscle group
-export const onYTThumbError = (muscleGroupFallback?: string) =>
+// Fallback handler: cascades gracefully maxresdefault → hqdefault → mqdefault → hide
+export const onYTThumbError = (_muscleGroupFallback?: string) =>
   (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     if (img.src.includes('/maxresdefault.jpg')) {
@@ -88,7 +88,7 @@ const getEmbedVideo = (url: string | undefined) => {
       thumbnail: isYouTubeShort(trimmed)
         ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
         : `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-      src: `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&modestbranding=1&rel=0`
+      src: `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&controls=1&showinfo=0&disablekb=1`
     };
   }
 
@@ -144,9 +144,13 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         completedSets: completedSets || {},
         clientWeights: remoteData.clientWeights || {},
         clientReps: remoteData.clientReps || {},
+        clientCardioMinutes: remoteData.clientCardioMinutes || {},
+        clientCardioIntensity: remoteData.clientCardioIntensity || {},
         feelings: remoteData.feelings || {},
         activeWeekId: remoteData.activeWeekId || null,
         activeWorkoutId: remoteData.activeWorkoutId || null,
+        activeExerciseId: remoteData.activeExerciseId || null,
+        activeViewMode: remoteData.activeViewMode || null,
         language: remoteData.language || 'es',
         weeklySnapshots: remoteData.weeklySnapshots || {},
         dayOverrides: remoteData.dayOverrides || {}
@@ -160,6 +164,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         completedSets: { ...(normalizedRemote.completedSets || {}), ...(localData.completedSets || {}) },
         clientWeights: { ...(normalizedRemote.clientWeights || {}), ...(localData.clientWeights || {}) },
         clientReps: { ...(normalizedRemote.clientReps || {}), ...(localData.clientReps || {}) },
+        clientCardioMinutes: { ...(normalizedRemote.clientCardioMinutes || {}), ...(localData.clientCardioMinutes || {}) },
+        clientCardioIntensity: { ...(normalizedRemote.clientCardioIntensity || {}), ...(localData.clientCardioIntensity || {}) },
         feelings: { ...(normalizedRemote.feelings || {}), ...(localData.feelings || {}) },
         weeklySnapshots: { ...(normalizedRemote.weeklySnapshots || {}), ...(localData.weeklySnapshots || {}) },
         dayOverrides: { ...(normalizedRemote.dayOverrides || {}), ...(localData.dayOverrides || {}) }
@@ -173,6 +179,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const [completedSets, setCompletedSets] = useState<Record<string, boolean>>(savedData?.completedSets || {});
   const [clientWeights, setClientWeights] = useState<Record<string, string>>(savedData?.clientWeights || {});
   const [clientReps, setClientReps] = useState<Record<string, string>>(savedData?.clientReps || {});
+  const [clientCardioMinutes, setClientCardioMinutes] = useState<Record<string, string>>(savedData?.clientCardioMinutes || {});
+  const [clientCardioIntensity, setClientCardioIntensity] = useState<Record<string, string>>(savedData?.clientCardioIntensity || {});
   const [feelings, setFeelings] = useState<Record<string, string>>(savedData?.feelings || {});
   const [timer, setTimer] = useState<number | null>(null);
   const [language, setLanguage] = useState<'es' | 'en' | 'it'>(savedData?.language || 'es');
@@ -216,6 +224,12 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     if (remoteData.clientReps && Object.keys(remoteData.clientReps).length > 0) {
       setClientReps(prev => ({ ...remoteData.clientReps, ...prev }));
     }
+    if (remoteData.clientCardioMinutes && Object.keys(remoteData.clientCardioMinutes).length > 0) {
+      setClientCardioMinutes(prev => ({ ...remoteData.clientCardioMinutes, ...prev }));
+    }
+    if (remoteData.clientCardioIntensity && Object.keys(remoteData.clientCardioIntensity).length > 0) {
+      setClientCardioIntensity(prev => ({ ...remoteData.clientCardioIntensity, ...prev }));
+    }
     if (remoteData.feelings && Object.keys(remoteData.feelings).length > 0) {
       setFeelings(prev => ({ ...remoteData.feelings, ...prev }));
     }
@@ -227,9 +241,12 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   // Tab & View Navigation
   const [activeTab, setActiveTab] = useState<'training' | 'overload'>('training');
   // Navigation inside 'training': 'dashboard' (weeks + focus cards) | 'preview' (focus overview) | 'active' (workout mode)
-  const [viewMode, setViewMode] = useState<'dashboard' | 'preview' | 'active'>('dashboard');
+  const [viewMode, setViewMode] = useState<'dashboard' | 'preview' | 'active'>(() => {
+    return (savedData?.activeViewMode as 'dashboard' | 'preview' | 'active') || 'dashboard';
+  });
   const [activeWeekId, setActiveWeekId] = useState<string | null>(savedData?.activeWeekId || routine.weeks[0]?.id || null);
   const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(savedData?.activeWorkoutId || null);
+  const [activeExerciseId, setActiveExerciseId] = useState<string | null>(savedData?.activeExerciseId || null);
 
   // Modals & UI States
   const [showFinishModal, setShowFinishModal] = useState<boolean>(false);
@@ -711,9 +728,13 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       completedSets,
       clientWeights,
       clientReps,
+      clientCardioMinutes,
+      clientCardioIntensity,
       feelings,
       activeWeekId,
       activeWorkoutId,
+      activeExerciseId,
+      activeViewMode: viewMode,
       language,
       weeklySnapshots: newSnapshots,
       dayOverrides
@@ -767,7 +788,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   // Immediate local save
   useEffect(() => {
     saveProgress(false);
-  }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId, language, dayOverrides]);
+  }, [completedSets, clientWeights, clientReps, clientCardioMinutes, clientCardioIntensity, feelings, activeWeekId, activeWorkoutId, activeExerciseId, viewMode, language, dayOverrides]);
 
   // Debounced cloud sync (1.5 sec)
   useEffect(() => {
@@ -776,7 +797,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       saveProgress(true);
     }, 1500);
     return () => clearTimeout(timeoutId);
-  }, [completedSets, clientWeights, clientReps, feelings, activeWeekId, activeWorkoutId, language, dayOverrides]);
+  }, [completedSets, clientWeights, clientReps, clientCardioMinutes, clientCardioIntensity, feelings, activeWeekId, activeWorkoutId, activeExerciseId, viewMode, language, dayOverrides]);
 
   // Set toggle and rest trigger
   const handleSetToggle = (setId: string, restTime: string) => {
@@ -824,6 +845,18 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     isDirtyRef.current = true;
     setSyncStatus('syncing');
     setClientWeights(prev => ({ ...prev, [setId]: value }));
+  };
+
+  const handleCardioMinutesChange = (setId: string, value: string) => {
+    isDirtyRef.current = true;
+    setSyncStatus('syncing');
+    setClientCardioMinutes(prev => ({ ...prev, [setId]: value }));
+  };
+
+  const handleCardioIntensityChange = (setId: string, value: string) => {
+    isDirtyRef.current = true;
+    setSyncStatus('syncing');
+    setClientCardioIntensity(prev => ({ ...prev, [setId]: value }));
   };
 
   const handleFeelingsChange = (exerciseId: string, value: string) => {
@@ -1165,7 +1198,35 @@ ${feedbackText || 'Sin comentarios.'}
             </div>
             <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
               {routine.weeks.map((week, wIdx) => {
-                const maxInWeek = weeklySnapshots[week.id]?.[historyExerciseId];
+                // Buscar snapshot guardado
+                let maxInWeek = weeklySnapshots[week.id]?.[historyExerciseId];
+
+                // Si no hay snapshot para la semana actual o si hay pesos en vivo, computarlo en tiempo real
+                if (week.id === activeWeekId || maxInWeek === undefined) {
+                  let liveMax = 0;
+                  week.workouts.forEach(workout => {
+                    workout.exercises.forEach(entry => {
+                      const effExId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
+                      if (effExId === historyExerciseId || entry.libraryExerciseId === historyExerciseId) {
+                        entry.sets.forEach(set => {
+                          const setKey = `${set.id}_${historyExerciseId}`;
+                          const isDone = completedSets[setKey] !== undefined ? completedSets[setKey] : completedSets[set.id];
+                          if (isDone) {
+                            const weightVal = clientWeights[setKey] !== undefined ? clientWeights[setKey] : (clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg);
+                            const kg = parseFloat(weightVal);
+                            if (!isNaN(kg) && kg > liveMax) {
+                              liveMax = kg;
+                            }
+                          }
+                        });
+                      }
+                    });
+                  });
+                  if (liveMax > 0) {
+                    maxInWeek = maxInWeek ? Math.max(maxInWeek, liveMax) : liveMax;
+                  }
+                }
+
                 return (
                   <div key={week.id} className="flex items-center justify-between p-3.5 bg-zinc-900 rounded-none border border-white/5">
                     <span className="text-xs font-semibold text-zinc-400">{formatWeekTitle(week.name, wIdx)}</span>
@@ -1972,7 +2033,30 @@ ${feedbackText || 'Sin comentarios.'}
                           {embed ? (
                             playingVideoId === entry.id ? (
                               <div className="relative w-full aspect-video rounded-none overflow-hidden bg-black border-0 shadow-lg">
-                                {embed.type === 'youtube' || embed.type === 'vimeo' ? (
+                                {embed.type === 'youtube' ? (
+                                  <div className="relative w-full h-full overflow-hidden">
+                                    <iframe
+                                      src={embed.src}
+                                      title={libEx?.name || 'Video'}
+                                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] border-0 pointer-events-auto"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                      allowFullScreen
+                                    />
+                                    {/* Botón flotante minimalista para cerrar/pausar video */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPlayingVideoId(null);
+                                      }}
+                                      className="absolute top-2 right-2 z-20 bg-black/70 hover:bg-black text-white p-1.5 rounded-full backdrop-blur-sm border border-white/20 transition-all"
+                                      title="Cerrar video"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ) : embed.type === 'vimeo' ? (
                                   <iframe
                                     src={embed.src}
                                     title={libEx?.name || 'Video'}
@@ -1986,6 +2070,7 @@ ${feedbackText || 'Sin comentarios.'}
                                     controls
                                     autoPlay
                                     playsInline
+                                    loop
                                     className="w-full h-full object-contain"
                                   />
                                 ) : (
@@ -2014,7 +2099,7 @@ ${feedbackText || 'Sin comentarios.'}
                                     alt={libEx?.name || 'Video'}
                                     onLoad={onYTThumbLoad(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
                                     onError={onYTThumbError(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    className="w-full h-full object-cover scale-[1.05] group-hover:scale-110 transition-transform duration-300"
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500 font-bold text-sm">
@@ -2030,14 +2115,6 @@ ${feedbackText || 'Sin comentarios.'}
                                 </div>
                               </div>
                             )
-                          ) : (libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : '')) ? (
-                            <div className="relative w-full h-52 sm:h-64 rounded-none overflow-hidden bg-zinc-950/80 border-0 flex items-center justify-center p-3 shadow-lg">
-                              <img
-                                src={libEx?.muscleImage || getMuscleGroupImage(libEx?.muscleGroup)}
-                                alt={libEx?.name}
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
                           ) : null}
 
                           {/* Coach Tip Box */}
@@ -2055,8 +2132,76 @@ ${feedbackText || 'Sin comentarios.'}
                             </div>
                           )}
 
-                          {/* Sets List (Separación clara Calentamiento / Efectivas) */}
+                          {/* Sets List (Separación clara Calentamiento / Efectivas / Cardio) */}
                           <div className="space-y-4 pt-2">
+                            {((libEx?.muscleGroup || '').toLowerCase() === 'cardio' || (libEx?.name || '').toLowerCase().includes('cardio') || (libEx?.name || '').toLowerCase().includes('eliptica') || (libEx?.name || '').toLowerCase().includes('elíptica')) ? (
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-12 gap-2 px-2 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                                  <div className="col-span-1 text-center font-mono">#</div>
+                                  <div className="col-span-4 text-center">TIEMPO (MIN)</div>
+                                  <div className="col-span-4 text-center">INTENSIDAD</div>
+                                  <div className="col-span-3 text-center">{t('ok')}</div>
+                                </div>
+                                {entry.sets.map((set, idx) => {
+                                  const setKey = `${set.id}_${activeLibId}`;
+                                  const isDone = completedSets[setKey] !== undefined ? !!completedSets[setKey] : !!completedSets[set.id];
+                                  const minutesVal = clientCardioMinutes[setKey] !== undefined ? clientCardioMinutes[setKey] : (clientCardioMinutes[set.id] !== undefined ? clientCardioMinutes[set.id] : (set.cardioMinutes || set.reps || '20'));
+                                  const intensityVal = clientCardioIntensity[setKey] !== undefined ? clientCardioIntensity[setKey] : (clientCardioIntensity[set.id] !== undefined ? clientCardioIntensity[set.id] : (set.cardioIntensity || 'Moderada'));
+
+                                  return (
+                                    <div
+                                      key={set.id}
+                                      className={`grid grid-cols-12 gap-2 items-center p-2.5 rounded-none border-0 transition-all ${
+                                        isDone ? 'bg-emerald-500/15' : 'bg-[#101216]'
+                                      }`}
+                                    >
+                                      <div className="col-span-1 text-center font-bold text-xs font-mono text-zinc-300">
+                                        {idx + 1}
+                                      </div>
+                                      <div className="col-span-4">
+                                        <div className="flex items-center justify-center bg-[#0c0e12] px-2 py-1.5 border border-white/5">
+                                          <input
+                                            type="text"
+                                            value={minutesVal}
+                                            onChange={(e) => handleCardioMinutesChange(setKey, e.target.value)}
+                                            placeholder="20"
+                                            className="w-12 bg-transparent text-center font-bold text-sm text-white focus:outline-none font-mono"
+                                          />
+                                          <span className="text-[10px] font-bold text-zinc-500 ml-1">min</span>
+                                        </div>
+                                      </div>
+                                      <div className="col-span-4">
+                                        <select
+                                          value={intensityVal}
+                                          onChange={(e) => handleCardioIntensityChange(setKey, e.target.value)}
+                                          className="w-full bg-[#0c0e12] border border-white/5 text-center font-bold text-xs text-white py-2 px-1 focus:outline-none cursor-pointer appearance-none"
+                                        >
+                                          <option value="Baja">Baja (Z1)</option>
+                                          <option value="Moderada">Moderada (Z2)</option>
+                                          <option value="Alta">Alta (Z4)</option>
+                                          <option value="HIIT">HIIT</option>
+                                        </select>
+                                      </div>
+                                      <div className="col-span-3 flex justify-center">
+                                        <button
+                                          onClick={() => handleSetToggle(setKey, '0:00')}
+                                          className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
+                                            isDone
+                                              ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                              : 'border-white/20 bg-zinc-800/40 text-transparent hover:border-yellow-400/50'
+                                          }`}
+                                        >
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                            <>
                             {/* Table Header */}
                             <div className="grid grid-cols-12 gap-2 px-2 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                               <div className="col-span-1 text-center font-mono">#</div>
@@ -2071,7 +2216,7 @@ ${feedbackText || 'Sin comentarios.'}
                               const workingSets = entry.sets.filter(s => s.type !== 'warmup');
 
                               const renderSetRow = (set: TrainingSet, displayIdx: number, isWarmupSet: boolean) => {
-                                const setKey = isReplaced ? `${set.id}_${activeLibId}` : set.id;
+                                const setKey = `${set.id}_${activeLibId}`;
                                 const isDone = completedSets[setKey] !== undefined ? !!completedSets[setKey] : (isReplaced ? false : !!completedSets[set.id]);
                                 const currentWeight = clientWeights[setKey] !== undefined ? clientWeights[setKey] : (isReplaced ? '' : (clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg));
                                 const currentReps = clientReps[setKey] !== undefined ? clientReps[setKey] : (clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps);
@@ -2189,6 +2334,8 @@ ${feedbackText || 'Sin comentarios.'}
                                 </>
                               );
                             })()}
+                            </>
+                            )}
                           </div>
 
                           {/* Exercise Notes */}
