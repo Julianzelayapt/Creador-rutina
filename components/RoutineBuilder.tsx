@@ -175,20 +175,40 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
     }
   };
 
+  // Función auxiliar para renumerar correlativamente las semanas ("Week 1", "Week 2", etc.)
+  // manteniendo cualquier subtítulo si lo tenía (ej: "Week 1 · Carga")
+  const renumberWeeks = (weeks: Week[]): Week[] => {
+    return weeks.map((w, index) => {
+      const match = w.name.match(/^(?:Week|Semana|Settimana)\s*\d*\s*(?:[·\-:]\s*(.*))?$/i);
+      if (match) {
+        const subtitle = match[1]?.trim();
+        return {
+          ...w,
+          name: subtitle ? `Week ${index + 1} · ${subtitle}` : `Week ${index + 1}`
+        };
+      }
+      return w;
+    });
+  };
+
   const addWeek = () => {
     const newId = Math.random().toString(36).substr(2, 9);
-    const newWeek: Week = {
-      id: newId,
-      name: `Week ${currentRoutine.weeks.length + 1}`,
-      workouts: []
-    };
-    setCurrentRoutine({ ...currentRoutine, weeks: [...currentRoutine.weeks, newWeek] });
+    const newWeeks = renumberWeeks([
+      ...currentRoutine.weeks,
+      {
+        id: newId,
+        name: `Week ${currentRoutine.weeks.length + 1}`,
+        workouts: []
+      }
+    ]);
+    setCurrentRoutine({ ...currentRoutine, weeks: newWeeks });
     setActiveWeekId(newId);
   };
 
   const deleteWeek = (weekId: string) => {
     if (confirm('¿Estás seguro de borrar toda la semana y sus entrenamientos?')) {
-      const newWeeks = currentRoutine.weeks.filter(w => w.id !== weekId);
+      const filtered = currentRoutine.weeks.filter(w => w.id !== weekId);
+      const newWeeks = renumberWeeks(filtered);
       setCurrentRoutine({ ...currentRoutine, weeks: newWeeks });
       if (activeWeekId === weekId) {
         setActiveWeekId(newWeeks[0]?.id || null);
@@ -218,9 +238,10 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
       }))
     };
 
+    const newWeeks = renumberWeeks([...currentRoutine.weeks, newWeek]);
     setCurrentRoutine({
       ...currentRoutine,
-      weeks: [...currentRoutine.weeks, newWeek]
+      weeks: newWeeks
     });
     setActiveWeekId(newWeek.id);
   };
@@ -1056,9 +1077,15 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                 onChange={(e) => setActiveWeekId(e.target.value)}
                 className="w-full bg-white dark:bg-darkCard px-8 py-5 rounded-[2rem] font-black uppercase text-sm tracking-widest border border-slate-100 dark:border-slate-800 shadow-xl appearance-none cursor-pointer focus:border-yellow-600 transition-all outline-none text-slate-950 dark:text-white"
               >
-                {currentRoutine.weeks.map((week) => (
-                  <option key={week.id} value={week.id}>{week.name}</option>
-                ))}
+                {currentRoutine.weeks.map((week, index) => {
+                  const match = week.name.match(/^(?:Week|Semana|Settimana)\s*\d*\s*(?:[·\-:]\s*(.*))?$/i);
+                  const displayLabel = match
+                    ? (match[1]?.trim() ? `WEEK ${index + 1} · ${match[1].trim()}` : `WEEK ${index + 1}`)
+                    : (week.name || `WEEK ${index + 1}`);
+                  return (
+                    <option key={week.id} value={week.id}>{displayLabel}</option>
+                  );
+                })}
               </select>
               <div className="absolute right-6 bottom-5 pointer-events-none text-yellow-600">
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
