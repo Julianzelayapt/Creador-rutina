@@ -130,6 +130,9 @@ const parseRoutineData = (rawRecord: any): Routine | null => {
       split: payload.split || rawRecord.split || '',
       description: payload.description || rawRecord.description || '',
       image: payload.image || rawRecord.image || '',
+      startDate: (payload.startDate && typeof payload.startDate === 'string' && payload.startDate.trim() !== '') 
+        ? payload.startDate 
+        : (rawRecord.created_at ? rawRecord.created_at.split('T')[0] : undefined),
       enabledMetrics: payload.enabledMetrics || { reps: true, kg: true, rir: true, rmPercentage: false, rest: true, tempo: false },
       weeks,
       clientProgress: clientProgress || payload.clientProgress

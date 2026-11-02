@@ -244,7 +244,36 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const [viewMode, setViewMode] = useState<'dashboard' | 'preview' | 'active'>(() => {
     return (savedData?.activeViewMode as 'dashboard' | 'preview' | 'active') || 'dashboard';
   });
-  const [activeWeekId, setActiveWeekId] = useState<string | null>(savedData?.activeWeekId || routine.weeks[0]?.id || null);
+  // Helper para determinar automáticamente la semana correspondiente a la fecha actual según startDate
+  const getAutoWeekId = () => {
+    if (routine.startDate && routine.weeks && routine.weeks.length > 0) {
+      const parts = routine.startDate.split('-').map(Number);
+      if (parts.length === 3) {
+        const start = new Date(parts[0], parts[1] - 1, parts[2]);
+        const day = start.getDay();
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+        const startMonday = new Date(start);
+        startMonday.setDate(start.getDate() + diffToMonday);
+        startMonday.setHours(0, 0, 0, 0);
+
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        const diffTime = now.getTime() - startMonday.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const autoWeekIndex = Math.floor(diffDays / 7);
+
+        if (autoWeekIndex >= 0 && autoWeekIndex < routine.weeks.length) {
+          return routine.weeks[autoWeekIndex].id;
+        } else if (autoWeekIndex >= routine.weeks.length) {
+          return routine.weeks[routine.weeks.length - 1].id;
+        }
+      }
+    }
+    return savedData?.activeWeekId || routine.weeks[0]?.id || null;
+  };
+
+  const [activeWeekId, setActiveWeekId] = useState<string | null>(getAutoWeekId);
   const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(savedData?.activeWorkoutId || null);
   const [activeExerciseId, setActiveExerciseId] = useState<string | null>(savedData?.activeExerciseId || null);
 

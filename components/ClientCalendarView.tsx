@@ -225,6 +225,14 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
     return todayInfo.dayOfWeekIndex;
   });
 
+  // Al cambiar de semana, si la semana contiene el día de hoy, posicionar en hoy
+  useEffect(() => {
+    const todayIndexInWeek = weekDaysData.findIndex(d => d.isToday);
+    if (todayIndexInWeek !== -1) {
+      setSelectedDayIndex(todayIndexInWeek);
+    }
+  }, [currentWeekIndex]);
+
   // Modal para MOVER DE DÍA la sesión
   const [showMoveModal, setShowMoveModal] = useState<boolean>(false);
 
@@ -492,13 +500,57 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
             {routine.name ? routine.name.toUpperCase() : 'RUTINA'}
           </div>
 
-          <div className="flex items-baseline gap-2.5 mt-1 mb-2.5">
-            <span className="text-3xl font-display font-black text-white">
-              {globalProgress.percent}%
-            </span>
-            <span className="text-xs font-display font-black text-zinc-400 uppercase tracking-wider">
-              {cal.week} {currentWeekIndex + 1} {cal.of} {routine.weeks.length}
-            </span>
+          <div className="flex items-baseline justify-between mt-1 mb-2.5">
+            <div className="flex items-baseline gap-2.5">
+              <span className="text-3xl font-display font-black text-white">
+                {globalProgress.percent}%
+              </span>
+              <span className="text-xs font-display font-black text-zinc-400 uppercase tracking-wider">
+                {cal.week} {currentWeekIndex + 1} {cal.of} {routine.weeks.length}
+              </span>
+            </div>
+
+            {/* Selector de semanas anterior / siguiente */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={currentWeekIndex <= 0}
+                onClick={() => {
+                  if (currentWeekIndex > 0) {
+                    onChangeWeek(routine.weeks[currentWeekIndex - 1].id);
+                  }
+                }}
+                className={`p-1.5 transition-all ${
+                  currentWeekIndex <= 0
+                    ? 'text-zinc-600 cursor-not-allowed opacity-30'
+                    : 'text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 active:scale-95'
+                }`}
+                title="Semana anterior"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                disabled={currentWeekIndex >= routine.weeks.length - 1}
+                onClick={() => {
+                  if (currentWeekIndex < routine.weeks.length - 1) {
+                    onChangeWeek(routine.weeks[currentWeekIndex + 1].id);
+                  }
+                }}
+                className={`p-1.5 transition-all ${
+                  currentWeekIndex >= routine.weeks.length - 1
+                    ? 'text-zinc-600 cursor-not-allowed opacity-30'
+                    : 'text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 active:scale-95'
+                }`}
+                title="Semana siguiente"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Barra de progreso azul limpia */}

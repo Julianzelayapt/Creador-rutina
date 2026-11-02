@@ -73,7 +73,10 @@ const RoutineSetup: React.FC<RoutineSetupProps> = ({ onRoutineCreated }) => {
     split: '',
     description: '',
     clientName: '',
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })(),
     image: SAMPLE_IMAGES[0]
   });
   const [customImageUrl, setCustomImageUrl] = useState('');
