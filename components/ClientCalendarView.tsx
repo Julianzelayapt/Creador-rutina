@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Routine, Workout, Exercise } from '../types';
 import { getExerciseCoverImage, onYTThumbLoad, onYTThumbError } from './ClientView';
 
