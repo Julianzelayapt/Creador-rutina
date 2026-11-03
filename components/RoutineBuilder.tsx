@@ -1,13 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Routine, Exercise, Week, Workout, ExerciseEntry, TrainingSet } from '../types';
 import { 
   DEFAULT_MUSCLE_GROUPS, 
-  getMuscleGroupImage, 
   findMuscleGroupById, 
-  getCustomMuscleImages, 
-  setCustomMuscleImage,
   SUPPORTED_LANGUAGES,
   matchesSearchQuery
 } from '../muscleGroups';
@@ -62,8 +59,6 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   const [libraryMuscleFilter, setLibraryMuscleFilter] = useState('');
   const [libraryLangFilter, setLibraryLangFilter] = useState('');
   const [showImageModal, setShowImageModal] = useState(false);
-  const [showMusclePhotosModal, setShowMusclePhotosModal] = useState(false);
-  const [customMuscleImagesMap, setCustomMuscleImagesMap] = useState<Record<string, string>>(() => getCustomMuscleImages());
 
   // Navegación por ID
   const [activeWeekId, setActiveWeekId] = useState<string | null>(routine.weeks?.[0]?.id || null);
@@ -830,6 +825,8 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                       <img
                         src={getYouTubeThumbnail(ex.videoUrl)!}
                         alt={ex.name}
+                        loading="lazy"
+                        decoding="async"
                         onLoad={(e) => {
                           if (e.currentTarget.naturalWidth <= 120) {
                             e.currentTarget.style.display = 'none';
@@ -880,7 +877,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
                           id: ex.id,
                           name: ex.name,
                           videoUrl: ex.videoUrl || '',
-                          muscleImage: ex.muscleImage || getMuscleGroupImage(group),
+                          muscleImage: '',
                           muscleGroup: group,
                           alternativeExerciseIds: ex.alternativeExerciseIds || [],
                           language: ex.language || 'es',
@@ -1331,6 +1328,8 @@ onChange={(e) => setCurrentRoutine({
                                                     <img
                                                       src={exImg}
                                                       alt={libEx?.name}
+                                                      loading="lazy"
+                                                      decoding="async"
                                                       onLoad={(e) => {
                                                         if (e.currentTarget.naturalWidth <= 120) {
                                                           e.currentTarget.style.display = 'none';
@@ -1685,101 +1684,7 @@ onChange={(e) => setCurrentRoutine({
         </div>
       )}
 
-      {/* ── Modal: Personalizar Fotos de Grupos Musculares ── */}
-      {showMusclePhotosModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[300] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#18181b] border border-white/10 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3 shrink-0">
-              <div>
-                <h3 className="text-xl font-black text-white tracking-tight uppercase flex items-center gap-2">
-                  <span>🎨</span> Fotos de Grupos Musculares
-                </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Pegá el link de cualquier foto que te guste o dejalo vacío para usar la ilustración anatómica.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowMusclePhotosModal(false)}
-                className="p-2 text-zinc-400 hover:text-white rounded-full bg-white/5"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
 
-            {/* Lista con scroll de grupos musculares */}
-            <div className="space-y-3 overflow-y-auto pr-1 flex-1">
-              {DEFAULT_MUSCLE_GROUPS.map((group) => {
-                const customUrl = customMuscleImagesMap[group.id] || '';
-                const currentImg = customUrl || '';
-
-                return (
-                  <div
-                    key={group.id}
-                    className="p-3.5 bg-zinc-900 rounded-2xl border border-white/5 flex items-center gap-3.5"
-                  >
-                    <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 bg-black flex items-center justify-center">
-                      {currentImg ? (
-                        <img src={currentImg} alt={group.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="font-black text-xs text-zinc-400">{group.name.substring(0, 2).toUpperCase()}</span>
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm text-white">{group.name}</span>
-                        {customUrl && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCustomMuscleImage(group.id, '');
-                              setCustomMuscleImagesMap(getCustomMuscleImages());
-                              if (newExercise.muscleGroup === group.id) {
-                                setNewExercise(prev => ({ ...prev, muscleImage: '' }));
-                              }
-                            }}
-                            className="text-[10px] text-amber-400 hover:text-amber-300 underline font-semibold"
-                          >
-                            Restablecer
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        placeholder="Pegar link de foto (URL)..."
-                        value={customUrl}
-                        onChange={(e) => {
-                          const val = e.target.value.trim();
-                          setCustomMuscleImage(group.id, val);
-                          setCustomMuscleImagesMap(getCustomMuscleImages());
-                          if (newExercise.muscleGroup === group.id) {
-                            setNewExercise(prev => ({
-                              ...prev,
-                              muscleImage: val
-                            }));
-                          }
-                        }}
-                        className="w-full px-3 py-1.5 text-xs rounded-lg bg-black border border-white/10 text-white focus:border-amber-500 outline-none"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="shrink-0 pt-2 border-t border-white/5">
-              <button
-                type="button"
-                onClick={() => setShowMusclePhotosModal(false)}
-                className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-black uppercase text-xs tracking-wider rounded-xl transition-all"
-              >
-                Listo / Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Modal: Nombre del Día / Entrenamiento ── */}
       {showEnfoqueModal && (
@@ -2100,7 +2005,7 @@ onChange={(e) => setCurrentRoutine({
                     name: newExercise.name.trim(),
                     videoUrl: newExercise.videoUrl.trim(),
                     muscleGroup: newExercise.muscleGroup,
-                    muscleImage: newExercise.muscleImage || getMuscleGroupImage(newExercise.muscleGroup),
+                    muscleImage: '',
                     alternativeExerciseIds: newExercise.alternativeExerciseIds,
                     language: newExercise.language || 'es',
                     tip: newExercise.tip.trim()
@@ -2137,15 +2042,17 @@ const ExerciseSearch: React.FC<{ library: Exercise[], onSelect: (id: string) => 
   const [selectedMuscle, setSelectedMuscle] = useState('');
   const [selectedLang, setSelectedLang] = useState('');
 
-  const filtered = library.filter(e => {
-    if (selectedLang && (e.language || 'es') !== selectedLang) return false;
-    if (selectedMuscle && (e.muscleGroup || '').toLowerCase() !== selectedMuscle.toLowerCase()) return false;
-    if (query.trim()) {
-      const combined = `${e.name} ${e.muscleGroup || ''}`;
-      return matchesSearchQuery(combined, query);
-    }
-    return true;
-  });
+  const filtered = useMemo(() => {
+    return library.filter(e => {
+      if (selectedLang && (e.language || 'es') !== selectedLang) return false;
+      if (selectedMuscle && (e.muscleGroup || '').toLowerCase() !== selectedMuscle.toLowerCase()) return false;
+      if (query.trim()) {
+        const combined = `${e.name} ${e.muscleGroup || ''}`;
+        return matchesSearchQuery(combined, query);
+      }
+      return true;
+    });
+  }, [library, selectedLang, selectedMuscle, query]);
 
   return (
     <div className="relative">
@@ -2266,16 +2173,18 @@ const AltSearch: React.FC<{
     if (targetLanguage) setSelectedLang(targetLanguage);
   }, [targetLanguage]);
 
-  const candidates = library.filter(e => {
-    if (excludeIds.includes(e.id)) return false;
-    if (selectedLang && (e.language || 'es') !== selectedLang) return false;
-    if (selectedMuscle && (e.muscleGroup || '').toLowerCase() !== selectedMuscle.toLowerCase()) return false;
-    if (query.trim()) {
-      const combined = `${e.name} ${e.muscleGroup || ''}`;
-      return matchesSearchQuery(combined, query);
-    }
-    return true;
-  });
+  const candidates = useMemo(() => {
+    return library.filter(e => {
+      if (excludeIds.includes(e.id)) return false;
+      if (selectedLang && (e.language || 'es') !== selectedLang) return false;
+      if (selectedMuscle && (e.muscleGroup || '').toLowerCase() !== selectedMuscle.toLowerCase()) return false;
+      if (query.trim()) {
+        const combined = `${e.name} ${e.muscleGroup || ''}`;
+        return matchesSearchQuery(combined, query);
+      }
+      return true;
+    });
+  }, [library, excludeIds, selectedLang, selectedMuscle, query]);
 
   return (
     <div className="space-y-2.5 bg-black/40 p-3 rounded-2xl border border-slate-700/60">

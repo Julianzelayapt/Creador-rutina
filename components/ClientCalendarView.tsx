@@ -294,7 +294,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
         assignedWorkout.exercises.forEach(ex => {
           if (ex.sets) {
             totalSets += ex.sets.length;
-            doneSets += ex.sets.filter(s => completedSets[s.id]).length;
+            doneSets += ex.sets.filter(s => !!(completedSets[s.id] || (ex.libraryExerciseId && completedSets[`${s.id}_${ex.libraryExerciseId}`]))).length;
           }
         });
         isCompleted = totalSets > 0 && doneSets === totalSets;
@@ -327,7 +327,7 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
         wk.exercises?.forEach(ex => {
           if (ex.sets) {
             totalSets += ex.sets.length;
-            completed += ex.sets.filter(s => completedSets[s.id]).length;
+            completed += ex.sets.filter(s => !!(completedSets[s.id] || (ex.libraryExerciseId && completedSets[`${s.id}_${ex.libraryExerciseId}`]))).length;
           }
         });
       });

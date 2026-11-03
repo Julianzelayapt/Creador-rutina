@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 import RoutineSetup from './components/RoutineSetup';
 import RoutineBuilder from './components/RoutineBuilder';
 import ClientView from './components/ClientView';
-import { extractExerciseMeta, embedExerciseMeta, getMuscleGroupImage } from './muscleGroups';
+import { extractExerciseMeta, embedExerciseMeta } from './muscleGroups';
 
 const LOCAL_STORAGE_KEY = 'coach_routines_data_v3';
 const LIBRARY_STORAGE_KEY = 'coach_exercise_library_v3';
@@ -197,7 +197,7 @@ const App: React.FC = () => {
           const { cleanTip, meta } = extractExerciseMeta(ex.tip);
           const muscleGroup = ex.muscle_group || meta.muscleGroup || '';
           const alternativeExerciseIds = ex.alternatives || meta.alternativeExerciseIds || [];
-          const muscleImage = ex.muscle_image || (muscleGroup ? getMuscleGroupImage(muscleGroup) : '');
+          const muscleImage = ex.muscle_image || '';
           const language = (ex.language || meta.language || 'es') as 'es' | 'en' | 'it';
 
           return {
@@ -456,7 +456,7 @@ const App: React.FC = () => {
       alternativeExerciseIds: ex.alternativeExerciseIds,
       language: ex.language || 'es'
     });
-    const muscleImage = ex.muscleImage || (ex.muscleGroup ? getMuscleGroupImage(ex.muscleGroup) : '');
+    const muscleImage = ex.muscleImage || '';
 
     const payload = {
       id: ex.id,
@@ -483,7 +483,7 @@ const App: React.FC = () => {
     const completeEx: Exercise = {
       ...exercise,
       language: exercise.language || 'es',
-      muscleImage: exercise.muscleImage || (exercise.muscleGroup ? getMuscleGroupImage(exercise.muscleGroup) : '')
+      muscleImage: exercise.muscleImage || ''
     };
 
     // Sincronización recíproca con otros ejercicios
@@ -534,7 +534,7 @@ const App: React.FC = () => {
     const completeEx: Exercise = {
       ...exercise,
       language: exercise.language || 'es',
-      muscleImage: exercise.muscleImage || (exercise.muscleGroup ? getMuscleGroupImage(exercise.muscleGroup) : '')
+      muscleImage: exercise.muscleImage || ''
     };
 
     // Sincronización recíproca bidireccional

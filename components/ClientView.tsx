@@ -3,7 +3,6 @@ import emailjs from '@emailjs/browser';
 import { Routine, Exercise } from '../types';
 import { supabase } from '../supabase';
 import ProgressiveOverloadTab from './ProgressiveOverloadTab';
-import { getMuscleGroupImage } from '../muscleGroups';
 import { ClientCalendarView } from './ClientCalendarView';
 
 interface ClientViewProps {
@@ -46,7 +45,7 @@ export const getExerciseCoverImage = (libEx?: Exercise): string => {
 // Helper when image loads: YouTube returns a 120x90 placeholder JPEG when maxresdefault/hqdefault is missing.
 // Modern browsers fire onLoad (not onError) because the payload is valid JPEG.
 // Checking naturalWidth <= 120 detects this placeholder immediately.
-export const onYTThumbLoad = (_muscleGroupFallback?: string) =>
+export const onYTThumbLoad = () =>
   (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     if (img.naturalWidth <= 120) {
@@ -61,15 +60,15 @@ export const onYTThumbLoad = (_muscleGroupFallback?: string) =>
   };
 
 // Fallback handler: cascades gracefully maxresdefault → hqdefault → mqdefault → hide
-export const onYTThumbError = (_muscleGroupFallback?: string) =>
+export const onYTThumbError = () =>
   (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     if (img.src.includes('/maxresdefault.jpg')) {
       img.src = img.src.replace('/maxresdefault.jpg', '/hqdefault.jpg');
     } else if (img.src.includes('/hqdefault.jpg')) {
       img.src = img.src.replace('/hqdefault.jpg', '/mqdefault.jpg');
-    } else if (muscleGroupFallback && img.src !== muscleGroupFallback) {
-      img.src = muscleGroupFallback;
+    } else {
+      img.style.display = 'none';
     }
   };
 
@@ -117,6 +116,140 @@ const getEmbedVideo = (url: string | undefined) => {
     thumbnail: null,
     src: trimmed
   };
+};
+
+interface RestTimerFloatingProps {
+  timerEndTimeRef: React.MutableRefObject<number | null>;
+  onStop: () => void;
+  onAddSeconds: (secs: number) => void;
+  playAlarm: () => void;
+  pauseLabel: string;
+}
+
+const RestTimerFloating: React.FC<RestTimerFloatingProps> = ({
+  timerEndTimeRef,
+  onStop,
+  onAddSeconds,
+  playAlarm,
+  pauseLabel
+}) => {
+  const calculateRemaining = () => {
+    if (!timerEndTimeRef.current) return 0;
+    return Math.max(0, Math.ceil((timerEndTimeRef.current - Date.now()) / 1000));
+  };
+
+  const [remaining, setRemaining] = useState<number>(calculateRemaining);
+
+  useEffect(() => {
+    const checkTimer = () => {
+      if (!timerEndTimeRef.current) return;
+      const now = Date.now();
+      const rem = Math.ceil((timerEndTimeRef.current - now) / 1000);
+      if (rem <= 0) {
+        timerEndTimeRef.current = null;
+        localStorage.removeItem('active_timer_end');
+        setRemaining(0);
+        playAlarm();
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification('¡Descanso terminado! 💪', {
+              body: 'Terminó tu descanso. ¡A darle a la siguiente serie!',
+              icon: '/logo.png',
+              tag: 'workout-timer'
+            });
+          } catch (e) {}
+        }
+        onStop();
+      } else {
+        setRemaining(rem);
+      }
+    };
+
+    checkTimer();
+    const interval = window.setInterval(checkTimer, 500);
+    const handleSync = () => checkTimer();
+    document.addEventListener('visibilitychange', handleSync);
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('pageshow', handleSync);
+    window.addEventListener('app:timer-updated', handleSync);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleSync);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('pageshow', handleSync);
+      window.removeEventListener('app:timer-updated', handleSync);
+    };
+  }, [onStop, playAlarm, timerEndTimeRef]);
+
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  const timeFormatted = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+  return (
+    <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-6 duration-300">
+      <div className="bg-black/95 backdrop-blur-2xl border-2 border-yellow-400 text-white px-6 py-3 rounded-none shadow-[0_20px_50px_rgba(0,0,0,0.9)] flex items-center gap-5">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 bg-yellow-400 animate-ping"></span>
+          <span className="text-xs font-bold tracking-widest uppercase text-yellow-400 font-display">{pauseLabel}</span>
+        </div>
+        <span className="text-3xl font-display tabular-nums tracking-wider font-mono text-white">{timeFormatted}</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onAddSeconds(30)}
+            className="px-3 py-1 bg-white/10 hover:bg-yellow-400 hover:text-black rounded-none text-xs font-bold font-mono transition-colors"
+          >
+            +30s
+          </button>
+          <button
+            onClick={onStop}
+            className="p-1 hover:bg-white/10 rounded-none text-zinc-400 hover:text-white transition-colors"
+            title="Cancelar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RestTimerBottomBadge: React.FC<{ timerEndTimeRef: React.MutableRefObject<number | null> }> = ({ timerEndTimeRef }) => {
+  const calculateRemaining = () => {
+    if (!timerEndTimeRef.current) return 0;
+    return Math.max(0, Math.ceil((timerEndTimeRef.current - Date.now()) / 1000));
+  };
+
+  const [remaining, setRemaining] = useState<number>(calculateRemaining);
+
+  useEffect(() => {
+    const update = () => {
+      setRemaining(calculateRemaining());
+    };
+    update();
+    const interval = setInterval(update, 500);
+    window.addEventListener('app:timer-updated', update);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('app:timer-updated', update);
+    };
+  }, [timerEndTimeRef]);
+
+  if (!timerEndTimeRef.current || remaining <= 0) return null;
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+
+  return (
+    <div className="px-3 py-1.5 rounded-none bg-zinc-900 border border-yellow-400/40 text-xs font-mono font-bold text-yellow-400 flex items-center gap-1.5">
+      <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" strokeWidth="3" className="opacity-25" />
+        <path strokeLinecap="round" strokeWidth="3" d="M12 2a10 10 0 0110 10" />
+      </svg>
+      {mins}:{secs.toString().padStart(2, '0')}
+    </div>
+  );
 };
 
 const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, library }) => {
@@ -182,7 +315,16 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const [clientCardioMinutes, setClientCardioMinutes] = useState<Record<string, string>>(savedData?.clientCardioMinutes || {});
   const [clientCardioIntensity, setClientCardioIntensity] = useState<Record<string, string>>(savedData?.clientCardioIntensity || {});
   const [feelings, setFeelings] = useState<Record<string, string>>(savedData?.feelings || {});
-  const [timer, setTimer] = useState<number | null>(null);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('active_timer_end');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        return parsed > Date.now();
+      }
+    } catch {}
+    return false;
+  });
   const [language, setLanguage] = useState<'es' | 'en' | 'it'>(savedData?.language || 'es');
   const [weeklySnapshots, setWeeklySnapshots] = useState<Record<string, Record<string, number>>>(savedData?.weeklySnapshots || routine.clientProgress?.weeklySnapshots || {});
   const [dayOverrides, setDayOverrides] = useState<Record<string, string>>(savedData?.dayOverrides || routine.clientProgress?.dayOverrides || {});
@@ -623,7 +765,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     const endTime = Date.now() + seconds * 1000;
     timerEndTimeRef.current = endTime;
     localStorage.setItem('active_timer_end', String(endTime));
-    setTimer(seconds);
+    setIsTimerRunning(true);
+    window.dispatchEvent(new CustomEvent('app:timer-updated'));
   };
 
   const addTimerSeconds = (secondsToAdd: number) => {
@@ -633,124 +776,62 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     const newEndTime = base + secondsToAdd * 1000;
     timerEndTimeRef.current = newEndTime;
     localStorage.setItem('active_timer_end', String(newEndTime));
-    const remaining = Math.ceil((newEndTime - Date.now()) / 1000);
-    setTimer(remaining);
+    window.dispatchEvent(new CustomEvent('app:timer-updated'));
   };
 
   const stopTimer = () => {
     timerEndTimeRef.current = null;
     localStorage.removeItem('active_timer_end');
-    setTimer(null);
+    setIsTimerRunning(false);
+    window.dispatchEvent(new CustomEvent('app:timer-updated'));
   };
-
-  // Restaurar timer persistido si la página se recargó
-  useEffect(() => {
-    const saved = localStorage.getItem('active_timer_end');
-    if (saved) {
-      const parsed = parseInt(saved, 10);
-      if (parsed > Date.now()) {
-        timerEndTimeRef.current = parsed;
-        setTimer(Math.ceil((parsed - Date.now()) / 1000));
-      } else {
-        localStorage.removeItem('active_timer_end');
-      }
-    }
-  }, []);
-
-  // Timer countdown hook con sincronización de reloj real y soporte de segundo plano (TikTok/otras apps)
-  useEffect(() => {
-    if (timer === null && !timerEndTimeRef.current) return;
-
-    const checkTimer = () => {
-      if (!timerEndTimeRef.current) return;
-      const now = Date.now();
-      const remaining = Math.ceil((timerEndTimeRef.current - now) / 1000);
-
-      if (remaining <= 0) {
-        timerEndTimeRef.current = null;
-        localStorage.removeItem('active_timer_end');
-        setTimer(null);
-        playAlarm();
-
-        // Notificación del sistema si está afuera de la app
-        if ('Notification' in window && Notification.permission === 'granted') {
-          try {
-            new Notification('¡Descanso terminado! 💪', {
-              body: 'Terminó tu descanso. ¡A darle a la siguiente serie!',
-              icon: '/logo.png',
-              tag: 'workout-timer'
-            });
-          } catch (e) {
-            console.error('Notification error:', e);
-          }
-        }
-      } else {
-        setTimer(remaining);
-      }
-    };
-
-    // 1. Ticker continuo en primer plano
-    const interval = window.setInterval(checkTimer, 500);
-
-    // 2. Al volver de TikTok o de bloquear el teléfono, sincronizar inmediatamente
-    const handleSync = () => {
-      checkTimer();
-    };
-
-    document.addEventListener('visibilitychange', handleSync);
-    window.addEventListener('focus', handleSync);
-    window.addEventListener('pageshow', handleSync);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleSync);
-      window.removeEventListener('focus', handleSync);
-      window.removeEventListener('pageshow', handleSync);
-    };
-  }, [timer !== null]);
 
   // Save progress helper (local + Supabase)
   const saveProgress = async (syncToCloud = false) => {
-    // Calculate current week snapshot for progressive overload
-    const currentWeekSnapshot: Record<string, number> = {};
-    const week = routine.weeks.find(w => w.id === activeWeekId);
-    if (week) {
-      week.workouts.forEach(workout => {
-        workout.exercises.forEach(entry => {
-          const effectiveExId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
-          const isReplaced = effectiveExId !== entry.libraryExerciseId;
-          let maxKg = 0;
-          let hasSets = false;
-          entry.sets.forEach(set => {
-            const setKey = isReplaced ? `${set.id}_${effectiveExId}` : set.id;
-            const completed = completedSets[setKey] !== undefined ? completedSets[setKey] : completedSets[set.id];
-            if (completed) {
-              const weightVal = clientWeights[setKey] !== undefined ? clientWeights[setKey] : clientWeights[set.id];
-              const kg = parseFloat(weightVal !== undefined ? weightVal : (isReplaced ? '' : set.kg));
-              if (!isNaN(kg)) {
-                if (kg > maxKg) maxKg = kg;
-                hasSets = true;
+    let newSnapshots = weeklySnapshots;
+
+    // Solo recalcular snapshots pesados cuando sincroniza a la nube (debounced), evitando congelar el hilo táctil
+    if (syncToCloud) {
+      const currentWeekSnapshot: Record<string, number> = {};
+      const week = routine.weeks.find(w => w.id === activeWeekId);
+      if (week) {
+        week.workouts.forEach(workout => {
+          workout.exercises.forEach(entry => {
+            const effectiveExId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
+            const isReplaced = effectiveExId !== entry.libraryExerciseId;
+            let maxKg = 0;
+            let hasSets = false;
+            entry.sets.forEach(set => {
+              const setKey = isReplaced ? `${set.id}_${effectiveExId}` : set.id;
+              const completed = completedSets[setKey] !== undefined ? completedSets[setKey] : completedSets[set.id];
+              if (completed) {
+                const weightVal = clientWeights[setKey] !== undefined ? clientWeights[setKey] : clientWeights[set.id];
+                const kg = parseFloat(weightVal !== undefined ? weightVal : (isReplaced ? '' : set.kg));
+                if (!isNaN(kg)) {
+                  if (kg > maxKg) maxKg = kg;
+                  hasSets = true;
+                }
+              }
+            });
+            if (hasSets) {
+              if (currentWeekSnapshot[effectiveExId]) {
+                currentWeekSnapshot[effectiveExId] = Math.max(currentWeekSnapshot[effectiveExId], maxKg);
+              } else {
+                currentWeekSnapshot[effectiveExId] = maxKg;
               }
             }
           });
-          if (hasSets) {
-            if (currentWeekSnapshot[effectiveExId]) {
-              currentWeekSnapshot[effectiveExId] = Math.max(currentWeekSnapshot[effectiveExId], maxKg);
-            } else {
-              currentWeekSnapshot[effectiveExId] = maxKg;
-            }
-          }
         });
-      });
-    }
+      }
 
-    const newSnapshots = {
-      ...weeklySnapshots,
-      ...(activeWeekId && Object.keys(currentWeekSnapshot).length > 0 ? { [activeWeekId]: currentWeekSnapshot } : {})
-    };
+      newSnapshots = {
+        ...weeklySnapshots,
+        ...(activeWeekId && Object.keys(currentWeekSnapshot).length > 0 ? { [activeWeekId]: currentWeekSnapshot } : {})
+      };
 
-    if (activeWeekId && Object.keys(currentWeekSnapshot).length > 0) {
-      setWeeklySnapshots(newSnapshots);
+      if (activeWeekId && Object.keys(currentWeekSnapshot).length > 0) {
+        setWeeklySnapshots(newSnapshots);
+      }
     }
 
     const progressData = {
@@ -771,13 +852,15 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
 
     try {
       localStorage.setItem(`routine_progress_${routine.id}`, JSON.stringify(progressData));
-      // También sincronizar con full_routine_cache para que una recarga mantenga el progreso
-      const fullCacheKey = `full_routine_cache_${routine.id}`;
-      const cached = localStorage.getItem(fullCacheKey);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        parsed.clientProgress = progressData;
-        localStorage.setItem(fullCacheKey, JSON.stringify(parsed));
+      // Sincronizar el caché pesado completo solo en segundo plano (debounced)
+      if (syncToCloud) {
+        const fullCacheKey = `full_routine_cache_${routine.id}`;
+        const cached = localStorage.getItem(fullCacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          parsed.clientProgress = progressData;
+          localStorage.setItem(fullCacheKey, JSON.stringify(parsed));
+        }
       }
     } catch (e) {
       console.error('Local progress storage error:', e);
@@ -829,16 +912,24 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   }, [completedSets, clientWeights, clientReps, clientCardioMinutes, clientCardioIntensity, feelings, activeWeekId, activeWorkoutId, activeExerciseId, viewMode, language, dayOverrides]);
 
   // Set toggle and rest trigger
-  const handleSetToggle = (setId: string, restTime: string) => {
+  const handleSetToggle = (setKey: string, restTime: string, baseSetId?: string) => {
     isDirtyRef.current = true;
     setSyncStatus('syncing');
     initAudio();
 
-    const isNowCompleted = !completedSets[setId];
-    const newCompleted = { ...completedSets, [setId]: isNowCompleted };
+    const currentVal = completedSets[setKey] !== undefined 
+      ? completedSets[setKey] 
+      : (baseSetId && completedSets[baseSetId] !== undefined ? completedSets[baseSetId] : false);
+    const isNowCompleted = !currentVal;
+
+    const newCompleted = { 
+      ...completedSets, 
+      [setKey]: isNowCompleted,
+      ...(baseSetId ? { [baseSetId]: isNowCompleted } : {})
+    };
     setCompletedSets(newCompleted);
 
-    // Guardado local síncrono inmediato para respuesta táctil instantánea
+    // Guardado local síncrono inmediato ultra-rápido para respuesta táctil instantánea (< 1ms)
     try {
       const currentSaved = localStorage.getItem(`routine_progress_${routine.id}`);
       const parsed = currentSaved ? JSON.parse(currentSaved) : {};
@@ -974,7 +1065,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       wk.exercises?.forEach(ex => {
         ex.sets?.forEach(s => {
           totalSetsInRoutine++;
-          if (completedSets[s.id]) totalCompletedSetsInRoutine++;
+          const isDone = !!(completedSets[s.id] || (ex.libraryExerciseId && completedSets[`${s.id}_${ex.libraryExerciseId}`]));
+          if (isDone) totalCompletedSetsInRoutine++;
         });
       });
     });
@@ -995,7 +1087,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         const isReplaced = activeLibId !== ex.libraryExerciseId;
         return acc + ex.sets.filter(s => {
           const setKey = isReplaced ? `${s.id}_${activeLibId}` : s.id;
-          return completedSets[setKey] !== undefined ? completedSets[setKey] : (isReplaced ? false : completedSets[s.id]);
+          return !!(completedSets[setKey] ?? (completedSets[s.id] ?? (ex.libraryExerciseId ? completedSets[`${s.id}_${ex.libraryExerciseId}`] : false)));
         }).length;
       }, 0)
     : 0;
@@ -1179,33 +1271,14 @@ ${feedbackText || 'Sin comentarios.'}
     <div className="min-h-screen bg-black text-white font-['Inter'] selection:bg-zinc-800 pb-36">
 
       {/* Floating Rest Timer (Gym Tactical Style) */}
-      {timer !== null && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-6 duration-300">
-          <div className="bg-black/95 backdrop-blur-2xl border-2 border-yellow-400 text-white px-6 py-3 rounded-none shadow-[0_20px_50px_rgba(0,0,0,0.9)] flex items-center gap-5">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 bg-yellow-400 animate-ping"></span>
-              <span className="text-xs font-bold tracking-widest uppercase text-yellow-400 font-display">{t('pause')}</span>
-            </div>
-            <span className="text-3xl font-display tabular-nums tracking-wider font-mono text-white">{formatTime(timer)}</span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => addTimerSeconds(30)}
-                className="px-3 py-1 bg-white/10 hover:bg-yellow-400 hover:text-black rounded-none text-xs font-bold font-mono transition-colors"
-              >
-                +30s
-              </button>
-              <button
-                onClick={stopTimer}
-                className="p-1 hover:bg-white/10 rounded-none text-zinc-400 hover:text-white transition-colors"
-                title="Cancelar"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
+      {isTimerRunning && (
+        <RestTimerFloating
+          timerEndTimeRef={timerEndTimeRef}
+          onStop={stopTimer}
+          onAddSeconds={addTimerSeconds}
+          playAlarm={playAlarm}
+          pauseLabel={t('pause')}
+        />
       )}
 
       {/* History Modal for a specific exercise */}
@@ -1344,8 +1417,10 @@ ${feedbackText || 'Sin comentarios.'}
                               <img
                                 src={altCover}
                                 alt={alt.name}
-                                onLoad={onYTThumbLoad(alt.muscleImage || (alt.muscleGroup ? getMuscleGroupImage(alt.muscleGroup) : ''))}
-                                onError={onYTThumbError(alt.muscleImage || (alt.muscleGroup ? getMuscleGroupImage(alt.muscleGroup) : ''))}
+                                loading="lazy"
+                                decoding="async"
+                                onLoad={onYTThumbLoad()}
+                                onError={onYTThumbError()}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -1653,8 +1728,10 @@ ${feedbackText || 'Sin comentarios.'}
                               <img
                                 src={dayCover}
                                 alt={displayTitle}
-                                onLoad={onYTThumbLoad(firstEx?.muscleImage || (firstEx?.muscleGroup ? getMuscleGroupImage(firstEx.muscleGroup) : ''))}
-                                onError={onYTThumbError(firstEx?.muscleImage || (firstEx?.muscleGroup ? getMuscleGroupImage(firstEx.muscleGroup) : ''))}
+                                loading="lazy"
+                                decoding="async"
+                                onLoad={onYTThumbLoad()}
+                                onError={onYTThumbError()}
                                 className="w-full h-full object-cover rounded-none group-hover:scale-105 transition-transform duration-300"
                               />
                             ) : (
@@ -1806,8 +1883,10 @@ ${feedbackText || 'Sin comentarios.'}
                             <img
                               src={coverImg}
                               alt={libEx?.name}
-                              onLoad={onYTThumbLoad(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
-                              onError={onYTThumbError(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
+                              loading="lazy"
+                              decoding="async"
+                              onLoad={onYTThumbLoad()}
+                              onError={onYTThumbError()}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
@@ -2126,8 +2205,10 @@ ${feedbackText || 'Sin comentarios.'}
                                   <img
                                     src={embed.thumbnail || getExerciseCoverImage(libEx)}
                                     alt={libEx?.name || 'Video'}
-                                    onLoad={onYTThumbLoad(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
-                                    onError={onYTThumbError(libEx?.muscleImage || (libEx?.muscleGroup ? getMuscleGroupImage(libEx.muscleGroup) : ''))}
+                                    loading="lazy"
+                                    decoding="async"
+                                    onLoad={onYTThumbLoad()}
+                                    onError={onYTThumbError()}
                                     className="w-full h-full object-cover scale-[1.05] group-hover:scale-110 transition-transform duration-300"
                                   />
                                 ) : (
@@ -2172,8 +2253,9 @@ ${feedbackText || 'Sin comentarios.'}
                                   <div className="col-span-3 text-center">{t('ok')}</div>
                                 </div>
                                 {entry.sets.map((set, idx) => {
-                                  const setKey = `${set.id}_${activeLibId}`;
-                                  const isDone = completedSets[setKey] !== undefined ? !!completedSets[setKey] : !!completedSets[set.id];
+                                  const isReplaced = activeLibId !== entry.libraryExerciseId;
+                                  const setKey = isReplaced ? `${set.id}_${activeLibId}` : set.id;
+                                  const isDone = completedSets[setKey] !== undefined ? !!completedSets[setKey] : (completedSets[set.id] !== undefined ? !!completedSets[set.id] : !!completedSets[`${set.id}_${activeLibId}`]);
                                   const minutesVal = clientCardioMinutes[setKey] !== undefined ? clientCardioMinutes[setKey] : (clientCardioMinutes[set.id] !== undefined ? clientCardioMinutes[set.id] : (set.cardioMinutes || set.reps || '20'));
                                   const intensityVal = clientCardioIntensity[setKey] !== undefined ? clientCardioIntensity[setKey] : (clientCardioIntensity[set.id] !== undefined ? clientCardioIntensity[set.id] : (set.cardioIntensity || 'Moderada'));
 
@@ -2213,7 +2295,7 @@ ${feedbackText || 'Sin comentarios.'}
                                       </div>
                                       <div className="col-span-3 flex justify-center">
                                         <button
-                                          onClick={() => handleSetToggle(setKey, '0:00')}
+                                          onClick={() => handleSetToggle(setKey, '0:00', set.id)}
                                           className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
                                             isDone
                                               ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
@@ -2245,8 +2327,8 @@ ${feedbackText || 'Sin comentarios.'}
                               const workingSets = entry.sets.filter(s => s.type !== 'warmup');
 
                               const renderSetRow = (set: TrainingSet, displayIdx: number, isWarmupSet: boolean) => {
-                                const setKey = `${set.id}_${activeLibId}`;
-                                const isDone = completedSets[setKey] !== undefined ? !!completedSets[setKey] : (isReplaced ? false : !!completedSets[set.id]);
+                                const setKey = isReplaced ? `${set.id}_${activeLibId}` : set.id;
+                                const isDone = completedSets[setKey] !== undefined ? !!completedSets[setKey] : (completedSets[set.id] !== undefined ? !!completedSets[set.id] : !!completedSets[`${set.id}_${activeLibId}`]);
                                 const currentWeight = clientWeights[setKey] !== undefined ? clientWeights[setKey] : (isReplaced ? '' : (clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg));
                                 const currentReps = clientReps[setKey] !== undefined ? clientReps[setKey] : (clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps);
 
@@ -2302,7 +2384,7 @@ ${feedbackText || 'Sin comentarios.'}
                                       {/* Checkbox (Circular Tactile Button) */}
                                       <div className="col-span-3 flex justify-center">
                                         <button
-                                          onClick={() => handleSetToggle(setKey, set.rest)}
+                                          onClick={() => handleSetToggle(setKey, set.rest, set.id)}
                                           className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
                                             isDone
                                               ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
@@ -2394,14 +2476,8 @@ ${feedbackText || 'Sin comentarios.'}
 
                 <div className="flex items-center gap-2">
                   {/* Timer box if running */}
-                  {timer !== null && (
-                    <div className="px-3 py-1.5 rounded-none bg-zinc-900 border border-yellow-400/40 text-xs font-mono font-bold text-yellow-400 flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10" strokeWidth="3" className="opacity-25" />
-                        <path strokeLinecap="round" strokeWidth="3" d="M12 2a10 10 0 0110 10" />
-                      </svg>
-                      {formatTime(timer)}
-                    </div>
+                  {isTimerRunning && (
+                    <RestTimerBottomBadge timerEndTimeRef={timerEndTimeRef} />
                   )}
 
                   {/* Finish Button */}
