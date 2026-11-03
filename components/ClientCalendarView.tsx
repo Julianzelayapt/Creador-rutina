@@ -484,11 +484,15 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
             <span>
               {selectedDayData.fullName} {selectedDayData.dayNumber} {cal.of} {selectedDayData.monthShort}
             </span>
-            {selectedDayData.isToday && (
+            {selectedDayData.isCompleted ? (
+              <span className="text-blue-500 font-black">
+                {cal.completed}
+              </span>
+            ) : selectedDayData.isToday ? (
               <span className="text-blue-400 font-black">
                 {cal.today}
               </span>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

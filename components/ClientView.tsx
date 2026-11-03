@@ -1111,6 +1111,19 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     if (isSubmitting) return;
     setIsSubmitting(true);
 
+    // Asegurar que todas las series del entrenamiento queden registradas como completadas al terminar la sesión
+    const updatedSets = { ...completedSets };
+    if (currentWorkout) {
+      currentWorkout.exercises.forEach(entry => {
+        const activeLibId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
+        entry.sets.forEach(s => {
+          updatedSets[s.id] = true;
+          if (activeLibId) updatedSets[`${s.id}_${activeLibId}`] = true;
+        });
+      });
+      setCompletedSets(updatedSets);
+    }
+
     setSyncStatus('syncing');
     await saveProgress(true);
 
@@ -1248,6 +1261,17 @@ ${feedbackText || 'Sin comentarios.'}
               <p className="text-zinc-400 text-sm leading-relaxed mb-8">{t('feedbackDesc')}</p>
               <button
                 onClick={() => {
+                  if (currentWorkout) {
+                    const updatedSets = { ...completedSets };
+                    currentWorkout.exercises.forEach(entry => {
+                      const activeLibId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
+                      entry.sets.forEach(s => {
+                        updatedSets[s.id] = true;
+                        if (activeLibId) updatedSets[`${s.id}_${activeLibId}`] = true;
+                      });
+                    });
+                    setCompletedSets(updatedSets);
+                  }
                   clearExerciseOverrides();
                   setShowFeedbackScreen(false);
                   setIsSubmitted(false);
