@@ -378,6 +378,11 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(savedData?.activeWorkoutId || null);
   const [activeExerciseId, setActiveExerciseId] = useState<string | null>(savedData?.activeExerciseId || null);
 
+  // Find active items
+  const currentWeek = routine.weeks.find(w => w.id === activeWeekId);
+  const currentWorkout = currentWeek?.workouts.find(wk => wk.id === activeWorkoutId);
+  const currentWorkoutIndex = currentWeek?.workouts.findIndex(wk => wk.id === activeWorkoutId) ?? 0;
+
   // Modals & UI States
   const [showFinishModal, setShowFinishModal] = useState<boolean>(false);
   const [showFeedbackScreen, setShowFeedbackScreen] = useState<boolean>(false);
@@ -1046,10 +1051,6 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Find active items
-  const currentWeek = routine.weeks.find(w => w.id === activeWeekId);
-  const currentWorkout = currentWeek?.workouts.find(wk => wk.id === activeWorkoutId);
-  const currentWorkoutIndex = currentWeek?.workouts.findIndex(wk => wk.id === activeWorkoutId) ?? 0;
   // Formateadores dinámicos según idioma
   const formatWorkoutTitle = (name: string, index: number) => {
     if (!name || !name.trim()) return `${t('day')} ${index + 1}`;
