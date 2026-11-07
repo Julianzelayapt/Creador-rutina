@@ -156,10 +156,11 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
     setIsSaving(true);
     try {
       const routineId = await onSave(currentRoutine);
-      const origin = window.location.origin + window.location.pathname;
+      const cleanPath = window.location.pathname.replace(/\/index\.html$/i, '').replace(/\/+$/, '');
+      const baseUrl = `${window.location.origin}${cleanPath}/`;
       setShareLinks({
-        client: `${origin}#routine/${routineId}`,
-        builder: `${origin}#builder/${routineId}`
+        client: `${baseUrl}#routine/${routineId}`,
+        builder: `${baseUrl}#builder/${routineId}`
       });
       setSavedMessage('¡Rutina guardada exitosamente en la nube y lista para compartir! 🚀');
       setTimeout(() => setSavedMessage(null), 4000);

@@ -58,12 +58,12 @@ const compressBase64Image = (base64Str: string, maxWidth = 800, maxHeight = 600,
 const parseRoutineData = (rawRecord: any): Routine | null => {
   if (!rawRecord) return null;
   let payload = (rawRecord.data !== undefined && rawRecord.data !== null) ? rawRecord.data : rawRecord;
-  if (typeof payload === 'string') {
+  while (typeof payload === 'string') {
     try {
       payload = JSON.parse(payload);
     } catch (e) {
       console.error('Error parsing JSON from payload:', e);
-      return null;
+      break;
     }
   }
   if (typeof payload === 'object' && payload !== null) {
@@ -173,6 +173,69 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 
+interface RouteTarget {
+  targetView: 'client' | 'builder';
+  routineId: string;
+}
+
+const parseCurrentRoute = (): RouteTarget | null => {
+  // 1. Extraer desde el Hash de la URL (soporta #routine/ID, #rutina/ID, #/routine/ID, #/rutina/ID, #routines/ID, #rutinas/ID)
+  const rawHash = window.location.hash || '';
+  const cleanHash = rawHash.replace(/^#+/, '#').trim();
+
+  // Match para vistas de cliente (#routine/ID, #rutina/ID, etc.)
+  const routineMatch = cleanHash.match(/^#\/?(?:routine|rutina|routines|rutinas)\/([^\/?&#]+)/i);
+  if (routineMatch && routineMatch[1]) {
+    const id = decodeURIComponent(routineMatch[1]).trim().replace(/[\/#]+$/, '');
+    if (id) return { targetView: 'client', routineId: id };
+  }
+
+  // Match para constructor (#builder/ID, #creador/ID, etc.)
+  const builderMatch = cleanHash.match(/^#\/?(?:builder|creador)\/([^\/?&#]+)/i);
+  if (builderMatch && builderMatch[1]) {
+    const id = decodeURIComponent(builderMatch[1]).trim().replace(/[\/#]+$/, '');
+    if (id) return { targetView: 'builder', routineId: id };
+  }
+
+  // 2. Extraer desde Query Parameters (?routine=ID, ?rutina=ID, ?id=ID) por si WhatsApp Web / navegadores PC limpiaron el hash
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    const routineParam = searchParams.get('routine') || searchParams.get('rutina') || searchParams.get('id');
+    if (routineParam) {
+      const id = decodeURIComponent(routineParam).trim().replace(/[\/#]+$/, '');
+      if (id) return { targetView: 'client', routineId: id };
+    }
+
+    const builderParam = searchParams.get('builder') || searchParams.get('creador');
+    if (builderParam) {
+      const id = decodeURIComponent(builderParam).trim().replace(/[\/#]+$/, '');
+      if (id) return { targetView: 'builder', routineId: id };
+    }
+  } catch (e) {
+    console.error('Error al analizar parámetros de búsqueda:', e);
+  }
+
+  // 3. Extraer desde Pathname (/routine/ID o /rutina/ID)
+  try {
+    const pathname = window.location.pathname || '';
+    const pathMatch = pathname.match(/\/(?:routine|rutina|routines|rutinas)\/([^\/?&#]+)/i);
+    if (pathMatch && pathMatch[1]) {
+      const id = decodeURIComponent(pathMatch[1]).trim().replace(/[\/#]+$/, '');
+      if (id) return { targetView: 'client', routineId: id };
+    }
+
+    const builderPathMatch = pathname.match(/\/(?:builder|creador)\/([^\/?&#]+)/i);
+    if (builderPathMatch && builderPathMatch[1]) {
+      const id = decodeURIComponent(builderPathMatch[1]).trim().replace(/[\/#]+$/, '');
+      if (id) return { targetView: 'builder', routineId: id };
+    }
+  } catch (e) {
+    console.error('Error al analizar pathname:', e);
+  }
+
+  return null;
+};
+
 const App: React.FC = () => {
   const [view, setView] = useState<'setup' | 'builder' | 'client'>('setup');
   const [currentRoutine, setCurrentRoutine] = useState<Routine | null>(null);
@@ -181,6 +244,7 @@ const App: React.FC = () => {
     return localStorage.getItem(THEME_KEY) === 'dark';
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Forzar modo oscuro siempre
   useEffect(() => {
@@ -219,20 +283,30 @@ const App: React.FC = () => {
     fetchLibrary();
 
     const handleHashChange = async () => {
-      const hash = window.location.hash;
-
-      if (hash && (hash.startsWith('#routine/') || hash.startsWith('#/routine/'))) {
-        const routineId = hash.replace(/^#\/?routine\//, '').replace(/\/$/, '').trim();
-        if (routineId) await loadRoutine(routineId, 'client');
-      } else if (hash && (hash.startsWith('#builder/') || hash.startsWith('#/builder/'))) {
-        const routineId = hash.replace(/^#\/?builder\//, '').replace(/\/$/, '').trim();
-        if (routineId) await loadRoutine(routineId, 'builder');
+      const route = parseCurrentRoute();
+      if (route) {
+        await loadRoutine(route.routineId, route.targetView);
       } else {
-        if (window.location.hash === '') setView('setup');
+        if (!window.location.hash && !window.location.search) {
+          setView('setup');
+          setLoadError(null);
+        }
       }
     };
 
-    const loadRoutine = async (routineId: string, targetView: 'client' | 'builder') => {
+    const loadRoutine = async (rawRoutineId: string, targetView: 'client' | 'builder') => {
+      const routineId = decodeURIComponent(rawRoutineId)
+        .trim()
+        .split('?')[0]
+        .split('&')[0]
+        .split('#')[0]
+        .replace(/[\/#]+$/, '')
+        .trim();
+
+      if (!routineId) return;
+
+      setLoadError(null);
+
       // 0. Si ya la tenemos cargada en memoria con ese ID, cambiar vista al instante
       setCurrentRoutine(prev => {
         if (prev && prev.id === routineId) {
@@ -270,12 +344,19 @@ const App: React.FC = () => {
           .from('routines')
           .select('*')
           .eq('id', routineId)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error loading routine from Supabase:', error);
-          if (!cacheFound) alert('No se pudo cargar la rutina desde la nube. Verifique el enlace.');
-        } else if (data) {
+          if (!cacheFound) {
+            setLoadError(`Error al conectar con la nube: ${error.message || 'No se pudo obtener la rutina'}. Verifique su conexión.`);
+          }
+        } else if (!data) {
+          console.warn('Routine not found in Supabase:', routineId);
+          if (!cacheFound) {
+            setLoadError(`No se encontró ninguna rutina con el identificador "${routineId}". Verifique que el enlace sea correcto y que el coach haya guardado los cambios en la nube.`);
+          }
+        } else {
           const freshRoutine = parseRoutineData(data);
           
           if (freshRoutine) {
@@ -306,10 +387,15 @@ const App: React.FC = () => {
                 data: cachedData
               }).catch(e => console.error('Error auto-syncing local cache:', e));
             }
+          } else if (!cacheFound) {
+            setLoadError(`El formato de la rutina recibida no es válido o está incompleto.`);
           }
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('Network or Supabase error during load:', e);
+        if (!cacheFound) {
+          setLoadError(`Error de red o conexión: ${e?.message || 'Verifique su conexión a Internet'}`);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -317,7 +403,11 @@ const App: React.FC = () => {
 
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleHashChange);
+    };
   }, []);
 
   const handleRoutineCreated = (routine: Routine) => {
@@ -388,11 +478,13 @@ const App: React.FC = () => {
 
       if (error) {
         console.error('Error saving routine to Supabase:', error);
-        alert(`⚠️ Atención: No se pudo guardar en la nube (Supabase): ${error.message}`);
+        alert(`⚠️ Atención: No se pudo guardar en la nube (Supabase): ${error.message}\nVerifica que la conexión a Internet esté activa.`);
+        throw error;
       }
     } catch (e: any) {
       console.error('Network or Supabase error:', e);
       alert(`⚠️ Error de red/conexión con Supabase: ${e?.message || e}`);
+      throw e;
     }
 
     return updatedRoutine.id;
@@ -565,6 +657,44 @@ const App: React.FC = () => {
         <div className="min-h-screen flex flex-col items-center justify-center p-4 animate-in fade-in duration-500">
           <div className="w-20 h-20 border-8 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin mb-8 shadow-2xl shadow-yellow-500/20"></div>
           <h2 className="text-xl font-bold uppercase tracking-tight animate-pulse text-white">PREPARANDO RUTINA...</h2>
+        </div>
+      ) : loadError ? (
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-black text-white animate-in fade-in duration-300">
+          <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/10">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-display font-black uppercase tracking-tight text-white mb-2">No se pudo cargar la rutina</h2>
+          <p className="text-zinc-400 text-sm max-w-md mb-6">{loadError}</p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => {
+                const route = parseCurrentRoute();
+                if (route) {
+                  window.location.reload();
+                } else {
+                  window.location.reload();
+                }
+              }}
+              className="px-5 py-2.5 bg-yellow-400 text-black font-black uppercase text-xs rounded-xl hover:bg-yellow-300 transition-colors shadow-lg shadow-yellow-400/20"
+            >
+              Reintentar
+            </button>
+            <button
+              onClick={() => {
+                window.location.hash = '';
+                if (window.history && window.history.replaceState) {
+                  window.history.replaceState(null, '', window.location.pathname);
+                }
+                setLoadError(null);
+                setView('setup');
+              }}
+              className="px-5 py-2.5 bg-white/10 text-white font-bold uppercase text-xs rounded-xl hover:bg-white/20 transition-colors border border-white/10"
+            >
+              Ir al inicio
+            </button>
+          </div>
         </div>
       ) : (
         <ErrorBoundary>
