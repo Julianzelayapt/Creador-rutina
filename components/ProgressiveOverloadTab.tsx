@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routine, Exercise } from '../types';
-import { getExerciseCoverImage, isYouTubeShort, onYTThumbLoad, onYTThumbError } from './ClientView';
+import { getExerciseCoverImage, isYouTubeShort, onYTThumbLoad, onYTThumbError } from './exerciseMediaUtils';
 
 interface ProgressiveOverloadTabProps {
   routine: Routine;

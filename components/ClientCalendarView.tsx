@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Routine, Workout, Exercise } from '../types';
-import { getExerciseCoverImage, onYTThumbLoad, onYTThumbError } from './ClientView';
+import { getExerciseCoverImage, onYTThumbLoad, onYTThumbError } from './exerciseMediaUtils';
 
 interface ClientCalendarViewProps {
   routine: Routine;
