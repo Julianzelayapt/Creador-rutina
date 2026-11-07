@@ -72,6 +72,7 @@ export interface ClientProgress {
   language: 'es' | 'en' | 'it';
   weeklySnapshots?: Record<string, Record<string, number>>; // { weekId: { exerciseId: avgKg } }
   dayOverrides?: Record<string, string>; // e.g. { "weekId_dayIndex": workoutId | 'rest' }
+  exerciseOverrides?: Record<string, string>; // e.g. { entryId: alternativeExerciseId }
 }
 
 export interface Routine {

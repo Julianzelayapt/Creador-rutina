@@ -286,7 +286,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         activeViewMode: remoteData.activeViewMode || null,
         language: remoteData.language || 'es',
         weeklySnapshots: remoteData.weeklySnapshots || {},
-        dayOverrides: remoteData.dayOverrides || {}
+        dayOverrides: remoteData.dayOverrides || {},
+        exerciseOverrides: remoteData.exerciseOverrides || {}
       };
     }
 
@@ -301,7 +302,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         clientCardioIntensity: { ...(normalizedRemote.clientCardioIntensity || {}), ...(localData.clientCardioIntensity || {}) },
         feelings: { ...(normalizedRemote.feelings || {}), ...(localData.feelings || {}) },
         weeklySnapshots: { ...(normalizedRemote.weeklySnapshots || {}), ...(localData.weeklySnapshots || {}) },
-        dayOverrides: { ...(normalizedRemote.dayOverrides || {}), ...(localData.dayOverrides || {}) }
+        dayOverrides: { ...(normalizedRemote.dayOverrides || {}), ...(localData.dayOverrides || {}) },
+        exerciseOverrides: { ...(normalizedRemote.exerciseOverrides || {}), ...(localData.exerciseOverrides || {}) }
       };
     }
     return localData || normalizedRemote || null;
@@ -378,6 +380,9 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     if (remoteData.weeklySnapshots && Object.keys(remoteData.weeklySnapshots).length > 0) {
       setWeeklySnapshots(prev => ({ ...remoteData.weeklySnapshots, ...prev }));
     }
+    if (remoteData.exerciseOverrides && Object.keys(remoteData.exerciseOverrides).length > 0) {
+      setExerciseOverrides(prev => ({ ...remoteData.exerciseOverrides, ...prev }));
+    }
   }, [routine.id, routine.clientProgress]);
 
   // Tab & View Navigation
@@ -426,13 +431,19 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const [collapsedExercises, setCollapsedExercises] = useState<Record<string, boolean>>({});
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   
-  // Ejercicios sustitutos / alternativas seleccionadas por el alumno (TEMPORAL SOLO POR SESIÓN)
+  // Ejercicios sustitutos / alternativas seleccionadas por el alumno (persistente para este ejercicio/entrenamiento)
   const [exerciseOverrides, setExerciseOverrides] = useState<Record<string, string>>(() => {
     try {
-      // Purgar cualquier override viejo permanente de localStorage para respetar la rutina original del coach
-      localStorage.removeItem(`routine_overrides_${routine.id}`);
-      const raw = sessionStorage.getItem(`routine_overrides_${routine.id}`);
-      return raw ? JSON.parse(raw) : {};
+      const fromSaved = savedData?.exerciseOverrides;
+      const rawLocal = localStorage.getItem(`routine_overrides_${routine.id}`);
+      const rawSession = sessionStorage.getItem(`routine_overrides_${routine.id}`);
+      const parsedLocal = rawLocal ? JSON.parse(rawLocal) : {};
+      const parsedSession = rawSession ? JSON.parse(rawSession) : {};
+      return {
+        ...(parsedLocal || {}),
+        ...(parsedSession || {}),
+        ...(fromSaved || {})
+      };
     } catch {
       return {};
     }
@@ -464,6 +475,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         updated[entryId] = alternativeId;
       }
       try {
+        localStorage.setItem(`routine_overrides_${routine.id}`, JSON.stringify(updated));
         sessionStorage.setItem(`routine_overrides_${routine.id}`, JSON.stringify(updated));
       } catch (e) {
         console.error('Error saving overrides:', e);
@@ -471,6 +483,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       return updated;
     });
     setAltModalExerciseEntry(null);
+    isDirtyRef.current = true;
+    setTimeout(() => {
+      saveProgress(true);
+    }, 60);
   };
 
   const [rating, setRating] = useState<number>(0);
@@ -712,6 +728,67 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     }
   }, [routine.weeks, activeWeekId]);
 
+  // Genera un audio WAV con campana nítida (ducking compatible con Spotify en OS móviles)
+  const getAlarmAudioUrl = () => {
+    try {
+      if (typeof window === 'undefined') return null;
+      if ((window as any).__cachedAlarmUrl) return (window as any).__cachedAlarmUrl;
+      const sampleRate = 44100;
+      const duration = 1.8;
+      const numSamples = Math.floor(sampleRate * duration);
+      const buffer = new ArrayBuffer(44 + numSamples * 2);
+      const view = new DataView(buffer);
+
+      const writeString = (offset: number, str: string) => {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      };
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + numSamples * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM
+      view.setUint16(22, 1, true); // Mono
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, numSamples * 2, true);
+
+      // Tres campanas deportivas marcadas (A5 880Hz, C#6 1108Hz, E6 1318Hz)
+      const notes = [
+        { start: 0.0, freq: 880, dur: 0.35 },
+        { start: 0.25, freq: 1108, dur: 0.35 },
+        { start: 0.5, freq: 1318.5, dur: 1.1 }
+      ];
+
+      for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate;
+        let sample = 0;
+        for (const note of notes) {
+          if (t >= note.start && t < note.start + note.dur) {
+            const noteT = t - note.start;
+            const env = Math.exp(-noteT * 5.0);
+            const wave = Math.sin(2 * Math.PI * note.freq * noteT) * 0.7 +
+                         Math.sin(2 * Math.PI * (note.freq * 2) * noteT) * 0.3;
+            sample += wave * env;
+          }
+        }
+        sample = Math.max(-1, Math.min(1, sample * 0.95));
+        view.setInt16(44 + i * 2, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      }
+
+      const blob = new Blob([buffer], { type: 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+      (window as any).__cachedAlarmUrl = url;
+      return url;
+    } catch (e) {
+      console.warn('WAV alarm gen error:', e);
+      return null;
+    }
+  };
+
   // Audio initialization for countdown and timer alert
   const initAudio = () => {
     if (!audioContextRef.current) {
@@ -720,36 +797,48 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     if (audioContextRef.current.state === 'suspended') {
       audioContextRef.current.resume();
     }
+    // Precargar audio url para tenerlo listo
+    getAlarmAudioUrl();
   };
 
   const playAlarm = () => {
     try {
+      // 1. Audio element HTML5 (solicita canal de media al OS para ducking de Spotify)
+      const audioUrl = getAlarmAudioUrl();
+      if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        audio.volume = 1.0;
+        audio.play().catch(e => console.log('Audio element play note:', e));
+      }
+
+      // 2. Web Audio Oscillator para redundancia
       initAudio();
       const ctx = audioContextRef.current;
-      if (!ctx) return;
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx) {
+        if (ctx.state === 'suspended') ctx.resume();
+        const now = ctx.currentTime;
+        const playNote = (freq: number, startTime: number, duration: number) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, startTime);
+          gain.gain.setValueAtTime(0, startTime);
+          gain.gain.linearRampToValueAtTime(0.8, startTime + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(startTime);
+          osc.stop(startTime + duration);
+        };
 
-      const playNote = (freq: number, startTime: number, duration: number) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, startTime);
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.4, startTime + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + duration);
-      };
+        playNote(880, now, 0.25);
+        playNote(1108, now + 0.25, 0.25);
+        playNote(1318.5, now + 0.5, 0.9);
+      }
 
-      const now = ctx.currentTime;
-      playNote(784, now, 0.18);
-      playNote(880, now + 0.22, 0.18);
-      playNote(1046, now + 0.44, 0.35);
-
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 300]);
+      // 3. Vibración fuerte en dispositivos móviles
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([400, 200, 400, 200, 600]);
       }
     } catch (e) {
       console.error('Audio playback error:', e);
@@ -847,7 +936,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       activeViewMode: viewMode,
       language,
       weeklySnapshots: newSnapshots,
-      dayOverrides
+      dayOverrides,
+      exerciseOverrides
     };
 
     try {
@@ -1272,7 +1362,6 @@ ${feedbackText || 'Sin comentarios.'}
                     });
                     setCompletedSets(updatedSets);
                   }
-                  clearExerciseOverrides();
                   setShowFeedbackScreen(false);
                   setIsSubmitted(false);
                   setViewMode('dashboard');
@@ -1707,7 +1796,6 @@ ${feedbackText || 'Sin comentarios.'}
                     value={activeWeekId || ''}
                     onChange={(e) => {
                       setActiveWeekId(e.target.value);
-                      clearExerciseOverrides();
                     }}
                     className="w-full bg-[#181b22] hover:bg-[#20242e] text-white pl-11 pr-10 py-3.5 rounded-none font-bold uppercase text-xs tracking-wider border-0 focus:ring-1 focus:ring-yellow-400 outline-none transition-all appearance-none cursor-pointer shadow-md"
                   >
@@ -1884,68 +1972,21 @@ ${feedbackText || 'Sin comentarios.'}
                   const hasAlternatives = originalEx?.alternativeExerciseIds && originalEx.alternativeExerciseIds.length > 0;
                   const hasTip = Boolean(entry.customTip || libEx?.tip);
 
+                  const groupMembers = entry.supersetGroupId 
+                    ? currentWorkout.exercises.filter(e => e.supersetGroupId === entry.supersetGroupId) 
+                    : [];
+                  const hasSuperset = Boolean(entry.supersetGroupId);
+                  const isLastInGroup = hasSuperset && entry.supersetOrder === groupMembers.length;
+
                   return (
-                    <div
-                      key={entry.id || idx}
-                      className="bg-[#181b22] hover:bg-[#20242e] border-0 rounded-none overflow-hidden flex items-stretch justify-between transition-all group shadow-md"
-                    >
-                      {/* Left & Center: Click to train this exercise */}
+                    <div key={entry.id || idx} className="space-y-1">
                       <div
-                        onClick={() => {
-                          initAudio();
-                          setViewMode('active');
-                          setTimeout(() => {
-                            const el = document.getElementById(`exercise-${entry.id}`);
-                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }, 120);
-                        }}
-                        className="flex items-center gap-3.5 min-w-0 flex-1 cursor-pointer"
+                        className={`bg-[#181b22] hover:bg-[#20242e] border-0 rounded-none overflow-hidden flex items-stretch justify-between transition-all group shadow-md ${
+                          hasSuperset ? 'border-l-4 border-yellow-400' : ''
+                        }`}
                       >
-                        {/* 1:1 Square Thumbnail - Flush on left (clean, without overlay play button) */}
-                        <div className="w-24 sm:w-28 h-24 sm:h-28 aspect-square rounded-none bg-zinc-950 overflow-hidden shrink-0 relative">
-                          {coverImg ? (
-                            <img
-                              src={coverImg}
-                              alt={libEx?.name}
-                              loading="lazy"
-                              decoding="async"
-                              onLoad={onYTThumbLoad()}
-                              onError={onYTThumbError()}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-zinc-950 text-zinc-500 font-bold text-xs">
-                              {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Center Column: Title, SETS, REPS */}
-                        <div className="min-w-0 flex-1 py-2 pr-2">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-display font-black text-base sm:text-lg text-white uppercase tracking-tight leading-tight truncate group-hover:text-yellow-400 transition-colors">
-                              {libEx?.name || 'Ejercicio'}
-                            </h4>
-                            {isReplaced && (
-                              <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.5 rounded-none border border-amber-500/30 uppercase shrink-0">
-                                {t('substitute')}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="mt-1.5 text-left">
-                            <p className="text-[11px] font-bold text-zinc-400 tracking-wider uppercase">
-                              SETS: <span className="text-yellow-400 font-mono font-bold text-xs">{entry.sets.length}</span>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right Column: Actions (Chevron, Swap/Replace, Tip) */}
-                      <div className="flex flex-col items-center justify-between gap-1.5 shrink-0 pr-3 sm:pr-4 py-2 self-stretch">
-                        {/* Chevron right */}
-                        <button
-                          type="button"
+                        {/* Left & Center: Click to train this exercise */}
+                        <div
                           onClick={() => {
                             initAudio();
                             setViewMode('active');
@@ -1954,66 +1995,139 @@ ${feedbackText || 'Sin comentarios.'}
                               if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }, 120);
                           }}
-                          className="p-1 text-zinc-500 group-hover:text-white transition-colors"
-                          title="Entrenar ejercicio"
+                          className="flex items-center gap-3.5 min-w-0 flex-1 cursor-pointer"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
+                          {/* 1:1 Square Thumbnail - Flush on left (clean, without overlay play button) */}
+                          <div className="w-24 sm:w-28 h-24 sm:h-28 aspect-square rounded-none bg-zinc-950 overflow-hidden shrink-0 relative">
+                            {coverImg ? (
+                              <img
+                                src={coverImg}
+                                alt={libEx?.name}
+                                loading="lazy"
+                                decoding="async"
+                                onLoad={onYTThumbLoad()}
+                                onError={onYTThumbError()}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-zinc-950 text-zinc-500 font-bold text-xs">
+                                {(libEx?.name || 'EX').substring(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
 
-                        {/* Swap / Alternative icon */}
-                        {hasAlternatives ? (
+                          {/* Center Column: Title, SETS, REPS */}
+                          <div className="min-w-0 flex-1 py-2 pr-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {hasSuperset && (
+                                <span className="text-[9px] bg-yellow-400 text-black font-black px-1.5 py-0.5 rounded-none font-mono uppercase tracking-wider shrink-0">
+                                  SUPER-SERIE {entry.supersetLabel}{entry.supersetOrder}
+                                </span>
+                              )}
+                              <h4 className="font-display font-black text-base sm:text-lg text-white uppercase tracking-tight leading-tight truncate group-hover:text-yellow-400 transition-colors">
+                                {libEx?.name || 'Ejercicio'}
+                              </h4>
+                              {isReplaced && (
+                                <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.5 rounded-none border border-amber-500/30 uppercase shrink-0">
+                                  {t('substitute')}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="mt-1.5 text-left">
+                              <p className="text-[11px] font-bold text-zinc-400 tracking-wider uppercase">
+                                SETS: <span className="text-yellow-400 font-mono font-bold text-xs">{entry.sets.length}</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right Column: Actions (Chevron, Swap/Replace, Tip) */}
+                        <div className="flex flex-col items-center justify-between gap-1.5 shrink-0 pr-3 sm:pr-4 py-2 self-stretch">
+                          {/* Chevron right */}
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!originalEx) return;
-                              const alts = (originalEx.alternativeExerciseIds || [])
-                                .map(altId => library.find(l => l.id === altId))
-                                .filter((l): l is Exercise => Boolean(l));
-
-                              setAltModalExerciseEntry({
-                                entryId: entry.id,
-                                originalExercise: originalEx,
-                                currentExercise: libEx || originalEx,
-                                alternatives: alts
-                              });
+                            onClick={() => {
+                              initAudio();
+                              setViewMode('active');
+                              setTimeout(() => {
+                                const el = document.getElementById(`exercise-${entry.id}`);
+                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              }, 120);
                             }}
-                            className={`p-1 rounded-none transition-all ${
-                              isReplaced
-                                ? 'text-amber-400 bg-amber-500/20 hover:bg-amber-500/30'
-                                : 'text-zinc-400 hover:text-amber-400 hover:bg-white/5'
-                            }`}
-                            title={t('busyMachine')}
+                            className="p-1 text-zinc-500 group-hover:text-white transition-colors"
+                            title="Entrenar ejercicio"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
                             </svg>
                           </button>
-                        ) : (
-                          <div className="w-4 h-4" />
-                        )}
 
-                        {/* Tips icon */}
-                        {hasTip ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              alert(`💡 ${t('coachTipTitle')}\n\n${entry.customTip || libEx?.tip}`);
-                            }}
-                            className="p-1 text-zinc-500 hover:text-yellow-400 transition-colors"
-                            title={t('tip')}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </button>
-                        ) : (
-                          <div className="w-4 h-4" />
-                        )}
+                          {/* Swap / Alternative icon */}
+                          {hasAlternatives ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!originalEx) return;
+                                const alts = (originalEx.alternativeExerciseIds || [])
+                                  .map(altId => library.find(l => l.id === altId))
+                                  .filter((l): l is Exercise => Boolean(l));
+
+                                setAltModalExerciseEntry({
+                                  entryId: entry.id,
+                                  originalExercise: originalEx,
+                                  currentExercise: libEx || originalEx,
+                                  alternatives: alts
+                                });
+                              }}
+                              className={`p-1 rounded-none transition-all ${
+                                isReplaced
+                                  ? 'text-amber-400 bg-amber-500/20 hover:bg-amber-500/30'
+                                  : 'text-zinc-400 hover:text-amber-400 hover:bg-white/5'
+                              }`}
+                              title={t('busyMachine')}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            </button>
+                          ) : (
+                            <div className="w-4 h-4" />
+                          )}
+
+                          {/* Tips icon */}
+                          {hasTip ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(`💡 ${t('coachTipTitle')}\n\n${entry.customTip || libEx?.tip}`);
+                              }}
+                              className="p-1 text-zinc-500 hover:text-yellow-400 transition-colors"
+                              title={t('tip')}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </button>
+                          ) : (
+                            <div className="w-4 h-4" />
+                          )}
+                        </div>
                       </div>
+
+                      {/* Pie informativo de la Superserie al finalizar el último ejercicio */}
+                      {isLastInGroup && (
+                        <div className="p-2.5 bg-black/60 border-l-4 border-yellow-400 text-[11px] font-semibold text-zinc-300 flex items-center justify-between">
+                          <span className="text-yellow-400 font-mono font-bold text-xs uppercase">
+                            ⚡ SUPER-SERIE {entry.supersetLabel} ({groupMembers.length} ejercicios)
+                          </span>
+                          <span className="text-zinc-400 text-[11px]">
+                            Transición: <strong className="text-white font-mono">{entry.supersetRest || '0:00'}</strong> · Descanso ronda: <strong className="text-yellow-400 font-mono">{entry.supersetFinalRest || '2:30'}</strong>
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -2068,20 +2182,34 @@ ${feedbackText || 'Sin comentarios.'}
                   const tipText = entry.customTip || libEx?.tip;
                   const hasAlternatives = originalEx?.alternativeExerciseIds && originalEx.alternativeExerciseIds.length > 0;
 
+                  const groupMembers = entry.supersetGroupId 
+                    ? currentWorkout.exercises.filter(e => e.supersetGroupId === entry.supersetGroupId) 
+                    : [];
+                  const hasSuperset = Boolean(entry.supersetGroupId);
+                  const isLastInGroup = hasSuperset && entry.supersetOrder === groupMembers.length;
+
                   return (
                     <div
                       id={`exercise-${entry.id}`}
                       key={entry.id || eIdx}
-                      className="bg-[#181b22] border-0 rounded-none p-4 sm:p-5 shadow-lg transition-all scroll-mt-6"
+                      className={`bg-[#181b22] border-0 rounded-none p-4 sm:p-5 shadow-lg transition-all scroll-mt-6 ${
+                        hasSuperset ? 'border-l-4 border-yellow-400' : ''
+                      }`}
                     >
                       {/* Exercise Header */}
                       <div className="mb-4">
                         {/* Top Action Row: Exercise Badge + Substitute & Action Buttons */}
                         <div className="flex items-center justify-between gap-2 mb-2.5">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-none">
-                              {t('exercisePrefix')} {eIdx + 1}
-                            </span>
+                            {hasSuperset ? (
+                              <span className="text-[10px] font-mono font-black uppercase tracking-wider bg-yellow-400 text-black px-2 py-0.5 rounded-none">
+                                SUPER-SERIE {entry.supersetLabel} · {entry.supersetOrder}/{groupMembers.length}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-none">
+                                {t('exercisePrefix')} {eIdx + 1}
+                              </span>
+                            )}
                             {isReplaced && (
                               <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-none">
                                 {t('substituteActive')}
@@ -2408,7 +2536,21 @@ ${feedbackText || 'Sin comentarios.'}
                                       {/* Checkbox (Circular Tactile Button) */}
                                       <div className="col-span-3 flex justify-center">
                                         <button
-                                          onClick={() => handleSetToggle(setKey, set.rest, set.id)}
+                                          onClick={() => {
+                                            const effectiveRest = hasSuperset
+                                              ? (isLastInGroup ? (entry.supersetFinalRest || '2:30') : (entry.supersetRest || '0:00'))
+                                              : set.rest;
+                                            handleSetToggle(setKey, effectiveRest, set.id);
+                                            if (hasSuperset && !isLastInGroup) {
+                                              const nextExercise = groupMembers.find(m => m.supersetOrder === (entry.supersetOrder || 1) + 1);
+                                              if (nextExercise) {
+                                                setTimeout(() => {
+                                                  const nextEl = document.getElementById(`exercise-${nextExercise.id}`);
+                                                  if (nextEl) nextEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                }, 180);
+                                              }
+                                            }
+                                          }}
                                           className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
                                             isDone
                                               ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
@@ -2472,6 +2614,22 @@ ${feedbackText || 'Sin comentarios.'}
                             </>
                             )}
                           </div>
+
+                          {/* Superserie Info Bar en modo activo */}
+                          {hasSuperset && (
+                            <div className="mt-3 p-2.5 bg-black/60 border-l-2 border-yellow-400 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
+                              <span className="text-[11px] font-mono font-bold text-yellow-400 uppercase">
+                                ⚡ SUPER-SERIE {entry.supersetLabel} ({entry.supersetOrder}/{groupMembers.length})
+                              </span>
+                              <span className="text-[11px]">
+                                {isLastInGroup ? (
+                                  <span>Descanso fin de ronda: <strong className="text-yellow-400 font-mono font-bold">{entry.supersetFinalRest || '2:30'}</strong></span>
+                                ) : (
+                                  <span>Transición: <strong className="text-white font-mono">{entry.supersetRest || '0:00'}</strong></span>
+                                )}
+                              </span>
+                            </div>
+                          )}
 
                           {/* Exercise Notes */}
                           <div className="pt-2">

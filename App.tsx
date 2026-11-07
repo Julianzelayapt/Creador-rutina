@@ -117,7 +117,8 @@ const parseRoutineData = (rawRecord: any): Routine | null => {
         activeViewMode: rawProgress.activeViewMode || null,
         language: rawProgress.language || 'es',
         weeklySnapshots: rawProgress.weeklySnapshots || {},
-        dayOverrides: rawProgress.dayOverrides || {}
+        dayOverrides: rawProgress.dayOverrides || {},
+        exerciseOverrides: rawProgress.exerciseOverrides || {}
       };
     }
 

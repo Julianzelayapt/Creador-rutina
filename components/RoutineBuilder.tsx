@@ -70,6 +70,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   const [enfoqueModalInput, setEnfoqueModalInput] = useState('');
   const [enfoqueModalWeekId, setEnfoqueModalWeekId] = useState<string | null>(null);
   const [enfoqueModalDefault, setEnfoqueModalDefault] = useState('');
+  const [openSupersetMenuId, setOpenSupersetMenuId] = useState<string | null>(null);
 
   // Sincronizar el estado local únicamente cuando cambia el ID de la rutina recibida por prop
   useEffect(() => {
@@ -431,6 +432,135 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
         return w;
       })
     });
+  };
+
+  const groupInSuperset = (
+    weekId: string,
+    workoutId: string,
+    startIndex: number,
+    count: number,
+    supersetRest: string = '0:00',
+    supersetFinalRest: string = '2:30'
+  ) => {
+    setCurrentRoutine(prev => ({
+      ...prev,
+      weeks: prev.weeks.map(w => {
+        if (w.id !== weekId) return w;
+        return {
+          ...w,
+          workouts: w.workouts.map(wk => {
+            if (wk.id !== workoutId) return wk;
+            const existingLabels = new Set(
+              wk.exercises.map(e => e.supersetLabel).filter(Boolean)
+            );
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let nextLabel = 'A';
+            for (const l of letters) {
+              if (!existingLabels.has(l)) {
+                nextLabel = l;
+                break;
+              }
+            }
+            const groupId = `ss_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+            const updatedExercises = wk.exercises.map((ex, idx) => {
+              if (idx >= startIndex && idx < startIndex + count) {
+                const order = idx - startIndex + 1;
+                return {
+                  ...ex,
+                  supersetGroupId: groupId,
+                  supersetLabel: nextLabel,
+                  supersetOrder: order,
+                  supersetRest,
+                  supersetFinalRest
+                };
+              }
+              return ex;
+            });
+            return { ...wk, exercises: updatedExercises };
+          })
+        };
+      })
+    }));
+  };
+
+  const removeFromSuperset = (weekId: string, workoutId: string, entryId: string) => {
+    setCurrentRoutine(prev => ({
+      ...prev,
+      weeks: prev.weeks.map(w => {
+        if (w.id !== weekId) return w;
+        return {
+          ...w,
+          workouts: w.workouts.map(wk => {
+            if (wk.id !== workoutId) return wk;
+            const target = wk.exercises.find(e => e.id === entryId);
+            if (!target || !target.supersetGroupId) return wk;
+            const groupId = target.supersetGroupId;
+
+            const remainingInGroup = wk.exercises.filter(e => e.supersetGroupId === groupId && e.id !== entryId);
+            const dissolveGroup = remainingInGroup.length < 2;
+
+            const updatedExercises = wk.exercises.map(ex => {
+              if (ex.id === entryId) {
+                const copy = { ...ex };
+                delete copy.supersetGroupId;
+                delete copy.supersetLabel;
+                delete copy.supersetOrder;
+                delete copy.supersetRest;
+                delete copy.supersetFinalRest;
+                return copy;
+              }
+              if (ex.supersetGroupId === groupId) {
+                if (dissolveGroup) {
+                  const copy = { ...ex };
+                  delete copy.supersetGroupId;
+                  delete copy.supersetLabel;
+                  delete copy.supersetOrder;
+                  delete copy.supersetRest;
+                  delete copy.supersetFinalRest;
+                  return copy;
+                }
+                const newOrder = remainingInGroup.findIndex(m => m.id === ex.id) + 1;
+                return { ...ex, supersetOrder: newOrder };
+              }
+              return ex;
+            });
+
+            return { ...wk, exercises: updatedExercises };
+          })
+        };
+      })
+    }));
+  };
+
+  const updateSupersetGroupTimes = (
+    weekId: string,
+    workoutId: string,
+    groupId: string,
+    fields: { supersetRest?: string; supersetFinalRest?: string }
+  ) => {
+    setCurrentRoutine(prev => ({
+      ...prev,
+      weeks: prev.weeks.map(w => {
+        if (w.id !== weekId) return w;
+        return {
+          ...w,
+          workouts: w.workouts.map(wk => {
+            if (wk.id !== workoutId) return wk;
+            const updatedExercises = wk.exercises.map(ex => {
+              if (ex.supersetGroupId === groupId) {
+                return {
+                  ...ex,
+                  ...(fields.supersetRest !== undefined ? { supersetRest: fields.supersetRest } : {}),
+                  ...(fields.supersetFinalRest !== undefined ? { supersetFinalRest: fields.supersetFinalRest } : {})
+                };
+              }
+              return ex;
+            });
+            return { ...wk, exercises: updatedExercises };
+          })
+        };
+      })
+    }));
   };
 
   const updateExerciseSuperset = (weekId: string, workoutId: string, entryId: string, fields: Partial<ExerciseEntry>) => {
@@ -1303,12 +1433,20 @@ onChange={(e) => setCurrentRoutine({
                             {currentWorkout.exercises.map((entry, index) => {
                               const libEx = library.find(l => l.id === entry.libraryExerciseId);
                               const exImg = getYouTubeThumbnail(libEx?.videoUrl) || '';
+                              const groupMembers = entry.supersetGroupId
+                                ? currentWorkout.exercises.filter(e => e.supersetGroupId === entry.supersetGroupId)
+                                : [];
+                              const hasSuperset = Boolean(entry.supersetGroupId);
+                              const isLastInGroup = hasSuperset && entry.supersetOrder === groupMembers.length;
+
                               return (
                                 <Draggable key={entry.id} draggableId={entry.id} index={index}>
                                   {(provided) => {
                                     return (
                                       <div 
-                                        className="relative group/ex p-6 rounded-none bg-[#181b22] border-0 shadow-lg"
+                                        className={`relative group/ex p-6 rounded-none bg-[#181b22] border-0 shadow-lg ${
+                                          hasSuperset ? 'border-l-4 border-yellow-400' : ''
+                                        }`}
                                         ref={provided.innerRef}
                                         {...provided.draggableProps}
                                       >
@@ -1320,6 +1458,28 @@ onChange={(e) => setCurrentRoutine({
 
                                         <div className="space-y-6 ml-6">
                                           <div key={entry.id}>
+                                            {/* Header de Superserie si pertenece a un grupo */}
+                                            {hasSuperset && (
+                                              <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/5">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-[10px] font-black uppercase tracking-widest bg-yellow-400 text-black px-2.5 py-0.5 font-mono">
+                                                    SUPER-SERIE {entry.supersetLabel}
+                                                  </span>
+                                                  <span className="text-[11px] font-bold text-yellow-400">
+                                                    Ejercicio {entry.supersetOrder} de {groupMembers.length}
+                                                  </span>
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => removeFromSuperset(currentWeek.id, currentWorkout.id, entry.id)}
+                                                  className="text-[10px] text-zinc-400 hover:text-red-400 font-bold uppercase tracking-wider transition-colors"
+                                                  title="Desvincular de la superserie"
+                                                >
+                                                  Desvincular
+                                                </button>
+                                              </div>
+                                            )}
+
                                             <div className="flex justify-between items-center mb-4">
                                               <div className="flex items-center gap-3">
                                                 {/* Miniatura 1:1 Cuadrada del Ejercicio */}
@@ -1348,12 +1508,71 @@ onChange={(e) => setCurrentRoutine({
                                                   {libEx?.name || 'Cargando...'}
                                                 </span>
                                               </div>
-                                              <button 
-                                                onClick={() => deleteExercise(currentWeek.id, currentWorkout.id, entry.id)} 
-                                                className="text-zinc-400 hover:text-red-400 p-2 transition-all"
-                                              >
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                                              </button>
+
+                                              <div className="flex items-center gap-2">
+                                                {/* Botón para agrupar en Superserie / Triserie si no está agrupado */}
+                                                {!hasSuperset && (
+                                                  <div className="relative">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setOpenSupersetMenuId(openSupersetMenuId === entry.id ? null : entry.id)}
+                                                      className="text-[10px] font-bold uppercase tracking-wider text-zinc-300 hover:text-yellow-400 flex items-center gap-1.5 transition-colors px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5"
+                                                      title="Agrupar en superserie o triserie"
+                                                    >
+                                                      <svg className="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                                      </svg>
+                                                      + Superserie
+                                                    </button>
+
+                                                    {openSupersetMenuId === entry.id && (
+                                                      <div className="absolute right-0 top-full mt-1.5 w-60 bg-[#0c0e12] border border-white/15 shadow-2xl z-40 p-2 space-y-1">
+                                                        <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400 px-2 py-1 border-b border-white/5">
+                                                          Agrupar desde este ejercicio:
+                                                        </div>
+                                                        {index + 1 < currentWorkout.exercises.length && (
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                              groupInSuperset(currentWeek.id, currentWorkout.id, index, 2);
+                                                              setOpenSupersetMenuId(null);
+                                                            }}
+                                                            className="w-full text-left px-2.5 py-2 text-xs font-bold text-white hover:bg-yellow-400 hover:text-black flex items-center justify-between transition-colors"
+                                                          >
+                                                            <span>Superserie (2 ejerc.)</span>
+                                                            <span className="text-[10px] opacity-75 font-mono">2 ejercicios</span>
+                                                          </button>
+                                                        )}
+                                                        {index + 2 < currentWorkout.exercises.length && (
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                              groupInSuperset(currentWeek.id, currentWorkout.id, index, 3);
+                                                              setOpenSupersetMenuId(null);
+                                                            }}
+                                                            className="w-full text-left px-2.5 py-2 text-xs font-bold text-white hover:bg-yellow-400 hover:text-black flex items-center justify-between transition-colors"
+                                                          >
+                                                            <span>Triserie (3 ejerc.)</span>
+                                                            <span className="text-[10px] opacity-75 font-mono">3 ejercicios</span>
+                                                          </button>
+                                                        )}
+                                                        {index + 1 >= currentWorkout.exercises.length && (
+                                                          <div className="text-[11px] text-zinc-400 px-2 py-2">
+                                                            Agregá más ejercicios abajo para poder armar la superserie.
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )}
+
+                                                <button 
+                                                  onClick={() => deleteExercise(currentWeek.id, currentWorkout.id, entry.id)} 
+                                                  className="text-zinc-400 hover:text-red-400 p-2 transition-all"
+                                                >
+                                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
+                                              </div>
                                             </div>
 
                                               <div className="mb-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/85 focus-within:border-yellow-500/50 transition-all">
@@ -1548,6 +1767,45 @@ onChange={(e) => setCurrentRoutine({
                                               >
                                                 + Agregar Serie
                                               </button>
+
+                                              {/* Panel de configuración de tiempos para la Superserie / Triserie */}
+                                              {isLastInGroup && (
+                                                <div className="mt-4 p-4 bg-black/60 border border-yellow-400/30 rounded-none flex flex-wrap items-center justify-between gap-3 text-xs">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-[11px] font-mono font-black uppercase tracking-wider text-yellow-400">
+                                                      ⚡ CONFIGURACIÓN SUPER-SERIE {entry.supersetLabel} ({groupMembers.length} ejercicios)
+                                                    </span>
+                                                  </div>
+                                                  <div className="flex items-center flex-wrap gap-4">
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                                                        Transición entre ejerc.:
+                                                      </span>
+                                                      <input
+                                                        type="text"
+                                                        value={entry.supersetRest || '0:00'}
+                                                        onChange={(e) => updateSupersetGroupTimes(currentWeek.id, currentWorkout.id, entry.supersetGroupId!, { supersetRest: e.target.value })}
+                                                        className="w-16 px-2 py-1.5 bg-[#181b22] text-yellow-400 font-mono font-bold text-center border border-white/10 outline-none focus:border-yellow-400 text-xs"
+                                                        placeholder="0:00"
+                                                        title="Tiempo de transición entre ejercicios del grupo (ej: 0:00 o 0:15)"
+                                                      />
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                                                        Descanso de ronda:
+                                                      </span>
+                                                      <input
+                                                        type="text"
+                                                        value={entry.supersetFinalRest || '2:30'}
+                                                        onChange={(e) => updateSupersetGroupTimes(currentWeek.id, currentWorkout.id, entry.supersetGroupId!, { supersetFinalRest: e.target.value })}
+                                                        className="w-16 px-2 py-1.5 bg-[#181b22] text-yellow-400 font-mono font-bold text-center border border-white/10 outline-none focus:border-yellow-400 text-xs"
+                                                        placeholder="2:30"
+                                                        title="Descanso al terminar la vuelta completa de los ejercicios (ej: 2:30)"
+                                                      />
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              )}
                                             </div>
                                           </div>
                                           </div>
