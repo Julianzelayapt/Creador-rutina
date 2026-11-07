@@ -728,6 +728,17 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     }
   }, [routine.weeks, activeWeekId]);
 
+  // Asegurar que si viewMode es preview o active pero no hay un currentWorkout válido, no quede la pantalla negra
+  useEffect(() => {
+    if ((viewMode === 'preview' || viewMode === 'active') && !currentWorkout) {
+      if (currentWeek?.workouts && currentWeek.workouts.length > 0) {
+        setActiveWorkoutId(currentWeek.workouts[0].id);
+      } else {
+        setViewMode('dashboard');
+      }
+    }
+  }, [viewMode, currentWorkout, currentWeek]);
+
   // Genera un audio WAV con campana nítida (ducking compatible con Spotify en OS móviles)
   const getAlarmAudioUrl = () => {
     try {
@@ -1615,7 +1626,10 @@ ${feedbackText || 'Sin comentarios.'}
       {viewMode !== 'active' && (
         <div className="max-w-xl mx-auto px-4 pt-4 pb-0 flex items-center justify-start gap-0 border-b border-white/10">
           <button
-            onClick={() => setActiveTab('training')}
+            onClick={() => {
+              setActiveTab('training');
+              if (!currentWorkout) setViewMode('dashboard');
+            }}
             className={`px-5 py-3 font-black text-xs uppercase tracking-widest transition-all border-b-2 -mb-px ${
               activeTab === 'training'
                 ? 'text-white border-yellow-400'
@@ -1651,7 +1665,7 @@ ${feedbackText || 'Sin comentarios.'}
           {/* ========================================================================= */}
           {/* SUBVIEW 1: CALENDAR DASHBOARD (TIRA SEMANAL + ENTRENAMIENTO DEL DÍA)      */}
           {/* ========================================================================= */}
-          {viewMode === 'dashboard' && (
+          {(viewMode === 'dashboard' || !currentWorkout) && (
             <ClientCalendarView
               routine={routine}
               library={library}

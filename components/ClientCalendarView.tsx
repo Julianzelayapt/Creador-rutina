@@ -220,22 +220,6 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
     };
   }, []);
 
-  // Día seleccionado actualmente (0 a 6)
-  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
-    return todayInfo.dayOfWeekIndex;
-  });
-
-  // Al cambiar de semana, si la semana contiene el día de hoy, posicionar en hoy
-  useEffect(() => {
-    const todayIndexInWeek = weekDaysData.findIndex(d => d.isToday);
-    if (todayIndexInWeek !== -1) {
-      setSelectedDayIndex(todayIndexInWeek);
-    }
-  }, [currentWeekIndex]);
-
-  // Modal para MOVER DE DÍA la sesión
-  const [showMoveModal, setShowMoveModal] = useState<boolean>(false);
-
   // 3. Mapeo de entrenamientos para los 7 días de la semana activa
   const weekDaysData = useMemo(() => {
     if (!currentWeek) return [];
@@ -316,7 +300,27 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
     });
   }, [currentWeek, baseStartDate, currentWeekIndex, todayInfo, dayOverrides, routine.weeks, completedSets, DAYS_OF_WEEK, cal]);
 
-  const selectedDayData = weekDaysData[selectedDayIndex] || weekDaysData[0];
+  // Día seleccionado actualmente (0 a 6)
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
+    return todayInfo.dayOfWeekIndex;
+  });
+
+  // Al cambiar de semana, si la semana contiene el día de hoy, posicionar en hoy
+  useEffect(() => {
+    if (weekDaysData.length > 0) {
+      const todayIndexInWeek = weekDaysData.findIndex(d => d.isToday);
+      if (todayIndexInWeek !== -1) {
+        setSelectedDayIndex(todayIndexInWeek);
+      }
+    }
+  }, [currentWeekIndex, weekDaysData]);
+
+  // Modal para MOVER DE DÍA la sesión
+  const [showMoveModal, setShowMoveModal] = useState<boolean>(false);
+
+  const selectedDayData = (weekDaysData && weekDaysData.length > 0)
+    ? (weekDaysData[selectedDayIndex] || weekDaysData[0])
+    : null;
 
   // 4. Progreso global limpio
   const globalProgress = useMemo(() => {
@@ -386,6 +390,16 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
   };
 
   const clientFirstName = routine.clientName ? routine.clientName.trim().split(' ')[0].toUpperCase() : 'ATLETA';
+
+  if (!selectedDayData) {
+    return (
+      <div className="min-h-[50vh] bg-black text-white p-6 flex flex-col items-center justify-center text-center">
+        <p className="text-sm text-zinc-400 font-bold uppercase tracking-wider mb-2">
+          {routine.weeks.length === 0 ? 'No hay semanas configuradas en la rutina.' : 'Cargando entrenamiento...'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white pb-24 max-w-md mx-auto relative select-none">
