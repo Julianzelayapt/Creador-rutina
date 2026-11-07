@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import emailjs from '@emailjs/browser';
 import { Routine, Exercise } from '../types';
 import { supabase } from '../supabase';
@@ -382,6 +382,45 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   const currentWeek = routine.weeks.find(w => w.id === activeWeekId);
   const currentWorkout = currentWeek?.workouts.find(wk => wk.id === activeWorkoutId);
   const currentWorkoutIndex = currentWeek?.workouts.findIndex(wk => wk.id === activeWorkoutId) ?? 0;
+
+  const [selectedSupersetTab, setSelectedSupersetTab] = useState<Record<string, string>>({});
+
+  // Agrupación de ejercicios para Modo Activo: agrupa superseries/triseries continuas o por groupId en rondas
+  const groupedWorkoutItems = useMemo(() => {
+    if (!currentWorkout?.exercises) return [];
+    type GroupItem = 
+      | { type: 'single'; entry: (typeof currentWorkout.exercises)[0]; originalIndex: number }
+      | { type: 'superset'; groupId: string; label: string; members: typeof currentWorkout.exercises; startIndex: number };
+
+    const items: GroupItem[] = [];
+    const seenGroupIds = new Set<string>();
+
+    currentWorkout.exercises.forEach((entry, idx) => {
+      if (entry.supersetGroupId) {
+        if (!seenGroupIds.has(entry.supersetGroupId)) {
+          seenGroupIds.add(entry.supersetGroupId);
+          const members = currentWorkout.exercises
+            .filter(e => e.supersetGroupId === entry.supersetGroupId)
+            .sort((a, b) => (a.supersetOrder || 0) - (b.supersetOrder || 0));
+          items.push({
+            type: 'superset',
+            groupId: entry.supersetGroupId,
+            label: entry.supersetLabel || 'A',
+            members,
+            startIndex: idx
+          });
+        }
+      } else {
+        items.push({
+          type: 'single',
+          entry,
+          originalIndex: idx
+        });
+      }
+    });
+
+    return items;
+  }, [currentWorkout?.exercises]);
 
   // Modals & UI States
   const [showFinishModal, setShowFinishModal] = useState<boolean>(false);
@@ -2141,7 +2180,430 @@ ${feedbackText || 'Sin comentarios.'}
 
               {/* Exercise Cards */}
               <div className="space-y-6">
-                {currentWorkout.exercises.map((entry, eIdx) => {
+                {groupedWorkoutItems.map((item) => {
+                  if (item.type === 'superset') {
+                    const activeMemberId = selectedSupersetTab[item.groupId] || item.members[0].id;
+                    const activeMember = item.members.find(m => m.id === activeMemberId) || item.members[0];
+                    const activeLibId = exerciseOverrides[activeMember.id] || activeMember.libraryExerciseId;
+                    const originalEx = library.find(l => l.id === activeMember.libraryExerciseId);
+                    const libEx = library.find(l => l.id === activeLibId) || originalEx;
+                    const isReplaced = activeLibId !== activeMember.libraryExerciseId;
+                    const embed = getEmbedVideo(libEx?.videoUrl);
+                    const tipText = activeMember.customTip || libEx?.tip;
+                    const hasAlternatives = originalEx?.alternativeExerciseIds && originalEx.alternativeExerciseIds.length > 0;
+                    const maxRounds = Math.max(...item.members.map(m => m.sets?.length || 0), 1);
+                    const rounds = Array.from({ length: maxRounds }, (_, rIdx) => rIdx);
+
+                    return (
+                      <div
+                        key={`superset-${item.groupId}`}
+                        className="bg-[#181b22] border-0 border-l-4 border-yellow-400 rounded-none p-4 sm:p-5 shadow-2xl space-y-5"
+                      >
+                        {/* Anchor invisibles para scrollIntoView si se navega directo a un ejercicio */}
+                        {item.members.map(m => (
+                          <div key={m.id} id={`exercise-${m.id}`} className="scroll-mt-6" />
+                        ))}
+
+                        {/* 1. Header de la Superserie / Triserie */}
+                        <div>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono font-black uppercase tracking-wider bg-yellow-400 text-black px-2.5 py-1 rounded-none flex items-center gap-1.5 shadow-sm">
+                                <span>⚡</span>
+                                <span>{item.members.length === 2 ? 'SUPER-SERIE' : item.members.length === 3 ? 'TRI-SERIE' : 'CIRCUITO'} {item.label}</span>
+                                <span className="bg-black/20 text-black px-1.5 py-0.2 rounded-none font-sans text-[9px]">{item.members.length} EJERCICIOS</span>
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-3 text-[11px] font-mono text-zinc-400">
+                              <span>Transición: <strong className="text-white">{item.members[0]?.supersetRest || '0:00'}</strong></span>
+                              <span>•</span>
+                              <span>Descanso ronda: <strong className="text-yellow-400 font-bold">{item.members[0]?.supersetFinalRest || '2:30'}</strong></span>
+                            </div>
+                          </div>
+
+                          {/* Selector de pestañas para ver detalles / video de cada ejercicio */}
+                          <div className="mt-3.5 pt-3 border-t border-white/5">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2 flex items-center justify-between">
+                              <span>Ejercicios del circuito:</span>
+                              <span className="text-zinc-500 font-normal">Toca para ver video o tips</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {item.members.map((member, mIdx) => {
+                                const mLibId = exerciseOverrides[member.id] || member.libraryExerciseId;
+                                const mOrig = library.find(l => l.id === member.libraryExerciseId);
+                                const mEx = library.find(l => l.id === mLibId) || mOrig;
+                                const mReplaced = mLibId !== member.libraryExerciseId;
+                                const isSelected = activeMemberId === member.id;
+
+                                return (
+                                  <button
+                                    key={member.id}
+                                    type="button"
+                                    onClick={() => setSelectedSupersetTab(prev => ({ ...prev, [item.groupId]: member.id }))}
+                                    className={`flex items-center gap-2.5 p-2 rounded-none text-left transition-all border ${
+                                      isSelected
+                                        ? 'bg-zinc-800/90 border-yellow-400 text-white shadow-md'
+                                        : 'bg-[#101216] border-white/5 text-zinc-400 hover:text-white hover:bg-zinc-800/40'
+                                    }`}
+                                  >
+                                    <span className={`w-6 h-6 rounded-none flex items-center justify-center font-mono font-black text-xs shrink-0 ${
+                                      isSelected ? 'bg-yellow-400 text-black' : 'bg-white/10 text-zinc-300'
+                                    }`}>
+                                      {item.label}{member.supersetOrder || mIdx + 1}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                      <span className="font-display font-black text-xs uppercase tracking-tight block truncate">
+                                        {mEx?.name || 'Ejercicio'}
+                                      </span>
+                                      {mReplaced && (
+                                        <span className="text-[9px] text-amber-400 font-mono font-bold">
+                                          {t('substituteActive')}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. Detalle / Video del Ejercicio seleccionado en la Superserie */}
+                        <div className="bg-[#101216] p-3 sm:p-4 rounded-none border border-white/5 space-y-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <span className="text-[10px] font-mono text-yellow-400 uppercase tracking-wider block font-bold">
+                                {item.label}{activeMember.supersetOrder || 1} · DETALLES DEL EJERCICIO
+                              </span>
+                              <h4 className="font-display font-black text-lg text-white uppercase tracking-tight truncate">
+                                {libEx?.name}
+                              </h4>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {hasAlternatives && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!originalEx) return;
+                                    const alts = (originalEx.alternativeExerciseIds || [])
+                                      .map(altId => library.find(l => l.id === altId))
+                                      .filter((l): l is Exercise => Boolean(l));
+
+                                    setAltModalExerciseEntry({
+                                      entryId: activeMember.id,
+                                      originalExercise: originalEx,
+                                      currentExercise: libEx || originalEx,
+                                      alternatives: alts
+                                    });
+                                  }}
+                                  className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-none border transition-all ${
+                                    isReplaced
+                                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                      : 'bg-zinc-800 text-amber-400 hover:text-amber-300 border-amber-500/25'
+                                  }`}
+                                  title={t('busyMachine')}
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                  </svg>
+                                  <span>{isReplaced ? t('changeAlt') : t('busyShort')}</span>
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => setHistoryExerciseId(libEx?.id || activeMember.libraryExerciseId)}
+                                className="flex items-center gap-1 text-[10px] font-semibold text-zinc-400 hover:text-white bg-zinc-800 px-2 py-1 rounded-none border border-white/5 transition-colors"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {t('viewHistory')}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Video */}
+                          {embed && (
+                            playingVideoId === activeMember.id ? (
+                              <div className="relative w-full aspect-video rounded-none overflow-hidden bg-black shadow-lg">
+                                {embed.type === 'youtube' ? (
+                                  <div className="relative w-full h-full overflow-hidden">
+                                    <iframe
+                                      src={embed.src}
+                                      title={libEx?.name || 'Video'}
+                                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] border-0 pointer-events-auto"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                      allowFullScreen
+                                    />
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPlayingVideoId(null);
+                                      }}
+                                      className="absolute top-2 right-2 z-20 bg-black/70 hover:bg-black text-white p-1.5 rounded-full backdrop-blur-sm border border-white/20 transition-all"
+                                      title="Cerrar video"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ) : embed.type === 'vimeo' ? (
+                                  <iframe
+                                    src={embed.src}
+                                    title={libEx?.name || 'Video'}
+                                    className="w-full h-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                  />
+                                ) : (
+                                  <video src={embed.src} controls autoPlay playsInline loop className="w-full h-full object-contain" />
+                                )}
+                              </div>
+                            ) : (
+                              <div
+                                onClick={() => setPlayingVideoId(activeMember.id)}
+                                className="relative w-full aspect-video rounded-none overflow-hidden bg-zinc-950 shadow-xl cursor-pointer group"
+                              >
+                                {embed.thumbnail || getExerciseCoverImage(libEx) ? (
+                                  <img
+                                    src={embed.thumbnail || getExerciseCoverImage(libEx)}
+                                    alt={libEx?.name || 'Video'}
+                                    loading="lazy"
+                                    decoding="async"
+                                    onLoad={onYTThumbLoad()}
+                                    onError={onYTThumbError()}
+                                    className="w-full h-full object-cover scale-[1.05] group-hover:scale-110 transition-transform duration-300"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500 font-bold text-sm">
+                                    {libEx?.name}
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/35 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                  <div className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-md border border-white/40 flex items-center justify-center text-white shadow-2xl group-hover:scale-110 transition-transform">
+                                    <svg className="w-6 h-6 fill-white ml-0.5" viewBox="0 0 24 24">
+                                      <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          )}
+
+                          {/* Coach Tip si tiene */}
+                          {tipText && (
+                            <div className="p-2.5 bg-black/40 border border-white/5 rounded-none flex items-start gap-2 text-xs text-zinc-300">
+                              <span className="text-sm">💡</span>
+                              <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">{t('tip')}</span>
+                                <p className="mt-0.5">{tipText}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Notas del ejercicio activo */}
+                          <div>
+                            <textarea
+                              placeholder={`Añadir nota para ${libEx?.name || 'este ejercicio'}...`}
+                              value={feelings[activeMember.id] || ''}
+                              onChange={(e) => handleFeelingsChange(activeMember.id, e.target.value)}
+                              className="w-full bg-[#0c0e12] border border-white/5 rounded-none p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-yellow-400 resize-none h-16"
+                            />
+                          </div>
+                        </div>
+
+                        {/* 3. TABLA DE TRACKING ORGANIZADA POR RONDAS (Alternativa 1) */}
+                        <div className="space-y-4 pt-1">
+                          {rounds.map((roundIdx) => {
+                            const isRoundFullyCompleted = item.members.every(member => {
+                              const s = member.sets?.[roundIdx];
+                              if (!s) return true;
+                              const aId = exerciseOverrides[member.id] || member.libraryExerciseId;
+                              const sKey = aId !== member.libraryExerciseId ? `${s.id}_${aId}` : s.id;
+                              return completedSets[sKey] !== undefined ? !!completedSets[sKey] : (completedSets[s.id] !== undefined ? !!completedSets[s.id] : !!completedSets[`${s.id}_${aId}`]);
+                            });
+
+                            return (
+                              <div
+                                key={`round-${roundIdx}`}
+                                className={`border rounded-none overflow-hidden transition-all ${
+                                  isRoundFullyCompleted
+                                    ? 'bg-[#101318] border-emerald-500/30'
+                                    : 'bg-[#12141a] border-white/10'
+                                }`}
+                              >
+                                {/* Header de la Ronda */}
+                                <div className={`py-2 px-3 flex items-center justify-between border-b ${
+                                  isRoundFullyCompleted
+                                    ? 'bg-emerald-500/10 border-emerald-500/20'
+                                    : 'bg-[#181b22] border-white/5'
+                                }`}>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${isRoundFullyCompleted ? 'bg-emerald-400' : 'bg-yellow-400'}`} />
+                                    <span className="text-xs font-display font-black uppercase tracking-wider text-white">
+                                      RONDA {roundIdx + 1} <span className="text-zinc-500 font-normal">DE {maxRounds}</span>
+                                    </span>
+                                  </div>
+
+                                  {isRoundFullyCompleted && (
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1 font-mono">
+                                      ✓ RONDA COMPLETA
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Ejercicios de esta ronda */}
+                                <div className="p-2.5 sm:p-3 space-y-3">
+                                  {/* Encabezado de columnas */}
+                                  <div className="grid grid-cols-12 gap-2 px-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                                    <div className="col-span-1 text-center font-mono">#</div>
+                                    {routine.enabledMetrics.reps && <div className="col-span-3 text-center">{t('reps')}</div>}
+                                    {routine.enabledMetrics.kg && <div className="col-span-3 text-center">{t('kg')}</div>}
+                                    {routine.enabledMetrics.rir && <div className="col-span-2 text-center">{t('rir')}</div>}
+                                    <div className="col-span-3 text-center">{t('ok')}</div>
+                                  </div>
+
+                                  {item.members.map((member, mIdx) => {
+                                    const set = member.sets?.[roundIdx];
+                                    if (!set) return null;
+
+                                    const mLibId = exerciseOverrides[member.id] || member.libraryExerciseId;
+                                    const mOrig = library.find(l => l.id === member.libraryExerciseId);
+                                    const mEx = library.find(l => l.id === mLibId) || mOrig;
+                                    const mReplaced = mLibId !== member.libraryExerciseId;
+                                    const setKey = mReplaced ? `${set.id}_${mLibId}` : set.id;
+                                    const isDone = completedSets[setKey] !== undefined ? !!completedSets[setKey] : (completedSets[set.id] !== undefined ? !!completedSets[set.id] : !!completedSets[`${set.id}_${mLibId}`]);
+                                    const currentWeight = clientWeights[setKey] !== undefined ? clientWeights[setKey] : (mReplaced ? '' : (clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg));
+                                    const currentReps = clientReps[setKey] !== undefined ? clientReps[setKey] : (clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps);
+                                    const isWarmupSet = set.type === 'warmup';
+                                    const isLastInRound = mIdx === item.members.length - 1;
+
+                                    return (
+                                      <div key={set.id} className="space-y-1.5">
+                                        {/* Título del ejercicio en la ronda */}
+                                        <div className="flex items-center justify-between gap-2 pt-1 px-1">
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <span className="text-[10px] font-mono font-black bg-yellow-400 text-black px-1.5 py-0.2 rounded-none">
+                                              {item.label}{member.supersetOrder || mIdx + 1}
+                                            </span>
+                                            <span className="font-display font-black text-xs text-white uppercase tracking-tight truncate">
+                                              {mEx?.name}
+                                            </span>
+                                          </div>
+                                          {isWarmupSet && (
+                                            <span className="text-[9px] font-black uppercase text-blue-400 bg-blue-500/15 px-1.5 py-0.2 rounded-none">
+                                              {t('warmupBadge')}
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {/* Fila de la serie */}
+                                        <div className={`grid grid-cols-12 gap-2 items-center p-2 rounded-none transition-all ${
+                                          isDone
+                                            ? 'bg-emerald-500/15'
+                                            : isWarmupSet ? 'bg-[#121620]' : 'bg-[#0e1014]'
+                                        }`}>
+                                          <div className="col-span-1 text-center font-bold text-xs font-mono text-zinc-300">
+                                            {roundIdx + 1}
+                                          </div>
+
+                                          {routine.enabledMetrics.reps && (
+                                            <div className="col-span-3">
+                                              <input
+                                                type="text"
+                                                value={currentReps}
+                                                onChange={(e) => handleRepsChange(setKey, e.target.value)}
+                                                placeholder={set.reps || '10'}
+                                                className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono"
+                                              />
+                                            </div>
+                                          )}
+
+                                          {routine.enabledMetrics.kg && (
+                                            <div className="col-span-3">
+                                              <input
+                                                type="text"
+                                                value={currentWeight}
+                                                onChange={(e) => handleWeightsChange(setKey, e.target.value)}
+                                                placeholder={mReplaced ? '0' : set.kg}
+                                                className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono"
+                                              />
+                                            </div>
+                                          )}
+
+                                          {routine.enabledMetrics.rir && (
+                                            <div className="col-span-2 text-center text-xs font-bold text-zinc-400">
+                                              {set.rir || '-'}
+                                            </div>
+                                          )}
+
+                                          <div className="col-span-3 flex justify-center">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const effectiveRest = isLastInRound
+                                                  ? (member.supersetFinalRest || '2:30')
+                                                  : (member.supersetRest || '0:00');
+                                                handleSetToggle(setKey, effectiveRest, set.id);
+                                              }}
+                                              className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
+                                                isDone
+                                                  ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                                  : 'border-white/20 bg-zinc-800/40 text-transparent hover:border-yellow-400/50'
+                                              }`}
+                                            >
+                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            </button>
+                                          </div>
+                                        </div>
+
+                                        {/* Dropsets */}
+                                        {set.dropsets?.map((ds, dsIdx) => (
+                                          <div key={ds.id || dsIdx} className="pl-6 pr-2 py-1 text-xs text-zinc-400 flex items-center gap-2">
+                                            <span className="text-[10px] font-bold uppercase text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-none">
+                                              DS {dsIdx + 1}
+                                            </span>
+                                            <span className="font-mono">{ds.kg} kg × {ds.reps} reps</span>
+                                          </div>
+                                        ))}
+
+                                        {/* Transición entre ejercicios de la misma ronda */}
+                                        {!isLastInRound && (
+                                          <div className="py-1 px-2 text-[10px] font-mono text-zinc-400 flex items-center gap-1.5 border-l-2 border-white/20 ml-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
+                                            <span>Transición a {item.label}{mIdx + 2}: <strong>{member.supersetRest || '0:00'}</strong></span>
+                                          </div>
+                                        )}
+
+                                        {/* Fin de ronda en el último ejercicio */}
+                                        {isLastInRound && (
+                                          <div className="mt-1 py-1 px-2.5 bg-yellow-400/10 border-l-2 border-yellow-400 text-[11px] font-mono text-yellow-300 flex items-center justify-between">
+                                            <span>🔔 Fin de Ronda {roundIdx + 1}</span>
+                                            <span>Descanso: <strong>{member.supersetFinalRest || '2:30'}</strong></span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Ejercicio regular individual
+                  const entry = item.entry;
+                  const eIdx = item.originalIndex;
                   const activeLibId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
                   const originalEx = library.find(l => l.id === entry.libraryExerciseId);
                   const libEx = library.find(l => l.id === activeLibId) || originalEx;
@@ -2150,12 +2612,9 @@ ${feedbackText || 'Sin comentarios.'}
                   const embed = getEmbedVideo(libEx?.videoUrl);
                   const tipText = entry.customTip || libEx?.tip;
                   const hasAlternatives = originalEx?.alternativeExerciseIds && originalEx.alternativeExerciseIds.length > 0;
-
-                  const groupMembers = entry.supersetGroupId 
-                    ? currentWorkout.exercises.filter(e => e.supersetGroupId === entry.supersetGroupId) 
-                    : [];
-                  const hasSuperset = Boolean(entry.supersetGroupId);
-                  const isLastInGroup = hasSuperset && entry.supersetOrder === groupMembers.length;
+                  const hasSuperset = false;
+                  const groupMembers: typeof currentWorkout.exercises = [];
+                  const isLastInGroup = false;
 
                   return (
                     <div
