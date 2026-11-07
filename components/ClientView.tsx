@@ -2029,7 +2029,7 @@ ${feedbackText || 'Sin comentarios.'}
                             <div className="flex flex-wrap items-center gap-1.5">
                               {hasSuperset && (
                                 <span className="text-[9px] bg-yellow-400 text-black font-black px-1.5 py-0.5 rounded-none font-mono uppercase tracking-wider shrink-0">
-                                  SUPER-SERIE {entry.supersetLabel}{entry.supersetOrder}
+                                  {groupMembers.length === 3 ? 'TRI-SERIE' : groupMembers.length > 3 ? 'CIRCUITO' : 'SUPER-SERIE'}
                                 </span>
                               )}
                               <h4 className="font-display font-black text-base sm:text-lg text-white uppercase tracking-tight leading-tight truncate group-hover:text-yellow-400 transition-colors">
@@ -2129,7 +2129,7 @@ ${feedbackText || 'Sin comentarios.'}
                       {isLastInGroup && (
                         <div className="p-2.5 bg-black/60 border-l-4 border-yellow-400 text-[11px] font-semibold text-zinc-300 flex items-center justify-between">
                           <span className="text-yellow-400 font-mono font-bold text-xs uppercase">
-                            ⚡ SUPER-SERIE {entry.supersetLabel} ({groupMembers.length} ejercicios)
+                            ⚡ {groupMembers.length === 3 ? 'TRI-SERIE' : groupMembers.length > 3 ? 'CIRCUITO' : 'SUPER-SERIE'} ({groupMembers.length} ejercicios)
                           </span>
                           <span className="text-zinc-400 text-[11px]">
                             Transición: <strong className="text-white font-mono">{entry.supersetRest || '0:00'}</strong> · Descanso ronda: <strong className="text-yellow-400 font-mono">{entry.supersetFinalRest || '2:30'}</strong>
@@ -2211,7 +2211,7 @@ ${feedbackText || 'Sin comentarios.'}
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] font-mono font-black uppercase tracking-wider bg-yellow-400 text-black px-2.5 py-1 rounded-none flex items-center gap-1.5 shadow-sm">
                                 <span>⚡</span>
-                                <span>{item.members.length === 2 ? 'SUPER-SERIE' : item.members.length === 3 ? 'TRI-SERIE' : 'CIRCUITO'} {item.label}</span>
+                                <span>{item.members.length === 2 ? 'SUPER-SERIE' : item.members.length === 3 ? 'TRI-SERIE' : 'CIRCUITO'}</span>
                                 <span className="bg-black/20 text-black px-1.5 py-0.2 rounded-none font-sans text-[9px]">{item.members.length} EJERCICIOS</span>
                               </span>
                             </div>
@@ -2231,7 +2231,7 @@ ${feedbackText || 'Sin comentarios.'}
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {item.members.map((member, mIdx) => {
+                              {item.members.map((member) => {
                                 const mLibId = exerciseOverrides[member.id] || member.libraryExerciseId;
                                 const mOrig = library.find(l => l.id === member.libraryExerciseId);
                                 const mEx = library.find(l => l.id === mLibId) || mOrig;
@@ -2243,17 +2243,12 @@ ${feedbackText || 'Sin comentarios.'}
                                     key={member.id}
                                     type="button"
                                     onClick={() => setSelectedSupersetTab(prev => ({ ...prev, [item.groupId]: member.id }))}
-                                    className={`flex items-center gap-2.5 p-2 rounded-none text-left transition-all border ${
+                                    className={`flex items-center gap-2.5 p-2.5 rounded-none text-left transition-all border ${
                                       isSelected
                                         ? 'bg-zinc-800/90 border-yellow-400 text-white shadow-md'
                                         : 'bg-[#101216] border-white/5 text-zinc-400 hover:text-white hover:bg-zinc-800/40'
                                     }`}
                                   >
-                                    <span className={`w-6 h-6 rounded-none flex items-center justify-center font-mono font-black text-xs shrink-0 ${
-                                      isSelected ? 'bg-yellow-400 text-black' : 'bg-white/10 text-zinc-300'
-                                    }`}>
-                                      {item.label}{member.supersetOrder || mIdx + 1}
-                                    </span>
                                     <div className="min-w-0 flex-1">
                                       <span className="font-display font-black text-xs uppercase tracking-tight block truncate">
                                         {mEx?.name || 'Ejercicio'}
@@ -2276,7 +2271,7 @@ ${feedbackText || 'Sin comentarios.'}
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0">
                               <span className="text-[10px] font-mono text-yellow-400 uppercase tracking-wider block font-bold">
-                                {item.label}{activeMember.supersetOrder || 1} · DETALLES DEL EJERCICIO
+                                DETALLES DEL EJERCICIO
                               </span>
                               <h4 className="font-display font-black text-lg text-white uppercase tracking-tight truncate">
                                 {libEx?.name}
@@ -2445,9 +2440,6 @@ ${feedbackText || 'Sin comentarios.'}
                               return (
                                 <div key={`warmup-${member.id}`} className="space-y-2">
                                   <div className="flex items-center gap-2 pt-1 px-1">
-                                    <span className="text-[10px] font-mono font-black bg-blue-400 text-black px-1.5 py-0.2 rounded-none">
-                                      {item.label}{member.supersetOrder || mIdx + 1}
-                                    </span>
                                     <span className="font-display font-black text-xs text-white uppercase tracking-tight truncate">
                                       {mEx?.name}
                                     </span>
@@ -2478,7 +2470,7 @@ ${feedbackText || 'Sin comentarios.'}
                                         }`}
                                       >
                                         <div className="col-span-1 text-center font-bold text-[11px] font-mono text-blue-400">
-                                          A{wIdx + 1}
+                                          {wIdx + 1}
                                         </div>
 
                                         {routine.enabledMetrics.reps && (
@@ -2608,9 +2600,6 @@ ${feedbackText || 'Sin comentarios.'}
                                         {/* Título del ejercicio en la ronda */}
                                         <div className="flex items-center justify-between gap-2 pt-1 px-1">
                                           <div className="flex items-center gap-1.5 min-w-0">
-                                            <span className="text-[10px] font-mono font-black bg-yellow-400 text-black px-1.5 py-0.2 rounded-none">
-                                              {item.label}{member.supersetOrder || mIdx + 1}
-                                            </span>
                                             <span className="font-display font-black text-xs text-white uppercase tracking-tight truncate">
                                               {mEx?.name}
                                             </span>
@@ -2698,7 +2687,7 @@ ${feedbackText || 'Sin comentarios.'}
                                         {!isLastInRound && (
                                           <div className="py-1 px-2 text-[10px] font-mono text-zinc-400 flex items-center gap-1.5 border-l-2 border-white/20 ml-2">
                                             <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
-                                            <span>Transición a {item.label}{mIdx + 2}: <strong>{member.supersetRest || '0:00'}</strong></span>
+                                            <span>Transición: <strong>{member.supersetRest || '0:00'}</strong></span>
                                           </div>
                                         )}
 
@@ -2751,7 +2740,7 @@ ${feedbackText || 'Sin comentarios.'}
                           <div className="flex items-center gap-2">
                             {hasSuperset ? (
                               <span className="text-[10px] font-mono font-black uppercase tracking-wider bg-yellow-400 text-black px-2 py-0.5 rounded-none">
-                                SUPER-SERIE {entry.supersetLabel} · {entry.supersetOrder}/{groupMembers.length}
+                                {groupMembers.length === 3 ? 'TRI-SERIE' : groupMembers.length > 3 ? 'CIRCUITO' : 'SUPER-SERIE'}
                               </span>
                             ) : (
                               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-none">
@@ -3167,7 +3156,7 @@ ${feedbackText || 'Sin comentarios.'}
                           {hasSuperset && (
                             <div className="mt-3 p-2.5 bg-black/60 border-l-2 border-yellow-400 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400">
                               <span className="text-[11px] font-mono font-bold text-yellow-400 uppercase">
-                                ⚡ SUPER-SERIE {entry.supersetLabel} ({entry.supersetOrder}/{groupMembers.length})
+                                ⚡ {groupMembers.length === 3 ? 'TRI-SERIE' : groupMembers.length > 3 ? 'CIRCUITO' : 'SUPER-SERIE'}
                               </span>
                               <span className="text-[11px]">
                                 {isLastInGroup ? (
