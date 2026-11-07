@@ -2191,8 +2191,9 @@ ${feedbackText || 'Sin comentarios.'}
                     const embed = getEmbedVideo(libEx?.videoUrl);
                     const tipText = activeMember.customTip || libEx?.tip;
                     const hasAlternatives = originalEx?.alternativeExerciseIds && originalEx.alternativeExerciseIds.length > 0;
-                    const maxRounds = Math.max(...item.members.map(m => m.sets?.length || 0), 1);
-                    const rounds = Array.from({ length: maxRounds }, (_, rIdx) => rIdx);
+                    const hasAnyWarmups = item.members.some(m => (m.sets || []).some(s => s.type === 'warmup'));
+                    const maxWorkingRounds = Math.max(...item.members.map(m => (m.sets || []).filter(s => s.type !== 'warmup').length), 1);
+                    const rounds = Array.from({ length: maxWorkingRounds }, (_, rIdx) => rIdx);
 
                     return (
                       <div
@@ -2417,11 +2418,129 @@ ${feedbackText || 'Sin comentarios.'}
                           </div>
                         </div>
 
-                        {/* 3. TABLA DE TRACKING ORGANIZADA POR RONDAS (Alternativa 1) */}
+                        {/* 3. APROXIMACIONES / ENTRADA EN CALOR (Si algún ejercicio de la superserie tiene series warmup) */}
+                        {hasAnyWarmups && (
+                          <div className="bg-[#10141d] border border-blue-500/30 rounded-none overflow-hidden space-y-3 p-3 sm:p-4">
+                            <div className="flex items-center justify-between pb-2 border-b border-blue-500/20">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                                <span className="text-xs font-display font-black uppercase tracking-wider text-blue-400">
+                                  🔥 ENTRADA EN CALOR / APROXIMACIONES
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-zinc-400 font-mono">
+                                Completar antes de iniciar las rondas
+                              </span>
+                            </div>
+
+                            {item.members.map((member, mIdx) => {
+                              const memberWarmups = (member.sets || []).filter(s => s.type === 'warmup');
+                              if (memberWarmups.length === 0) return null;
+
+                              const mLibId = exerciseOverrides[member.id] || member.libraryExerciseId;
+                              const mOrig = library.find(l => l.id === member.libraryExerciseId);
+                              const mEx = library.find(l => l.id === mLibId) || mOrig;
+                              const mReplaced = mLibId !== member.libraryExerciseId;
+
+                              return (
+                                <div key={`warmup-${member.id}`} className="space-y-2">
+                                  <div className="flex items-center gap-2 pt-1 px-1">
+                                    <span className="text-[10px] font-mono font-black bg-blue-400 text-black px-1.5 py-0.2 rounded-none">
+                                      {item.label}{member.supersetOrder || mIdx + 1}
+                                    </span>
+                                    <span className="font-display font-black text-xs text-white uppercase tracking-tight truncate">
+                                      {mEx?.name}
+                                    </span>
+                                    <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-none ml-auto">
+                                      {memberWarmups.length} {memberWarmups.length === 1 ? 'Aproximación' : 'Aproximaciones'}
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-12 gap-2 px-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                                    <div className="col-span-1 text-center font-mono">#</div>
+                                    {routine.enabledMetrics.reps && <div className="col-span-3 text-center">{t('reps')}</div>}
+                                    {routine.enabledMetrics.kg && <div className="col-span-3 text-center">{t('kg')}</div>}
+                                    {routine.enabledMetrics.rir && <div className="col-span-2 text-center">{t('rir')}</div>}
+                                    <div className="col-span-3 text-center">{t('ok')}</div>
+                                  </div>
+
+                                  {memberWarmups.map((set, wIdx) => {
+                                    const setKey = mReplaced ? `${set.id}_${mLibId}` : set.id;
+                                    const isDone = completedSets[setKey] !== undefined ? !!completedSets[setKey] : (completedSets[set.id] !== undefined ? !!completedSets[set.id] : !!completedSets[`${set.id}_${mLibId}`]);
+                                    const currentWeight = clientWeights[setKey] !== undefined ? clientWeights[setKey] : (mReplaced ? '' : (clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg));
+                                    const currentReps = clientReps[setKey] !== undefined ? clientReps[setKey] : (clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps);
+
+                                    return (
+                                      <div
+                                        key={set.id}
+                                        className={`grid grid-cols-12 gap-2 items-center p-2 rounded-none transition-all ${
+                                          isDone ? 'bg-emerald-500/15' : 'bg-[#121622] border border-blue-500/10'
+                                        }`}
+                                      >
+                                        <div className="col-span-1 text-center font-bold text-[11px] font-mono text-blue-400">
+                                          A{wIdx + 1}
+                                        </div>
+
+                                        {routine.enabledMetrics.reps && (
+                                          <div className="col-span-3">
+                                            <input
+                                              type="text"
+                                              value={currentReps}
+                                              onChange={(e) => handleRepsChange(setKey, e.target.value)}
+                                              placeholder={set.reps || '10'}
+                                              className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-400 font-mono"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {routine.enabledMetrics.kg && (
+                                          <div className="col-span-3">
+                                            <input
+                                              type="text"
+                                              value={currentWeight}
+                                              onChange={(e) => handleWeightsChange(setKey, e.target.value)}
+                                              placeholder={mReplaced ? '0' : set.kg}
+                                              className="w-full bg-[#0c0e12] border-0 rounded-none py-2 px-1 text-center font-bold text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-400 font-mono"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {routine.enabledMetrics.rir && (
+                                          <div className="col-span-2 text-center text-xs font-bold text-zinc-400">
+                                            {set.rir || '-'}
+                                          </div>
+                                        )}
+
+                                        <div className="col-span-3 flex justify-center">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleSetToggle(setKey, set.rest || '1:30', set.id)}
+                                            className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
+                                              isDone
+                                                ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                                : 'border-blue-400/30 bg-blue-500/10 text-transparent hover:border-blue-400'
+                                            }`}
+                                          >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* 4. TABLA DE TRACKING ORGANIZADA POR RONDAS (Solo series efectivas) */}
                         <div className="space-y-4 pt-1">
                           {rounds.map((roundIdx) => {
                             const isRoundFullyCompleted = item.members.every(member => {
-                              const s = member.sets?.[roundIdx];
+                              const memberWorkingSets = (member.sets || []).filter(s => s.type !== 'warmup');
+                              const s = memberWorkingSets[roundIdx];
                               if (!s) return true;
                               const aId = exerciseOverrides[member.id] || member.libraryExerciseId;
                               const sKey = aId !== member.libraryExerciseId ? `${s.id}_${aId}` : s.id;
@@ -2446,7 +2565,7 @@ ${feedbackText || 'Sin comentarios.'}
                                   <div className="flex items-center gap-2">
                                     <span className={`w-2 h-2 rounded-full ${isRoundFullyCompleted ? 'bg-emerald-400' : 'bg-yellow-400'}`} />
                                     <span className="text-xs font-display font-black uppercase tracking-wider text-white">
-                                      RONDA {roundIdx + 1} <span className="text-zinc-500 font-normal">DE {maxRounds}</span>
+                                      RONDA {roundIdx + 1} <span className="text-zinc-500 font-normal">DE {maxWorkingRounds}</span>
                                     </span>
                                   </div>
 
@@ -2469,7 +2588,8 @@ ${feedbackText || 'Sin comentarios.'}
                                   </div>
 
                                   {item.members.map((member, mIdx) => {
-                                    const set = member.sets?.[roundIdx];
+                                    const memberWorkingSets = (member.sets || []).filter(s => s.type !== 'warmup');
+                                    const set = memberWorkingSets[roundIdx];
                                     if (!set) return null;
 
                                     const mLibId = exerciseOverrides[member.id] || member.libraryExerciseId;
@@ -2480,7 +2600,7 @@ ${feedbackText || 'Sin comentarios.'}
                                     const isDone = completedSets[setKey] !== undefined ? !!completedSets[setKey] : (completedSets[set.id] !== undefined ? !!completedSets[set.id] : !!completedSets[`${set.id}_${mLibId}`]);
                                     const currentWeight = clientWeights[setKey] !== undefined ? clientWeights[setKey] : (mReplaced ? '' : (clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg));
                                     const currentReps = clientReps[setKey] !== undefined ? clientReps[setKey] : (clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps);
-                                    const isWarmupSet = set.type === 'warmup';
+                                    const isWarmupSet = false;
                                     const isLastInRound = mIdx === item.members.length - 1;
 
                                     return (
