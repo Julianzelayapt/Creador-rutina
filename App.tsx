@@ -118,7 +118,10 @@ const parseRoutineData = (rawRecord: any): Routine | null => {
         language: rawProgress.language || 'es',
         weeklySnapshots: rawProgress.weeklySnapshots || {},
         dayOverrides: rawProgress.dayOverrides || {},
-        exerciseOverrides: rawProgress.exerciseOverrides || {}
+        exerciseOverrides: rawProgress.exerciseOverrides || {},
+        lastActiveDate: rawProgress.lastActiveDate || null,
+        lastWorkoutFinished: rawProgress.lastWorkoutFinished ?? false,
+        lastWorkoutDate: rawProgress.lastWorkoutDate || null
       };
     }
 
@@ -287,7 +290,13 @@ const App: React.FC = () => {
       if (route) {
         await loadRoutine(route.routineId, route.targetView);
       } else {
-        if (!window.location.hash && !window.location.search) {
+        // Si no hay hash ni query en la URL, verificar si hay una última rutina abierta
+        const lastRoutineId = localStorage.getItem('last_active_routine_id');
+        if (lastRoutineId) {
+          // Ir directo a la rutina del cliente
+          window.location.hash = `#routine/${lastRoutineId}`;
+          await loadRoutine(lastRoutineId, 'client');
+        } else if (!window.location.hash && !window.location.search) {
           setView('setup');
           setLoadError(null);
         }
@@ -304,6 +313,11 @@ const App: React.FC = () => {
         .trim();
 
       if (!routineId) return;
+
+      // Guardar como última rutina activa para que al reabrir la app vuelva siempre a la rutina
+      try {
+        localStorage.setItem('last_active_routine_id', routineId);
+      } catch (e) {}
 
       setLoadError(null);
 

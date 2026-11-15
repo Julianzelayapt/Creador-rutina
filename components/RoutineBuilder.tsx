@@ -217,6 +217,16 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
     const weekToDuplicate = currentRoutine.weeks.find(w => w.id === weekId);
     if (!weekToDuplicate) return;
 
+    // Mapear cada groupId de superserie a un nuevo groupId único para la nueva semana
+    const groupIdMap = new Map<string, string>();
+    const getNewGroupId = (oldGroupId?: string) => {
+      if (!oldGroupId) return undefined;
+      if (!groupIdMap.has(oldGroupId)) {
+        groupIdMap.set(oldGroupId, `ss_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`);
+      }
+      return groupIdMap.get(oldGroupId);
+    };
+
     const newWeek: Week = {
       ...weekToDuplicate,
       id: Math.random().toString(36).substr(2, 9),
@@ -227,6 +237,7 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
         exercises: workout.exercises.map(exercise => ({
           ...exercise,
           id: Math.random().toString(36).substr(2, 9),
+          supersetGroupId: getNewGroupId(exercise.supersetGroupId),
           sets: exercise.sets.map(set => ({
             ...set,
             id: Math.random().toString(36).substr(2, 9)
@@ -241,6 +252,9 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
       weeks: newWeeks
     });
     setActiveWeekId(newWeek.id);
+    if (newWeek.workouts && newWeek.workouts.length > 0) {
+      setActiveWorkoutId(newWeek.workouts[0].id);
+    }
   };
 
   const addWorkout = (weekId: string) => {
@@ -320,23 +334,43 @@ const RoutineBuilder: React.FC<RoutineBuilderProps> = ({ routine, library, onSav
   };
 
   const deleteExercise = (weekId: string, workoutId: string, entryId: string) => {
-    setCurrentRoutine({
-      ...currentRoutine,
-      weeks: currentRoutine.weeks.map(w => {
-        if (w.id === weekId) {
-          return {
-            ...w,
-            workouts: w.workouts.map(wk => {
-              if (wk.id === workoutId) {
-                return { ...wk, exercises: wk.exercises.filter(e => e.id !== entryId) };
+    setCurrentRoutine(prev => ({
+      ...prev,
+      weeks: prev.weeks.map(w => {
+        if (w.id !== weekId) return w;
+        return {
+          ...w,
+          workouts: w.workouts.map(wk => {
+            if (wk.id !== workoutId) return wk;
+            const target = wk.exercises.find(e => e.id === entryId);
+            const remaining = wk.exercises.filter(e => e.id !== entryId);
+            if (target?.supersetGroupId) {
+              const groupId = target.supersetGroupId;
+              const remainingInGroup = remaining.filter(e => e.supersetGroupId === groupId);
+              if (remainingInGroup.length < 2) {
+                // Disolver el grupo si solo quedó 1 ejercicio
+                return {
+                  ...wk,
+                  exercises: remaining.map(e => {
+                    if (e.supersetGroupId === groupId) {
+                      const copy = { ...e };
+                      delete copy.supersetGroupId;
+                      delete copy.supersetLabel;
+                      delete copy.supersetOrder;
+                      delete copy.supersetRest;
+                      delete copy.supersetFinalRest;
+                      return copy;
+                    }
+                    return e;
+                  })
+                };
               }
-              return wk;
-            })
-          };
-        }
-        return w;
+            }
+            return { ...wk, exercises: remaining };
+          })
+        };
       })
-    });
+    }));
   };
 
   const addSet = (weekId: string, workoutId: string, entryId: string) => {

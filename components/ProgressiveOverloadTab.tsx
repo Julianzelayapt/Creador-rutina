@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Routine, Exercise } from '../types';
 import { getExerciseCoverImage, isYouTubeShort, onYTThumbLoad, onYTThumbError } from './exerciseMediaUtils';
 
@@ -19,8 +19,9 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
         change: '% CAMBIO',
         progress: 'PROGRESO',
         noData: 'Completá las series con peso para ver el progreso histórico',
-        selectExercise: 'Seleccionar Ejercicio',
+        selectExercise: 'Seleccionar Ejercicio de esta Rutina',
         weeklyProgress: 'Progreso por semana',
+        noExercisesInRoutine: 'Esta rutina no tiene ejercicios asignados aún.',
       },
       en: {
         week: 'Week',
@@ -29,8 +30,9 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
         change: '% CHANGE',
         progress: 'PROGRESS',
         noData: 'Complete sets with weight to view progress history',
-        selectExercise: 'Select Exercise',
+        selectExercise: 'Select Exercise in this Routine',
         weeklyProgress: 'Weekly progress',
+        noExercisesInRoutine: 'This routine does not have any exercises assigned yet.',
       },
       it: {
         week: 'Settimana',
@@ -39,28 +41,44 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
         change: '% VARIAZIONE',
         progress: 'PROGRESSO',
         noData: 'Completa le serie con peso per vedere i progressi',
-        selectExercise: 'Seleziona Esercizio',
+        selectExercise: 'Seleziona Esercizio di questa Scheda',
         weeklyProgress: 'Progresso settimanale',
+        noExercisesInRoutine: 'Questa scheda non ha ancora esercizi assegnati.',
       }
     };
     return translations[language][key] || key;
   };
 
-  // Extraer ejercicios únicos de la rutina incluyendo cualquier ejercicio suplente/alternativo con registros en snapshots
-  const uniqueExerciseIds = Array.from(new Set([
-    ...routine.weeks.flatMap(week =>
-      week.workouts.flatMap(workout =>
-        workout.exercises.map(entry => entry.libraryExerciseId)
-      )
-    ),
-    ...Object.values(weeklySnapshots).flatMap(weekSnap => Object.keys(weekSnap || {}))
-  ]));
+  // Extraer ÚNICAMENTE los ejercicios que están presentes en ESTA rutina específica (no toda la base del builder)
+  const uniqueExerciseIds = useMemo(() => {
+    const ids = new Set<string>();
+    routine.weeks?.forEach(week => {
+      week.workouts?.forEach(workout => {
+        workout.exercises?.forEach(entry => {
+          if (entry.libraryExerciseId) {
+            ids.add(entry.libraryExerciseId);
+          }
+          // Incluir sustituto si fue activado en esta rutina
+          const override = routine.clientProgress?.exerciseOverrides?.[entry.id];
+          if (override) {
+            ids.add(override);
+          }
+        });
+      });
+    });
+
+    // Filtrar estrictamente solo ejercicios que existen en la biblioteca y pertenecen a esta rutina
+    return Array.from(ids).filter(id => {
+      const ex = library.find(l => l.id === id);
+      return !!ex && !!ex.name;
+    });
+  }, [routine, library]);
 
   const [selectedExId, setSelectedExId] = useState<string>(uniqueExerciseIds[0] || '');
 
   useEffect(() => {
-    if (!selectedExId && uniqueExerciseIds.length > 0) {
-      setSelectedExId(uniqueExerciseIds[0]);
+    if (!uniqueExerciseIds.includes(selectedExId)) {
+      setSelectedExId(uniqueExerciseIds[0] || '');
     }
   }, [uniqueExerciseIds, selectedExId]);
 
@@ -75,6 +93,16 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
     }
     return trimmed;
   };
+
+  if (uniqueExerciseIds.length === 0) {
+    return (
+      <div className="bg-[#181b22] p-8 text-center border-0 rounded-none shadow-lg max-w-md mx-auto my-6">
+        <p className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
+          {t('noExercisesInRoutine')}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300 font-['Inter']">

@@ -93,6 +93,23 @@ const RestTimerFloating: React.FC<RestTimerFloatingProps> = ({
   };
 
   const [remaining, setRemaining] = useState<number>(calculateRemaining);
+  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(() => {
+    try {
+      const saved = localStorage.getItem('timer_popup_position');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  });
+
+  const isDraggingRef = React.useRef(false);
+  const startDragRef = React.useRef<{ startX: number; startY: number; initX: number; initY: number }>({
+    startX: 0,
+    startY: 0,
+    initX: 0,
+    initY: 0
+  });
+  const timerCardRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkTimer = () => {
@@ -136,36 +153,126 @@ const RestTimerFloating: React.FC<RestTimerFloatingProps> = ({
     };
   }, [onStop, playAlarm, timerEndTimeRef]);
 
+  const onPointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    const el = timerCardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    isDraggingRef.current = true;
+    startDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initX: rect.left,
+      initY: rect.top
+    };
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current) return;
+    const dx = e.clientX - startDragRef.current.startX;
+    const dy = e.clientY - startDragRef.current.startY;
+    const el = timerCardRef.current;
+    const w = el?.offsetWidth || 280;
+    const h = el?.offsetHeight || 60;
+
+    const newX = Math.max(10, Math.min(window.innerWidth - w - 10, startDragRef.current.initX + dx));
+    const newY = Math.max(10, Math.min(window.innerHeight - h - 10, startDragRef.current.initY + dy));
+    setPosition({ x: newX, y: newY });
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+    if (position) {
+      try {
+        localStorage.setItem('timer_popup_position', JSON.stringify(position));
+      } catch {}
+    }
+  };
+
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
   const timeFormatted = `${mins}:${secs.toString().padStart(2, '0')}`;
 
+  const containerStyle: React.CSSProperties = position
+    ? { left: `${position.x}px`, top: `${position.y}px`, transform: 'none' }
+    : {};
+
   return (
-    <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-6 duration-300">
-      <div className="bg-black/95 backdrop-blur-2xl border-2 border-yellow-400 text-white px-6 py-3 rounded-none shadow-[0_20px_50px_rgba(0,0,0,0.9)] flex items-center gap-5">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-yellow-400 animate-ping"></span>
-          <span className="text-xs font-bold tracking-widest uppercase text-yellow-400 font-display">{pauseLabel}</span>
-        </div>
-        <span className="text-3xl font-display tabular-nums tracking-wider font-mono text-white">{timeFormatted}</span>
-        <div className="flex items-center gap-2">
+    <div
+      ref={timerCardRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      style={containerStyle}
+      className={`fixed z-[250] select-none touch-none animate-in fade-in duration-200 ${
+        position ? '' : 'top-4 left-1/2 -translate-x-1/2'
+      }`}
+    >
+      {isMinimized ? (
+        <div className="bg-black/95 backdrop-blur-2xl border-2 border-yellow-400 text-white px-3.5 py-2 shadow-2xl flex items-center gap-2.5 cursor-grab active:cursor-grabbing">
+          <span className="w-2 h-2 bg-yellow-400 rounded-full animate-ping" />
+          <span className="text-base font-display tabular-nums font-mono text-white font-bold">{timeFormatted}</span>
           <button
-            onClick={() => onAddSeconds(30)}
-            className="px-3 py-1 bg-white/10 hover:bg-yellow-400 hover:text-black rounded-none text-xs font-bold font-mono transition-colors"
+            onClick={() => setIsMinimized(false)}
+            className="p-1 hover:bg-white/10 text-yellow-400 transition-colors"
+            title="Expandir reloj"
           >
-            +30s
-          </button>
-          <button
-            onClick={onStop}
-            className="p-1 hover:bg-white/10 rounded-none text-zinc-400 hover:text-white transition-colors"
-            title="Cancelar"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
             </svg>
           </button>
         </div>
-      </div>
+      ) : (
+        <div className="bg-black/95 backdrop-blur-2xl border-2 border-yellow-400 text-white px-4 sm:px-6 py-2.5 sm:py-3 shadow-[0_20px_50px_rgba(0,0,0,0.9)] flex items-center gap-3 sm:gap-5 cursor-grab active:cursor-grabbing">
+          {/* Drag Handle Icon */}
+          <div className="text-zinc-500 hover:text-yellow-400 shrink-0 cursor-grab active:cursor-grabbing" title="Arrastrar para mover">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9 3a2 2 0 11-4 0 2 2 0 014 0zm0 6a2 2 0 11-4 0 2 2 0 014 0zm0 6a2 2 0 11-4 0 2 2 0 014 0zm0 6a2 2 0 11-4 0 2 2 0 014 0zm10-18a2 2 0 11-4 0 2 2 0 014 0zm0 6a2 2 0 11-4 0 2 2 0 014 0zm0 6a2 2 0 11-4 0 2 2 0 014 0zm0 6a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 bg-yellow-400 animate-ping" />
+            <span className="text-[11px] font-bold tracking-widest uppercase text-yellow-400 font-display">{pauseLabel}</span>
+          </div>
+
+          <span className="text-2xl sm:text-3xl font-display tabular-nums tracking-wider font-mono text-white font-bold">{timeFormatted}</span>
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => onAddSeconds(30)}
+              className="px-2 sm:px-3 py-1 bg-white/10 hover:bg-yellow-400 hover:text-black text-xs font-bold font-mono transition-colors"
+            >
+              +30s
+            </button>
+            <button
+              onClick={() => setIsMinimized(true)}
+              className="p-1 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+              title="Minimizar reloj"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18 12H6" />
+              </svg>
+            </button>
+            <button
+              onClick={onStop}
+              className="p-1 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+              title="Detener descanso"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -241,7 +348,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         language: remoteData.language || 'es',
         weeklySnapshots: remoteData.weeklySnapshots || {},
         dayOverrides: remoteData.dayOverrides || {},
-        exerciseOverrides: remoteData.exerciseOverrides || {}
+        exerciseOverrides: remoteData.exerciseOverrides || {},
+        lastActiveDate: remoteData.lastActiveDate || null,
+        lastWorkoutFinished: remoteData.lastWorkoutFinished ?? false,
+        lastWorkoutDate: remoteData.lastWorkoutDate || null
       };
     }
 
@@ -257,13 +367,26 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         feelings: { ...(normalizedRemote.feelings || {}), ...(localData.feelings || {}) },
         weeklySnapshots: { ...(normalizedRemote.weeklySnapshots || {}), ...(localData.weeklySnapshots || {}) },
         dayOverrides: { ...(normalizedRemote.dayOverrides || {}), ...(localData.dayOverrides || {}) },
-        exerciseOverrides: { ...(normalizedRemote.exerciseOverrides || {}), ...(localData.exerciseOverrides || {}) }
+        exerciseOverrides: { ...(normalizedRemote.exerciseOverrides || {}), ...(localData.exerciseOverrides || {}) },
+        lastActiveDate: localData.lastActiveDate || normalizedRemote.lastActiveDate || null,
+        lastWorkoutFinished: localData.lastWorkoutFinished ?? normalizedRemote.lastWorkoutFinished ?? false,
+        lastWorkoutDate: localData.lastWorkoutDate || normalizedRemote.lastWorkoutDate || null
       };
     }
     return localData || normalizedRemote || null;
   };
 
   const savedData = getSavedData();
+
+  const todayDateStr = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  const savedActiveDate = savedData?.lastActiveDate || null;
+  const isDifferentDay = Boolean(savedActiveDate && savedActiveDate !== todayDateStr);
+  const wasWorkoutFinished = Boolean(savedData?.lastWorkoutFinished);
+  const [lastWorkoutFinished, setLastWorkoutFinished] = useState<boolean>(wasWorkoutFinished);
 
   const [completedSets, setCompletedSets] = useState<Record<string, boolean>>(savedData?.completedSets || {});
   const [clientWeights, setClientWeights] = useState<Record<string, string>>(savedData?.clientWeights || {});
@@ -341,10 +464,13 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
 
   // Tab & View Navigation
   const [activeTab, setActiveTab] = useState<'training' | 'overload'>('training');
-  // Navigation inside 'training': 'dashboard' (weeks + focus cards) | 'preview' (focus overview) | 'active' (workout mode)
+
+  // Navigation inside 'training': si cambió el día o se terminó el entrenamiento, arrancar siempre en dashboard
   const [viewMode, setViewMode] = useState<'dashboard' | 'preview' | 'active'>(() => {
+    if (isDifferentDay || wasWorkoutFinished) return 'dashboard';
     return (savedData?.activeViewMode as 'dashboard' | 'preview' | 'active') || 'dashboard';
   });
+
   // Helper para determinar automáticamente la semana correspondiente a la fecha actual según startDate
   const getAutoWeekId = () => {
     if (routine.startDate && routine.weeks && routine.weeks.length > 0) {
@@ -374,8 +500,53 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
     return savedData?.activeWeekId || routine.weeks[0]?.id || null;
   };
 
-  const [activeWeekId, setActiveWeekId] = useState<string | null>(getAutoWeekId);
-  const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(savedData?.activeWorkoutId || null);
+  // Helper para determinar el entrenamiento de hoy según el día de la semana y calendario
+  const getTodayWorkoutId = (targetWeekId: string | null): string | null => {
+    const week = routine.weeks.find(w => w.id === targetWeekId) || routine.weeks[0];
+    if (!week || !week.workouts || week.workouts.length === 0) return null;
+
+    const now = new Date();
+    const todayIndex = (now.getDay() + 6) % 7; // 0 = Lunes, 6 = Domingo
+
+    // 1. Revisar overrides para el día de hoy
+    const dayKey = `${week.id}_${todayIndex}`;
+    const override = (dayOverrides || {})[dayKey] || (savedData?.dayOverrides || {})[dayKey];
+    if (override && override !== 'rest') {
+      const found = week.workouts.find(w => w.id === override);
+      if (found) return found.id;
+    }
+
+    // 2. Buscar por dayOfWeek exacto
+    const matchingWorkout = week.workouts.find(w => w.dayOfWeek === todayIndex);
+    if (matchingWorkout) return matchingWorkout.id;
+
+    // 3. Fallback inteligente por posición en la semana
+    const unassigned = week.workouts.filter(w => w.dayOfWeek === undefined);
+    if (unassigned.length > 0) {
+      let defaultMap: number[] = [0];
+      if (unassigned.length === 2) defaultMap = [1, 3];
+      else if (unassigned.length === 3) defaultMap = [0, 2, 4];
+      else if (unassigned.length === 4) defaultMap = [0, 1, 3, 5];
+      else if (unassigned.length >= 5) defaultMap = [0, 1, 2, 3, 4];
+
+      const pos = defaultMap.indexOf(todayIndex);
+      if (pos !== -1 && pos < unassigned.length) {
+        return unassigned[pos].id;
+      }
+      return unassigned[0].id;
+    }
+
+    return week.workouts[0]?.id || null;
+  };
+
+  const autoWeekId = getAutoWeekId();
+  const [activeWeekId, setActiveWeekId] = useState<string | null>(autoWeekId);
+  const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(() => {
+    if (isDifferentDay || wasWorkoutFinished || !savedData?.activeWorkoutId) {
+      return getTodayWorkoutId(autoWeekId);
+    }
+    return savedData.activeWorkoutId;
+  });
   const [activeExerciseId, setActiveExerciseId] = useState<string | null>(savedData?.activeExerciseId || null);
 
   // Find active items
@@ -402,15 +573,33 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
           const members = currentWorkout.exercises
             .filter(e => e.supersetGroupId === entry.supersetGroupId)
             .sort((a, b) => (a.supersetOrder || 0) - (b.supersetOrder || 0));
-          items.push({
-            type: 'superset',
-            groupId: entry.supersetGroupId,
-            label: entry.supersetLabel || 'A',
-            members,
-            startIndex: idx
-          });
+          if (members.length >= 2) {
+            items.push({
+              type: 'superset',
+              groupId: entry.supersetGroupId,
+              label: entry.supersetLabel || 'A',
+              members,
+              startIndex: idx
+            });
+          } else {
+            items.push({
+              type: 'single',
+              entry,
+              originalIndex: idx
+            });
+          }
         }
       } else {
+        items.push({
+          type: 'single',
+          entry,
+          originalIndex: idx
+        });
+      }
+    });
+
+    return items;
+  }, [currentWorkout?.exercises]);
         items.push({
           type: 'single',
           entry,
@@ -946,7 +1135,10 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       language,
       weeklySnapshots: newSnapshots,
       dayOverrides,
-      exerciseOverrides
+      exerciseOverrides,
+      lastActiveDate: todayDateStr,
+      lastWorkoutFinished,
+      lastWorkoutDate: lastWorkoutFinished ? todayDateStr : (savedData?.lastWorkoutDate || null)
     };
 
     try {
@@ -999,7 +1191,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   // Immediate local save
   useEffect(() => {
     saveProgress(false);
-  }, [completedSets, clientWeights, clientReps, clientCardioMinutes, clientCardioIntensity, feelings, activeWeekId, activeWorkoutId, activeExerciseId, viewMode, language, dayOverrides]);
+  }, [completedSets, clientWeights, clientReps, clientCardioMinutes, clientCardioIntensity, feelings, activeWeekId, activeWorkoutId, activeExerciseId, viewMode, language, dayOverrides, lastWorkoutFinished]);
 
   // Debounced cloud sync (1.5 sec)
   useEffect(() => {
@@ -1008,7 +1200,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       saveProgress(true);
     }, 1500);
     return () => clearTimeout(timeoutId);
-  }, [completedSets, clientWeights, clientReps, clientCardioMinutes, clientCardioIntensity, feelings, activeWeekId, activeWorkoutId, activeExerciseId, viewMode, language, dayOverrides]);
+  }, [completedSets, clientWeights, clientReps, clientCardioMinutes, clientCardioIntensity, feelings, activeWeekId, activeWorkoutId, activeExerciseId, viewMode, language, dayOverrides, lastWorkoutFinished]);
 
   // Set toggle and rest trigger
   const handleSetToggle = (setKey: string, restTime: string, baseSetId?: string) => {
@@ -1219,6 +1411,8 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       setCompletedSets(updatedSets);
     }
 
+    setLastWorkoutFinished(true);
+    setViewMode('dashboard');
     setSyncStatus('syncing');
     await saveProgress(true);
 
@@ -1343,6 +1537,29 @@ ${feedbackText || 'Sin comentarios.'}
                 >
                   {t('keepEditing')}
                 </button>
+
+                <button
+                  onClick={() => {
+                    if (currentWorkout) {
+                      const updatedSets = { ...completedSets };
+                      currentWorkout.exercises.forEach(entry => {
+                        const activeLibId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
+                        entry.sets.forEach(s => {
+                          updatedSets[s.id] = true;
+                          if (activeLibId) updatedSets[`${s.id}_${activeLibId}`] = true;
+                        });
+                      });
+                      setCompletedSets(updatedSets);
+                    }
+                    setLastWorkoutFinished(true);
+                    setViewMode('dashboard');
+                    setShowFeedbackScreen(false);
+                    saveProgress(true);
+                  }}
+                  className="w-full py-2 text-zinc-500 hover:text-zinc-300 text-[11px] font-semibold uppercase tracking-wider transition-colors"
+                >
+                  {language === 'es' ? 'Terminar e ir al calendario sin enviar' : language === 'it' ? 'Termina e vai al calendario senza inviare' : 'Finish & return to calendar without sending'}
+                </button>
               </div>
             </>
           ) : (
@@ -1367,9 +1584,11 @@ ${feedbackText || 'Sin comentarios.'}
                     });
                     setCompletedSets(updatedSets);
                   }
+                  setLastWorkoutFinished(true);
                   setShowFeedbackScreen(false);
                   setIsSubmitted(false);
                   setViewMode('dashboard');
+                  saveProgress(true);
                 }}
                 className="w-full py-4 bg-white text-black font-bold uppercase tracking-wider rounded-full shadow-lg hover:bg-zinc-200 active:scale-95 transition-all text-sm"
               >
@@ -1605,7 +1824,21 @@ ${feedbackText || 'Sin comentarios.'}
               <button
                 onClick={() => {
                   setShowFinishModal(false);
+                  if (currentWorkout) {
+                    const updatedSets = { ...completedSets };
+                    currentWorkout.exercises.forEach(entry => {
+                      const activeLibId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
+                      entry.sets.forEach(s => {
+                        updatedSets[s.id] = true;
+                        if (activeLibId) updatedSets[`${s.id}_${activeLibId}`] = true;
+                      });
+                    });
+                    setCompletedSets(updatedSets);
+                  }
+                  setLastWorkoutFinished(true);
+                  setViewMode('dashboard');
                   setShowFeedbackScreen(true);
+                  saveProgress(true);
                 }}
                 className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-display text-lg uppercase tracking-wider rounded-none active:scale-95 transition-all"
               >
@@ -1678,6 +1911,7 @@ ${feedbackText || 'Sin comentarios.'}
               onSelectWorkout={(wkId) => {
                 initAudio();
                 setActiveWorkoutId(wkId);
+                setLastWorkoutFinished(false);
                 setViewMode('active');
               }}
               language={language}
@@ -1953,6 +2187,7 @@ ${feedbackText || 'Sin comentarios.'}
                 <button
                   onClick={() => {
                     initAudio();
+                    setLastWorkoutFinished(false);
                     setViewMode('active');
                   }}
                   className="w-full py-4 px-6 bg-white hover:bg-zinc-200 text-black font-display font-black text-xl tracking-wider uppercase rounded-none active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-white/10"
@@ -1997,6 +2232,7 @@ ${feedbackText || 'Sin comentarios.'}
                         <div
                           onClick={() => {
                             initAudio();
+                            setLastWorkoutFinished(false);
                             setViewMode('active');
                             setTimeout(() => {
                               const el = document.getElementById(`exercise-${entry.id}`);
@@ -2057,6 +2293,7 @@ ${feedbackText || 'Sin comentarios.'}
                             type="button"
                             onClick={() => {
                               initAudio();
+                              setLastWorkoutFinished(false);
                               setViewMode('active');
                               setTimeout(() => {
                                 const el = document.getElementById(`exercise-${entry.id}`);
@@ -2593,7 +2830,17 @@ ${feedbackText || 'Sin comentarios.'}
                                     const currentWeight = clientWeights[setKey] !== undefined ? clientWeights[setKey] : (mReplaced ? '' : (clientWeights[set.id] !== undefined ? clientWeights[set.id] : set.kg));
                                     const currentReps = clientReps[setKey] !== undefined ? clientReps[setKey] : (clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps);
                                     const isWarmupSet = false;
-                                    const isLastInRound = mIdx === item.members.length - 1;
+                                    // Determinar si este ejercicio es efectivamente el último con serie en esta ronda
+                                    const isLastInRound = !item.members.slice(mIdx + 1).some(nextMember => {
+                                      const nextWorkingSets = (nextMember.sets || []).filter(s => s.type !== 'warmup');
+                                      return !!nextWorkingSets[roundIdx];
+                                    });
+
+                                    const groupSupersetRest = member.supersetRest || item.members.find(m => m.supersetRest)?.supersetRest || '0:00';
+                                    const groupFinalRest = member.supersetFinalRest || item.members.find(m => m.supersetFinalRest)?.supersetFinalRest || '2:30';
+                                    const effectiveRest = isLastInRound
+                                      ? groupFinalRest
+                                      : (groupSupersetRest && groupSupersetRest !== '0:00' ? groupSupersetRest : (set.rest && set.rest !== '2:00' && set.rest !== '0:00' ? set.rest : '0:00'));
 
                                     return (
                                       <div key={set.id} className="space-y-1.5">
@@ -2655,10 +2902,17 @@ ${feedbackText || 'Sin comentarios.'}
                                             <button
                                               type="button"
                                               onClick={() => {
-                                                const effectiveRest = isLastInRound
-                                                  ? (member.supersetFinalRest || '2:30')
-                                                  : (member.supersetRest || '0:00');
                                                 handleSetToggle(setKey, effectiveRest, set.id);
+                                                // Cambiar la pestaña de la superserie hacia el siguiente ejercicio de la ronda para mostrar sus datos
+                                                if (!isLastInRound) {
+                                                  const nextMember = item.members.slice(mIdx + 1).find(nm => {
+                                                    const nw = (nm.sets || []).filter(s => s.type !== 'warmup');
+                                                    return !!nw[roundIdx];
+                                                  });
+                                                  if (nextMember) {
+                                                    setSelectedSupersetTab(prev => ({ ...prev, [item.groupId]: nextMember.id }));
+                                                  }
+                                                }
                                               }}
                                               className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all active:scale-90 ${
                                                 isDone
