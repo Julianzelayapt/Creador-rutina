@@ -58,6 +58,14 @@ export interface Week {
   workouts: Workout[];
 }
 
+export interface ExerciseHistoryEntry {
+  date: string; // YYYY-MM-DD
+  maxKg: number;
+  reps?: string;
+  weekName?: string;
+  workoutName?: string;
+}
+
 export interface ClientProgress {
   completedSets: Record<string, boolean>;
   clientWeights: Record<string, string>;
@@ -71,6 +79,8 @@ export interface ClientProgress {
   activeViewMode?: 'dashboard' | 'preview' | 'active';
   language: 'es' | 'en' | 'it';
   weeklySnapshots?: Record<string, Record<string, number>>; // { weekId: { exerciseId: avgKg } }
+  exerciseHistory?: Record<string, ExerciseHistoryEntry[]>; // { [exerciseId]: ExerciseHistoryEntry[] }
+  snapshots?: any[];
   dayOverrides?: Record<string, string>; // e.g. { "weekId_dayIndex": workoutId | 'rest' }
   exerciseOverrides?: Record<string, string>; // e.g. { entryId: alternativeExerciseId }
   lastActiveDate?: string;

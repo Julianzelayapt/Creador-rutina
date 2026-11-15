@@ -117,6 +117,7 @@ const parseRoutineData = (rawRecord: any): Routine | null => {
         activeViewMode: rawProgress.activeViewMode || null,
         language: rawProgress.language || 'es',
         weeklySnapshots: rawProgress.weeklySnapshots || {},
+        exerciseHistory: rawProgress.exerciseHistory || {},
         dayOverrides: rawProgress.dayOverrides || {},
         exerciseOverrides: rawProgress.exerciseOverrides || {},
         lastActiveDate: rawProgress.lastActiveDate || null,
@@ -443,10 +444,16 @@ const App: React.FC = () => {
         const remoteProgress = remoteData.data.clientProgress || remoteData.data.clientState;
         if (remoteProgress) {
           latestClientProgress = {
+            ...(latestClientProgress || {}),
+            ...(remoteProgress || {}),
             completedSets: { ...(latestClientProgress?.completedSets || {}), ...(remoteProgress.completedSets || {}) },
             clientWeights: { ...(latestClientProgress?.clientWeights || {}), ...(remoteProgress.clientWeights || {}) },
             clientReps: { ...(latestClientProgress?.clientReps || {}), ...(remoteProgress.clientReps || {}) },
             feelings: { ...(latestClientProgress?.feelings || {}), ...(remoteProgress.feelings || {}) },
+            weeklySnapshots: { ...(latestClientProgress?.weeklySnapshots || {}), ...(remoteProgress.weeklySnapshots || {}) },
+            exerciseHistory: { ...(latestClientProgress?.exerciseHistory || {}), ...(remoteProgress.exerciseHistory || {}) },
+            dayOverrides: { ...(latestClientProgress?.dayOverrides || {}), ...(remoteProgress.dayOverrides || {}) },
+            exerciseOverrides: { ...(latestClientProgress?.exerciseOverrides || {}), ...(remoteProgress.exerciseOverrides || {}) },
             snapshots: [
               ...(latestClientProgress?.snapshots || []),
               ...(remoteProgress.snapshots || []).filter(

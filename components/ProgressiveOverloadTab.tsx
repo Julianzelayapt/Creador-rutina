@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Routine, Exercise } from '../types';
+import { Routine, Exercise, ExerciseHistoryEntry } from '../types';
 import { getExerciseCoverImage, isYouTubeShort, onYTThumbLoad, onYTThumbError } from './exerciseMediaUtils';
 
 interface ProgressiveOverloadTabProps {
   routine: Routine;
   library: Exercise[];
   weeklySnapshots: Record<string, Record<string, number>>;
+  exerciseHistory?: Record<string, ExerciseHistoryEntry[]>;
   language: 'es' | 'en' | 'it';
 }
 
-const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine, library, weeklySnapshots, language }) => {
+const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine, library, weeklySnapshots, exerciseHistory, language }) => {
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       es: {
@@ -67,12 +68,21 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
       });
     });
 
+    // También incluir ejercicios que tengan registros históricos aunque no estén en las semanas activas
+    if (exerciseHistory) {
+      Object.keys(exerciseHistory).forEach(id => {
+        if (exerciseHistory[id] && exerciseHistory[id].length > 0) {
+          ids.add(id);
+        }
+      });
+    }
+
     // Filtrar estrictamente solo ejercicios que existen en la biblioteca y pertenecen a esta rutina
     return Array.from(ids).filter(id => {
       const ex = library.find(l => l.id === id);
       return !!ex && !!ex.name;
     });
-  }, [routine, library]);
+  }, [routine, library, exerciseHistory]);
 
   const [selectedExId, setSelectedExId] = useState<string>(uniqueExerciseIds[0] || '');
 
@@ -190,36 +200,71 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {routine.weeks.map((week, wIdx) => {
-                    const avgKg = weeklySnapshots[week.id]?.[exId];
-                    if (avgKg === undefined) return null;
+                  {(() => {
+                    const historyLogs = exerciseHistory?.[exId] || [];
+                    const rows: Array<{
+                      id: string;
+                      label: string;
+                      date?: string;
+                      avgKg: number;
+                      reps?: string;
+                    }> = historyLogs.map((log, idx) => ({
+                      id: `hist_${log.date}_${idx}`,
+                      label: log.weekName ? getTranslatedWeekName(log.weekName) : (log.date || `${t('week')} ${idx + 1}`),
+                      date: log.date,
+                      avgKg: log.maxKg,
+                      reps: log.reps
+                    }));
 
-                    hasData = true;
+                    routine.weeks.forEach((week, wIdx) => {
+                      const avgKg = weeklySnapshots[week.id]?.[exId];
+                      if (avgKg !== undefined && avgKg > 0) {
+                        const weekLabel = getTranslatedWeekName(week.name, wIdx);
+                        const exists = rows.some(r => r.label === weekLabel);
+                        if (!exists) {
+                          rows.push({
+                            id: `week_${week.id}`,
+                            label: weekLabel,
+                            avgKg,
+                            date: undefined
+                          });
+                        }
+                      }
+                    });
 
-                    const delta = previousAvg > 0 ? Number((avgKg - previousAvg).toFixed(1)) : null;
-                    const percentChange = previousAvg > 0 ? Number(((delta! / previousAvg) * 100).toFixed(1)) : null;
+                    return rows.map((row) => {
+                      const avgKg = row.avgKg;
+                      hasData = true;
 
-                    previousAvg = avgKg;
+                      const delta = previousAvg > 0 ? Number((avgKg - previousAvg).toFixed(1)) : null;
+                      const percentChange = previousAvg > 0 ? Number(((delta! / previousAvg) * 100).toFixed(1)) : null;
 
-                    const radius = 12;
-                    const circumference = 2 * Math.PI * radius;
-                    let strokeDashoffset = circumference;
-                    let colorClass = 'text-zinc-400';
+                      previousAvg = avgKg;
 
-                    if (percentChange !== null) {
-                      const fillPercentage = Math.min(Math.max(Math.abs(percentChange), 0), 100);
-                      strokeDashoffset = circumference - (fillPercentage / 100) * circumference;
-                      colorClass = percentChange > 0 ? 'text-emerald-400' : 'text-rose-400';
-                    }
+                      const radius = 12;
+                      const circumference = 2 * Math.PI * radius;
+                      let strokeDashoffset = circumference;
+                      let colorClass = 'text-zinc-400';
 
-                    return (
-                      <tr key={week.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3.5 text-left pl-2 font-medium text-xs text-zinc-200">
-                          {getTranslatedWeekName(week.name, wIdx)}
-                        </td>
-                        <td className="py-3.5 font-bold text-sm text-white font-mono">
-                          {avgKg} <span className="text-[10px] font-normal text-zinc-400">kg</span>
-                        </td>
+                      if (percentChange !== null) {
+                        const fillPercentage = Math.min(Math.max(Math.abs(percentChange), 0), 100);
+                        strokeDashoffset = circumference - (fillPercentage / 100) * circumference;
+                        colorClass = percentChange > 0 ? 'text-emerald-400' : 'text-rose-400';
+                      }
+
+                      return (
+                        <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3.5 text-left pl-2 font-medium text-xs text-zinc-200">
+                            <div>{row.label}</div>
+                            {row.date && (
+                              <div className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                                {row.date} {row.reps ? `· ${row.reps} reps` : ''}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3.5 font-bold text-sm text-white font-mono">
+                            {avgKg} <span className="text-[10px] font-normal text-zinc-400">kg</span>
+                          </td>
                         <td className="py-3.5">
                           {delta !== null ? (
                             <span className={`inline-block font-mono font-bold text-xs px-2 py-0.5 rounded-lg ${
@@ -288,9 +333,9 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                             <span className="text-zinc-600 font-bold">—</span>
                           )}
                         </td>
-                      </tr>
                     );
-                  })}
+                  });
+                })()}
                 </tbody>
               </table>
 

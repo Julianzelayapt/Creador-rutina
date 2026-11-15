@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import emailjs from '@emailjs/browser';
-import { Routine, Exercise } from '../types';
+import { Routine, Exercise, ExerciseHistoryEntry } from '../types';
 import { supabase } from '../supabase';
 import ProgressiveOverloadTab from './ProgressiveOverloadTab';
 import { ClientCalendarView } from './ClientCalendarView';
@@ -347,6 +347,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         activeViewMode: remoteData.activeViewMode || null,
         language: remoteData.language || 'es',
         weeklySnapshots: remoteData.weeklySnapshots || {},
+        exerciseHistory: remoteData.exerciseHistory || {},
         dayOverrides: remoteData.dayOverrides || {},
         exerciseOverrides: remoteData.exerciseOverrides || {},
         lastActiveDate: remoteData.lastActiveDate || null,
@@ -366,6 +367,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         clientCardioIntensity: { ...(normalizedRemote.clientCardioIntensity || {}), ...(localData.clientCardioIntensity || {}) },
         feelings: { ...(normalizedRemote.feelings || {}), ...(localData.feelings || {}) },
         weeklySnapshots: { ...(normalizedRemote.weeklySnapshots || {}), ...(localData.weeklySnapshots || {}) },
+        exerciseHistory: { ...(normalizedRemote.exerciseHistory || {}), ...(localData.exerciseHistory || {}) },
         dayOverrides: { ...(normalizedRemote.dayOverrides || {}), ...(localData.dayOverrides || {}) },
         exerciseOverrides: { ...(normalizedRemote.exerciseOverrides || {}), ...(localData.exerciseOverrides || {}) },
         lastActiveDate: localData.lastActiveDate || normalizedRemote.lastActiveDate || null,
@@ -406,6 +408,9 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   });
   const [language, setLanguage] = useState<'es' | 'en' | 'it'>(savedData?.language || 'es');
   const [weeklySnapshots, setWeeklySnapshots] = useState<Record<string, Record<string, number>>>(savedData?.weeklySnapshots || routine.clientProgress?.weeklySnapshots || {});
+  const [exerciseHistory, setExerciseHistory] = useState<Record<string, ExerciseHistoryEntry[]>>(() => {
+    return savedData?.exerciseHistory || routine.clientProgress?.exerciseHistory || {};
+  });
   const [dayOverrides, setDayOverrides] = useState<Record<string, string>>(savedData?.dayOverrides || routine.clientProgress?.dayOverrides || {});
 
   const [displayMode, setDisplayMode] = useState<'calendar' | 'classic'>(() => {
@@ -600,16 +605,6 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
 
     return items;
   }, [currentWorkout?.exercises]);
-        items.push({
-          type: 'single',
-          entry,
-          originalIndex: idx
-        });
-      }
-    });
-
-    return items;
-  }, [currentWorkout?.exercises]);
 
   // Modals & UI States
   const [showFinishModal, setShowFinishModal] = useState<boolean>(false);
@@ -758,7 +753,9 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         watchVideo: 'Ver video instructivo',
         coachTipTitle: 'Tip del coach:',
         noRecord: 'Sin registro',
-        ratingRequired: 'Por favor selecciona una puntuación con las estrellas.'
+        ratingRequired: 'Por favor selecciona una puntuación con las estrellas.',
+        lastSession: 'Último peso',
+        bestRecord: 'Récord personal'
       },
       en: {
         training: 'Training',
@@ -829,7 +826,9 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         watchVideo: 'Watch instructional video',
         coachTipTitle: "Coach's tip:",
         noRecord: 'No logs yet',
-        ratingRequired: 'Please select a rating with the stars.'
+        ratingRequired: 'Please select a rating with the stars.',
+        lastSession: 'Last weight',
+        bestRecord: 'Personal best'
       },
       it: {
         training: 'Allenamento',
@@ -900,7 +899,9 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
         watchVideo: 'Guarda video istruttivo',
         coachTipTitle: 'Consiglio del coach:',
         noRecord: 'Nessuna registrazione',
-        ratingRequired: 'Seleziona una valutazione con le stelle.'
+        ratingRequired: 'Seleziona una valutazione con le stelle.',
+        lastSession: 'Ultimo peso',
+        bestRecord: 'Record personale'
       }
     };
     return translations[language]?.[key] || translations['es']?.[key] || key;
@@ -1076,6 +1077,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
   // Save progress helper (local + Supabase)
   const saveProgress = async (syncToCloud = false) => {
     let newSnapshots = weeklySnapshots;
+    let newExerciseHistory = { ...exerciseHistory };
 
     // Solo recalcular snapshots pesados cuando sincroniza a la nube (debounced), evitando congelar el hilo táctil
     if (syncToCloud) {
@@ -1087,15 +1089,20 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
             const effectiveExId = exerciseOverrides[entry.id] || entry.libraryExerciseId;
             const isReplaced = effectiveExId !== entry.libraryExerciseId;
             let maxKg = 0;
+            let bestReps = '';
             let hasSets = false;
             entry.sets.forEach(set => {
               const setKey = isReplaced ? `${set.id}_${effectiveExId}` : set.id;
               const completed = completedSets[setKey] !== undefined ? completedSets[setKey] : completedSets[set.id];
               if (completed) {
                 const weightVal = clientWeights[setKey] !== undefined ? clientWeights[setKey] : clientWeights[set.id];
+                const repsVal = clientReps[setKey] !== undefined ? clientReps[setKey] : (clientReps[set.id] !== undefined ? clientReps[set.id] : set.reps);
                 const kg = parseFloat(weightVal !== undefined ? weightVal : (isReplaced ? '' : set.kg));
                 if (!isNaN(kg)) {
-                  if (kg > maxKg) maxKg = kg;
+                  if (kg > maxKg) {
+                    maxKg = kg;
+                    bestReps = repsVal || set.reps || '';
+                  }
                   hasSets = true;
                 }
               }
@@ -1105,6 +1112,27 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
                 currentWeekSnapshot[effectiveExId] = Math.max(currentWeekSnapshot[effectiveExId], maxKg);
               } else {
                 currentWeekSnapshot[effectiveExId] = maxKg;
+              }
+
+              if (maxKg > 0) {
+                const logs = newExerciseHistory[effectiveExId] ? [...newExerciseHistory[effectiveExId]] : [];
+                const existingIdx = logs.findIndex(l => l.date === todayDateStr);
+                const historyEntry: ExerciseHistoryEntry = {
+                  date: todayDateStr,
+                  maxKg,
+                  reps: bestReps,
+                  weekName: week.name || 'Semana',
+                  workoutName: workout.name || 'Día'
+                };
+                if (existingIdx >= 0) {
+                  if (maxKg >= logs[existingIdx].maxKg) {
+                    logs[existingIdx] = historyEntry;
+                  }
+                } else {
+                  logs.push(historyEntry);
+                  logs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                }
+                newExerciseHistory[effectiveExId] = logs;
               }
             }
           });
@@ -1118,6 +1146,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
 
       if (activeWeekId && Object.keys(currentWeekSnapshot).length > 0) {
         setWeeklySnapshots(newSnapshots);
+        setExerciseHistory(newExerciseHistory);
       }
     }
 
@@ -1134,6 +1163,7 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       activeViewMode: viewMode,
       language,
       weeklySnapshots: newSnapshots,
+      exerciseHistory: newExerciseHistory,
       dayOverrides,
       exerciseOverrides,
       lastActiveDate: todayDateStr,
@@ -1304,6 +1334,35 @@ const ClientView: React.FC<ClientViewProps> = ({ routine: initialRoutine, librar
       return rest ? `${t('week')} ${num} · ${rest}` : `${t('week')} ${num}`;
     }
     return trimmed;
+  };
+
+  const getExerciseRecord = (exerciseId: string) => {
+    const logs = exerciseHistory[exerciseId];
+    if (!logs || logs.length === 0) {
+      let fallbackMax = 0;
+      if (routine.weeks && weeklySnapshots) {
+        routine.weeks.forEach(w => {
+          const kg = weeklySnapshots[w.id]?.[exerciseId];
+          if (kg && kg > fallbackMax) fallbackMax = kg;
+        });
+      }
+      if (fallbackMax > 0) {
+        return { lastKg: fallbackMax, bestKg: fallbackMax, lastReps: '', lastDate: '' };
+      }
+      return null;
+    }
+    const last = logs[logs.length - 1];
+    let best = logs[0];
+    logs.forEach(l => {
+      if (l.maxKg > best.maxKg) best = l;
+    });
+    return {
+      lastKg: last.maxKg,
+      lastReps: last.reps,
+      lastDate: last.date,
+      bestKg: best.maxKg,
+      bestReps: best.reps
+    };
   };
 
   const currentWorkoutDisplayTitle = currentWorkout
@@ -1884,6 +1943,7 @@ ${feedbackText || 'Sin comentarios.'}
             routine={routine}
             library={library}
             weeklySnapshots={weeklySnapshots}
+            exerciseHistory={exerciseHistory}
             language={language}
           />
         </div>
@@ -3184,6 +3244,28 @@ ${feedbackText || 'Sin comentarios.'}
                               </div>
                             </div>
                           )}
+
+                          {/* Referencia de Peso Histórico */}
+                          {(() => {
+                            const record = getExerciseRecord(activeLibId);
+                            if (!record) return null;
+                            return (
+                              <div className="p-2.5 bg-[#141720] border-l-2 border-yellow-400 rounded-none flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-black text-yellow-400 uppercase tracking-wider">⚡ {t('lastSession')}</span>
+                                  <span className="font-mono font-bold text-white text-xs">{record.lastKg} kg</span>
+                                  {record.lastReps && <span className="text-zinc-400 font-mono text-[11px]">× {record.lastReps} reps</span>}
+                                  {record.lastDate && <span className="text-zinc-500 text-[10px]">({record.lastDate})</span>}
+                                </div>
+                                {record.bestKg > record.lastKg && (
+                                  <div className="hidden sm:flex items-center gap-1.5 text-zinc-400 text-[11px]">
+                                    <span>🏆 {t('bestRecord')}:</span>
+                                    <span className="font-mono font-bold text-yellow-400">{record.bestKg} kg</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
 
                           {/* Sets List (Separación clara Calentamiento / Efectivas / Cardio) */}
                           <div className="space-y-4 pt-2">
