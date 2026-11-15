@@ -333,6 +333,7 @@ const ProgressiveOverloadTab: React.FC<ProgressiveOverloadTabProps> = ({ routine
                             <span className="text-zinc-600 font-bold">—</span>
                           )}
                         </td>
+                      </tr>
                     );
                   });
                 })()}
